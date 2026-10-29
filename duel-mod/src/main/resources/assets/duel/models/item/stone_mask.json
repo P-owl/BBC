@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "duel:item/stone_mask" },
+  "display": {
+    "head": { "rotation": [0, 180, 0], "translation": [0, -3.25, -7.6], "scale": [0.95, 0.95, 0.95] }
+  }
+}

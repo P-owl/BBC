@@ -1,0 +1,41 @@
+{
+  "texture_size": [16, 16],
+  "textures": {
+    "t": "duel:item/alchemy_glove_worn",
+    "particle": "duel:item/alchemy_glove_worn"
+  },
+  "elements": [
+    {
+      "name": "glove",
+      "from": [5.95, 5.95, 4.4], "to": [10.05, 10.05, 8.0],
+      "faces": {
+        "north": {"uv": [0, 0, 4.1, 4.1], "texture": "#t"},
+        "east":  {"uv": [8, 0, 13, 5], "texture": "#t"},
+        "west":  {"uv": [0, 0, 3.6, 4.1], "texture": "#t"},
+        "up":    {"uv": [0, 0, 4.1, 3.6], "texture": "#t"},
+        "down":  {"uv": [0, 4, 4.1, 7.6], "texture": "#t"}
+      }
+    },
+    {
+      "name": "band",
+      "from": [5.75, 5.75, 8.0], "to": [10.25, 10.25, 9.6],
+      "faces": {
+        "north": {"uv": [0, 8, 4.5, 12], "texture": "#t"},
+        "south": {"uv": [0, 8, 4.5, 12], "texture": "#t"},
+        "east":  {"uv": [0, 8, 4.5, 12], "texture": "#t", "rotation": 90},
+        "west":  {"uv": [0, 8, 4.5, 12], "texture": "#t", "rotation": 90},
+        "up":    {"uv": [0, 8, 4.5, 12], "texture": "#t"},
+        "down":  {"uv": [0, 8, 4.5, 12], "texture": "#t"}
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, -2, 3.6], "scale": [1, 1, 1]},
+    "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, -2, 3.6], "scale": [1, 1, 1]},
+    "firstperson_righthand": {"rotation": [10, 0, 90], "translation": [1.5, 1, 0], "scale": [0.9, 0.9, 0.9]},
+    "firstperson_lefthand":  {"rotation": [10, 0, 90], "translation": [1.5, 1, 0], "scale": [0.9, 0.9, 0.9]},
+    "gui":    {"rotation": [25, -135, 90], "translation": [0, 0, 0], "scale": [2.6, 2.6, 2.6]},
+    "ground": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [1, 1, 1]},
+    "fixed":  {"rotation": [0, 90, 90], "translation": [0, 0, 0], "scale": [2, 2, 2]}
+  }
+}

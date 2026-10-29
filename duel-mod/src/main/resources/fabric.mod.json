@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "duel",
+  "version": "${version}",
+  "name": "Muhyeon Forced Duel",
+  "description": "결투 장갑으로 플레이어에게 강제로 포켓몬 배틀을 겁니다.",
+  "authors": [
+    "Plant"
+  ],
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "bus.muhyeon.duel.DuelMod"
+    ],
+    "client": [
+      "bus.muhyeon.duel.DuelClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.21.1",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*",
+    "cobblemon": ">=1.7.1"
+  },
+  "mixins": [
+    "duel.mixins.json"
+  ]
+}

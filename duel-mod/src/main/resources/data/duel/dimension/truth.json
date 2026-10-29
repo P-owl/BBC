@@ -1,0 +1,18 @@
+{
+  "type": "duel:truth",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "duel:truth",
+      "layers": [
+        {
+          "block": "minecraft:air",
+          "height": 1
+        }
+      ],
+      "lakes": false,
+      "features": false,
+      "structure_overrides": []
+    }
+  }
+}
