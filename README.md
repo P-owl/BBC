@@ -6,5 +6,8 @@
 | --- | --- |
 | `duel-mod/` | 무현버스(코블몬) 서버용 duel 모드 — Fabric 1.21.1 |
 
-## 빌드
-`duel-mod/빌드하는법.md` 참고. gradlew 래퍼 파일은 PC의 C:\duel 에 있는 것을 같이 쓴다.
+## 받아서 빌드하기 (Windows)
+1. GitHub Desktop에서 이 저장소를 Clone (처음 한 번).
+2. 새 작업이 올라오면 GitHub Desktop에서 **Fetch origin → Pull origin**.
+3. `duel-mod` 폴더에서 `gradlew.bat build` 실행.
+4. 결과 jar: `duel-mod/build/libs/`.
