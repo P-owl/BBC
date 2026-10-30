@@ -11,7 +11,7 @@ Fabric 1.21.1. 코블몬 없이 단독으로 돈다. 기획은 claude.ai의 "도
 | --- | --- | --- |
 | 저장 | `core/PlayerData` | 플레이어별 직업·자유 데이터 + 서버 전체 기록 (`bbc_players.dat`) |
 | 직업 틀 | `job/JobType`, `job/Jobs` | 직업 등록·바꾸기·등급 |
-| 기술 | `job/JobSkills`, `job/SkillMenu` | 직업 기술 풀에서 5개를 Z·X·C·V·B 칸에 장착 |
+| 기술 | `job/JobSkills`, `job/SkillMenu` | 직업 기술 풀에서 5개를 1~5 칸에 장착 |
 | 자원 | `job/Stamina` | 스태미나 + 전투 모드 보스바 |
 | 전투 모드 | `combat/CombatMode` | ` 키로 켜고 끔, 액션바에 가드 게이지·회피기·칸 상태 |
 | **전투 엔진 (1단계)** | `combat/Combat`, `Fighter`, `Hit`, `Tuning` | 경직·공중 경직·다운·기상 무적, 평타 5타·띄우기·공중 3타·내려찍기·래더, 가드·패링·가드 깨짐, 대시·대시 캔슬·회피기, 콤보 보정 |
