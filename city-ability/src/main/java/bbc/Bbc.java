@@ -9,6 +9,7 @@ import bbc.job.Stamina;
 import bbc.job.TraineeJob;
 import bbc.net.CombatStatePayload;
 import bbc.net.KeyPayload;
+import bbc.net.MotionPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -24,6 +25,7 @@ public class Bbc implements ModInitializer {
     public void onInitialize() {
         PayloadTypeRegistry.playC2S().register(KeyPayload.ID, KeyPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CombatStatePayload.ID, CombatStatePayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(MotionPayload.ID, MotionPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(KeyPayload.ID,
                 (payload, ctx) -> ctx.server().execute(() -> CombatMode.onKey(ctx.player(), payload.action())));
 

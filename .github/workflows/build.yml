@@ -37,7 +37,18 @@ jobs:
         working-directory: ${{ matrix.dir }}
         run: |
           chmod +x gradlew
-          ./gradlew build --no-daemon
+          set -o pipefail
+          ./gradlew build --no-daemon 2>&1 | tee build.log
+
+      # 실패하면 로그를 build-log-<폴더> 릴리스에 올려서 밖에서도 읽을 수 있게 함
+      - name: Publish failure log
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete build-log-${{ matrix.dir }} --yes --cleanup-tag || true
+          gh release create build-log-${{ matrix.dir }} "${{ matrix.dir }}/build.log" \
+            --title "빌드 실패 로그 (${{ matrix.dir }})" --notes "커밋 ${GITHUB_SHA::7}" --target "$GITHUB_SHA" --latest=false --prerelease
 
       - name: Pick jar
         id: jar

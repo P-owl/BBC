@@ -1,0 +1,40 @@
+{
+ "name": "dash_l",
+ "author": "bbc",
+ "description": "",
+ "emote": {
+  "isLoop": false,
+  "returnTick": 0,
+  "beginTick": 0,
+  "endTick": 7,
+  "stopTick": 10,
+  "degrees": true,
+  "nsfw": false,
+  "moves": [
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "body": {
+     "roll": -14
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightArm": {
+     "roll": 40
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftArm": {
+     "roll": -15
+    }
+   }
+  ]
+ }
+}

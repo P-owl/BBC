@@ -104,6 +104,29 @@ public final class Combat {
         return t;
     }
 
+    /** 공중 콤보 중인가 (기술이 공중판으로 바뀌는 기준) */
+    public static boolean inAirCombo(ServerPlayerEntity p) {
+        Fighter f = peek(p);
+        return f != null && !p.isOnGround() && now < f.airComboUntil;
+    }
+
+    /**
+     * 기술을 쓴 뒤 호출. 평타 사슬을 이어 주고(기술 → 평타 → 기술 연계), 공중이면 체공을 늘리고 공중 평타를 다시 3번 쓸 수 있게 한다.
+     */
+    public static void afterSkill(ServerPlayerEntity p, int recovery) {
+        Fighter f = of(p);
+        f.m1ReadyAt = Math.max(f.m1ReadyAt, now + recovery);
+        f.recoveryUntil = f.m1ReadyAt;
+        f.m1ChainUntil = f.m1ReadyAt + Tuning.CHAIN_RESET;
+        if (!p.isOnGround() && now < f.airComboUntil + 10) {
+            f.airComboUntil = Math.max(f.airComboUntil, now + 30);
+            f.airHits = 0;
+        }
+    }
+
+    /** 기술용: 속도를 바로 넣음 (플레이어면 즉시 전송) */
+    public static void move(LivingEntity e, Vec3d v) { setVel(e, v); }
+
     /** 전투 모드를 끌 때 가드 같은 입력 상태를 지움 */
     public static void releaseInputs(ServerPlayerEntity p) {
         Fighter f = peek(p);
@@ -129,7 +152,7 @@ public final class Combat {
         boolean air = !p.isOnGround() && now < a.airComboUntil;
         if (air) {
             if (a.airHits < 3) {
-                swing(p, a, Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                swing(p, a, "air_" + (a.airHits + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
                     hitCone(p, Tuning.AIR_M1, false);
                     a.airHits++;
                     a.lastAirHitAt = now;
@@ -137,7 +160,7 @@ public final class Combat {
                     setVel(p, new Vec3d(p.getVelocity().x * 0.3, 0.12, p.getVelocity().z * 0.3));
                 });
             } else if (up && now - a.lastAirHitAt >= Tuning.LADDER_PAUSE) {
-                swing(p, a, Tuning.LAUNCH_STARTUP, Tuning.LAUNCH_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
+                swing(p, a, "launch", Tuning.LAUNCH_STARTUP, Tuning.LAUNCH_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
                     if (hitCone(p, Tuning.LADDER, true) > 0) {
                         a.airHits = 0;
                         a.airComboUntil = now + 40;
@@ -145,7 +168,7 @@ public final class Combat {
                     }
                 });
             } else {
-                swing(p, a, Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
+                swing(p, a, "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
                     hitCone(p, Tuning.SLAM, false);
                     a.airHits = 0;
                     a.airComboUntil = 0;
@@ -158,7 +181,7 @@ public final class Combat {
         int idx = a.m1Index;
         if (idx == 3 && up) {
             a.m1Index = 0;
-            swing(p, a, Tuning.LAUNCH_STARTUP, Tuning.LAUNCH_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
+            swing(p, a, "launch", Tuning.LAUNCH_STARTUP, Tuning.LAUNCH_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
                 if (hitCone(p, Tuning.LAUNCH, false) > 0) {
                     a.airHits = 0;
                     a.airComboUntil = now + 40;
@@ -167,18 +190,19 @@ public final class Combat {
             });
         } else if (idx >= 4) {
             a.m1Index = 0;
-            swing(p, a, Tuning.FINISH_STARTUP, Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
+            swing(p, a, "m1_5", Tuning.FINISH_STARTUP, Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
                     () -> hitCone(p, Tuning.FINISH, false));
         } else {
             a.m1Index++;
-            swing(p, a, Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
+            swing(p, a, "m1_" + (idx + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
                     () -> hitCone(p, Tuning.M1, false));
         }
     }
 
     /** 휘두르기 시작 → 선딜 뒤 판정. 그사이 맞아서 경직되면 취소된다 */
-    private static void swing(ServerPlayerEntity p, Fighter a, int startup, int recovery, SoundEvent sfx, Runnable resolve) {
+    private static void swing(ServerPlayerEntity p, Fighter a, String motion, int startup, int recovery, SoundEvent sfx, Runnable resolve) {
         int tok = ++a.token;
+        Motion.play(p, motion);
         a.m1ReadyAt = now + startup + 1 + recovery;
         a.recoveryUntil = a.m1ReadyAt;
         a.m1ChainUntil = a.m1ReadyAt + Tuning.CHAIN_RESET;
@@ -202,6 +226,11 @@ public final class Combat {
             if (hit(p, t, h) != Result.MISS) n++;
         }
         return n;
+    }
+
+    /** 기술용: 앞쪽 부채꼴 안의 대상 (가까운 순) */
+    public static List<LivingEntity> targets(LivingEntity a, double range, double halfAngleDeg, int max) {
+        return cone(a, range, halfAngleDeg, max);
     }
 
     private static List<LivingEntity> cone(LivingEntity a, double range, double halfAngleDeg, int max) {
@@ -255,6 +284,10 @@ public final class Combat {
             return Result.BLOCKED;
         }
 
+        // 공중에 떠 있는 상대에게 지상 경직 기술이 맞으면 공중 경직으로 (기술로 공중 콤보 연계)
+        boolean airborne = v.state == Fighter.State.AIR || (v.stunned() && !t.isOnGround() && v.state != Fighter.State.DOWN);
+        if (h.kind() == Hit.Kind.HIT && airborne) h = new Hit(h.damage(), Hit.Kind.AIR, h.stun(), h.push() * 0.6, 0.12, h.guardDmg(), h.guardBreak(), h.downHit());
+
         // 콤보 보정
         Fighter a = of(atk);
         if (v.comboHits == 0) { v.comboDamage = 0; v.ladderUsed = false; }
@@ -277,6 +310,14 @@ public final class Combat {
             case HIT -> new Vec3d(dir.x * h.push(), Math.min(t.getVelocity().y, 0.0), dir.z * h.push());
             case AIR, KNOCK, DOWN -> new Vec3d(dir.x * h.push(), h.lift(), dir.z * h.push());
         };
+        boolean atkInAir = !atk.isOnGround();
+        if (h.kind() == Hit.Kind.AIR && atkInAir && h.lift() < 0.3) {
+            // 공중에서 때릴 땐 상대를 내 앞 1.7칸에 붙잡아 둔다 (간격이 벌어져 콤보가 끊기지 않게)
+            Vec3d want = atk.getPos().add(horizontal(atk.getRotationVec(1f)).multiply(1.7));
+            Vec3d pull = want.subtract(t.getPos()).multiply(0.35);
+            vel = new Vec3d(clamp(pull.x, 0.6), h.lift(), clamp(pull.z, 0.6));
+            if (atk instanceof ServerPlayerEntity sp) setVel(sp, new Vec3d(atk.getVelocity().x * 0.3, Math.max(atk.getVelocity().y, h.lift()), atk.getVelocity().z * 0.3));
+        }
         setVel(t, vel);
 
         // 상태
@@ -290,6 +331,7 @@ public final class Combat {
             case DOWN -> setState(v, Fighter.State.DOWN, stun + 8); // 떨어지는 시간 포함
             case KNOCK -> setState(v, Fighter.State.DOWN, stun + 10);
         }
+        Motion.play(t, switch (h.kind()) { case HIT -> "hit"; case AIR -> "hit_air"; default -> "knock"; });
 
         // 연출
         ServerWorld w = (ServerWorld) t.getWorld();
@@ -327,6 +369,8 @@ public final class Combat {
         Vec3d c = v.e.getEyePos();
         w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, 14, 0.3, 0.3, 0.3, 0.3);
         sound(v.e, SoundEvents.ITEM_SHIELD_BLOCK, 1f, 1.8f);
+        Motion.play(v.e, "parry");
+        Motion.play(atk, "hit");
         if (v.e instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "✦ 패링!", Formatting.AQUA);
         if (atk instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "패링당했다", Formatting.RED);
     }
@@ -349,9 +393,14 @@ public final class Combat {
 
     public static void guard(ServerPlayerEntity p, boolean down) {
         Fighter f = of(p);
-        if (!down) { f.guardHeld = false; return; }
+        if (!down) {
+            if (f.guardHeld && !f.stunned()) Motion.play(p, "stop");
+            f.guardHeld = false;
+            return;
+        }
         if (f.guardHeld) return;
         f.guardHeld = true;
+        if (!f.stunned()) Motion.play(p, "guard");
         if (now >= f.parryLockUntil) {
             f.parryUntil = now + Tuning.PARRY_WINDOW;
             f.parryLockUntil = now + Tuning.PARRY_WINDOW + Tuning.PARRY_FAIL_LOCK;
@@ -376,6 +425,7 @@ public final class Combat {
         f.dashTicks = Tuning.DASH_TICKS;
         f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
         f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
+        Motion.play(p, switch (dir) { case 1 -> "dash_b"; case 2 -> "dash_l"; case 3 -> "dash_r"; default -> "dash_f"; });
         sound(p, SoundEvents.ENTITY_PHANTOM_FLAP, 0.6f, 1.6f);
         ((ServerWorld) p.getWorld()).spawnParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.2, p.getZ(), 6, 0.3, 0.05, 0.3, 0.02);
     }
@@ -390,6 +440,7 @@ public final class Combat {
         Vec3d away = from != null ? horizontal(p.getPos().subtract(from.getPos())) : p.getRotationVec(1f).negate().multiply(1, 0, 1).normalize();
         setVel(p, away.multiply(Tuning.EVADE_PUSH).add(0, 0.3, 0));
         endCombo(f);
+        Motion.play(p, "evade");
         sound(p, SoundEvents.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
         ((ServerWorld) p.getWorld()).spawnParticles(ParticleTypes.POOF, p.getX(), p.getY() + 1, p.getZ(), 12, 0.3, 0.5, 0.3, 0.05);
     }
@@ -423,7 +474,8 @@ public final class Combat {
                 if (now >= f.stateUntil) {
                     Fighter.State was = f.state;
                     setState(f, Fighter.State.IDLE, 0);
-                    if (was == Fighter.State.DOWN) f.invulnUntil = now + Tuning.WAKEUP_INVULN;
+                    if (was == Fighter.State.DOWN) { f.invulnUntil = now + Tuning.WAKEUP_INVULN; Motion.play(e, "getup"); }
+                    else if (f.guardHeld) Motion.play(e, "guard");
                     if (was == Fighter.State.GUARD_BROKEN) f.guardGauge = Tuning.GUARD_MAX;
                 }
             }
@@ -538,7 +590,9 @@ public final class Combat {
         return d.lengthSquared() < 1e-6 ? horizontal(atk.getRotationVec(1f)) : d;
     }
 
-    private static Vec3d horizontal(Vec3d v) {
+    private static double clamp(double v, double m) { return Math.max(-m, Math.min(m, v)); }
+
+    public static Vec3d horizontal(Vec3d v) {
         Vec3d h = new Vec3d(v.x, 0, v.z);
         double l = h.length();
         return l < 1e-6 ? Vec3d.ZERO : h.multiply(1 / l);

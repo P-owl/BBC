@@ -67,7 +67,7 @@ public final class CombatMode {
         if (action >= KeyPayload.DASH_BASE && action < KeyPayload.DASH_BASE + 4) { Combat.dash(p, action - KeyPayload.DASH_BASE); return; }
         if (action >= KeyPayload.SKILL_BASE && action < KeyPayload.SKILL_BASE + JobSkills.SLOTS) {
             if (!Combat.canAct(p)) return; // 경직·다운 중엔 기술 못 씀
-            JobSkills.useSlot(p, action - KeyPayload.SKILL_BASE);
+            if (JobSkills.useSlot(p, action - KeyPayload.SKILL_BASE)) Combat.afterSkill(p, 6);
             return;
         }
         // 각성·스위치·임플란트·유물·마안은 2단계 이후에 연결

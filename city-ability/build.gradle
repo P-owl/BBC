@@ -8,6 +8,7 @@ group = project.maven_group
 base { archivesName = project.archives_base_name }
 
 repositories {
+    maven { url = 'https://maven.kosmx.dev/' }   // playerAnimator (모션)
     mavenCentral()
 }
 
@@ -16,6 +17,8 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // 모션 라이브러리. 없어도 모드는 돌고 모션만 안 나온다 (클라이언트에 깔면 모션 재생)
+    modImplementation "dev.kosmx.player-anim:player-animation-lib-fabric:${project.player_anim_version}"
 }
 
 processResources {

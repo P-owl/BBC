@@ -84,33 +84,35 @@ public final class JobSkills {
     }
 
     /** 칸 번호(0~4)로 기술 사용 */
-    public static void useSlot(ServerPlayerEntity p, int slot) {
-        if (slot < 0 || slot >= SLOTS) return;
+    /** 칸 번호(0~4)로 기술 사용. 실제로 나갔으면 true */
+    public static boolean useSlot(ServerPlayerEntity p, int slot) {
+        if (slot < 0 || slot >= SLOTS) return false;
         PlayerData.Entry e = Jobs.entry(p);
         int skill = equipped(e)[slot];
-        if (skill < 0) { bar(p, KEYS[slot] + " 칸이 비어 있습니다 (/bbc skills)", Formatting.GRAY); return; }
-        use(p, e, skill);
+        if (skill < 0) { bar(p, KEYS[slot] + " 칸이 비어 있습니다 (/bbc skills)", Formatting.GRAY); return false; }
+        return use(p, e, skill);
     }
 
-    public static void use(ServerPlayerEntity p, PlayerData.Entry e, int skill) {
+    public static boolean use(ServerPlayerEntity p, PlayerData.Entry e, int skill) {
         Set set = of(e);
-        if (set == null) return;
+        if (set == null) return false;
         Skill[] skills = set.skills(p, e);
-        if (skill < 0 || skill >= skills.length || skills[skill] == null) return;
+        if (skill < 0 || skill >= skills.length || skills[skill] == null) return false;
         Skill s = skills[skill];
-        if (Jobs.rank(e) < s.rank()) { bar(p, s.name() + " — " + Jobs.type(e).rankName(s.rank()) + "부터 쓸 수 있습니다", Formatting.RED); return; }
+        if (Jobs.rank(e) < s.rank()) { bar(p, s.name() + " — " + Jobs.type(e).rankName(s.rank()) + "부터 쓸 수 있습니다", Formatting.RED); return false; }
         int left = cooldownLeft(p.getUuid(), skill);
-        if (left > 0) { bar(p, s.name() + " 재사용까지 " + left + "초", Formatting.GRAY); return; }
+        if (left > 0) { bar(p, s.name() + " 재사용까지 " + left + "초", Formatting.GRAY); return false; }
         String why = set.blocked(p, e, skill);
-        if (why != null) { bar(p, why, Formatting.RED); return; }
+        if (why != null) { bar(p, why, Formatting.RED); return false; }
         if (set.resource(p, e) + 1e-6 < s.cost()) {
             bar(p, set.costName() + " 부족 (" + (int) s.cost() + " 필요, 현재 " + (int) set.resource(p, e) + ")", Formatting.RED);
-            return;
+            return false;
         }
-        if (!set.use(p, e, skill)) return;
+        if (!set.use(p, e, skill)) return false;
         set.pay(p, e, s);
         setCooldown(p.getUuid(), skill, System.currentTimeMillis() + s.cooldown() * 1000L);
         Jobs.dirty(p);
+        return true;
     }
 
     /** 액션바: 장착한 5칸 상태 */

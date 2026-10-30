@@ -1,0 +1,66 @@
+{
+ "name": "dash_f",
+ "author": "bbc",
+ "description": "",
+ "emote": {
+  "isLoop": false,
+  "returnTick": 0,
+  "beginTick": 0,
+  "endTick": 7,
+  "stopTick": 10,
+  "degrees": true,
+  "nsfw": false,
+  "moves": [
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "torso": {
+     "pitch": 28
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightArm": {
+     "pitch": 55,
+     "roll": 10
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftArm": {
+     "pitch": 55,
+     "roll": -10
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": -35
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": 30
+    }
+   },
+   {
+    "tick": 6,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "torso": {
+     "pitch": 15
+    }
+   }
+  ]
+ }
+}

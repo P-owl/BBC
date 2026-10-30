@@ -1,0 +1,59 @@
+{
+ "name": "hit",
+ "author": "bbc",
+ "description": "",
+ "emote": {
+  "isLoop": false,
+  "returnTick": 0,
+  "beginTick": 0,
+  "endTick": 10,
+  "stopTick": 13,
+  "degrees": true,
+  "nsfw": false,
+  "moves": [
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "torso": {
+     "pitch": -16,
+     "yaw": 8
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightArm": {
+     "pitch": 25,
+     "roll": 20
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftArm": {
+     "pitch": 20,
+     "roll": -20
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "head": {
+     "pitch": -15
+    }
+   },
+   {
+    "tick": 10,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "torso": {
+     "pitch": -4
+    }
+   }
+  ]
+ }
+}

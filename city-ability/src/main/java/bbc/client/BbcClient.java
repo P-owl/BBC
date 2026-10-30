@@ -1,6 +1,7 @@
 package bbc.client;
 
 import bbc.net.CombatStatePayload;
+import bbc.net.MotionPayload;
 import bbc.net.KeyPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -8,6 +9,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -26,6 +28,8 @@ public class BbcClient implements ClientModInitializer {
     // GLFW 키 코드
     private static final int KEY_GRAVE = 96, KEY_B = 66, KEY_C = 67, KEY_G = 71, KEY_H = 72, KEY_R = 82, KEY_T = 84, KEY_V = 86, KEY_X = 88, KEY_Z = 90;
     public static boolean combat = false;
+    /** playerAnimator 가 깔려 있나 (없으면 모션 없이 돈다) */
+    static final boolean ANIM = hasAnimator();
     private static boolean guardSent = false;
     private static long lastM1 = 0;
 
@@ -47,6 +51,11 @@ public class BbcClient implements ClientModInitializer {
         implant = key("implant", KEY_H);
         relic = key("relic", KEY_T);
 
+        if (ANIM) Anim.init();
+        ClientPlayNetworking.registerGlobalReceiver(MotionPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
+            if (!ANIM || ctx.client().world == null) return;
+            if (ctx.client().world.getEntityById(payload.entityId()) instanceof AbstractClientPlayerEntity pl) Anim.play(pl, payload.motion());
+        }));
         ClientPlayNetworking.registerGlobalReceiver(CombatStatePayload.ID,
                 (payload, ctx) -> ctx.client().execute(() -> combat = payload.on()));
         ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { combat = false; guardSent = false; });
@@ -94,6 +103,11 @@ public class BbcClient implements ClientModInitializer {
         if (in.pressingLeft && !in.pressingRight && !in.pressingForward) return 2;
         if (in.pressingRight && !in.pressingLeft && !in.pressingForward) return 3;
         return 0;
+    }
+
+    private static boolean hasAnimator() {
+        try { Class.forName("dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess", false, BbcClient.class.getClassLoader()); return true; }
+        catch (Throwable t) { return false; }
     }
 
     private static void send(int action) {

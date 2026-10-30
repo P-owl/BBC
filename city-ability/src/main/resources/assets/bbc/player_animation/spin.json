@@ -1,0 +1,50 @@
+{
+ "name": "spin",
+ "author": "bbc",
+ "description": "",
+ "emote": {
+  "isLoop": false,
+  "returnTick": 0,
+  "beginTick": 0,
+  "endTick": 8,
+  "stopTick": 8,
+  "degrees": true,
+  "nsfw": false,
+  "moves": [
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "yaw": 0
+    }
+   },
+   {
+    "tick": 6,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "yaw": 360
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -90,
+     "roll": 80
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -90,
+     "roll": -80
+    }
+   }
+  ]
+ }
+}
