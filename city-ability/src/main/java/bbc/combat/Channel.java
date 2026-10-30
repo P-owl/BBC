@@ -109,7 +109,7 @@ public final class Channel {
             hitCapped(e, f, t, WHIRL_HIT);
         }
         Fx.wave(w, e.getPos().add(0, 1.0, 0), 1.8, 2.8, Fx.WHITE, 4);
-        Fx.swirl(w, e.getPos().add(0, 1.0, 0), 2, 3.2f);
+        Fx.ring3d(w, e.getPos().add(0, 1.0, 0), new Vec3d(0, 1, 0), 1.2, 3.4, 0.3f, 4, Fx.PAPER);
         w.spawnParticles(ParticleTypes.SWEEP_ATTACK, e.getX(), e.getY() + 1, e.getZ(), 4, 1.4, 0.2, 1.4, 0);
         w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.7f, 0.7f + e.getRandom().nextFloat() * 0.3f);
     }
@@ -144,7 +144,7 @@ public final class Channel {
                 if (en.squaredDistanceTo(e) < 3.2 * 3.2) Combat.hit(e, (LivingEntity) en, WHIRL_END);
             Fx.wave(w, e.getPos().add(0, 0.3, 0), 1.0, 4.0, Fx.WHITE, 7);
             Fx.shake(e, 0.4f);
-            Fx.word(w, e.getPos().add(0, 2.4, 0), Fx.Sfx.BUON, 1.5f);
+            Fx.word(w, e.getPos().add(0, 2.4, 0), Fx.Sfx.BUON, 1.1f);
         }
         // 재사용: 기본 + 쓴 시간 1초당 1초
         long cd = Combat.now + (k.baseCooldown + used / 20) * 20L;

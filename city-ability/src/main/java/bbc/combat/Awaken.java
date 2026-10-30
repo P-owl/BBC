@@ -79,8 +79,8 @@ public final class Awaken {
         Fx.wave(w, e.getPos().add(0, 1.0, 0), 0.5, 3.5, Fx.GOLD, 7);
         Fx.flash(e, 0.55f);
         Fx.shakeAround(w, e.getPos(), 10, 0.7f);
-        Fx.word(w, e.getPos().add(0, 2.6, 0), Fx.Sfx.GOGO, 2.0f);   // ゴゴゴゴ
-        Fx.rings(w, e.getPos().add(0, 1, 0), 5f, 3);
+        Fx.word(w, e.getPos().add(0, 2.6, 0), Fx.Sfx.GOGO, 1.5f);   // ゴゴゴゴ
+        Fx.rings(w, e.getPos().add(0, 0.2, 0), new Vec3d(0, 1, 0), 5f, 3);
         Fx.lines(e, 1.0f);
         w.spawnParticles(ParticleTypes.FLASH, e.getX(), e.getY() + 1, e.getZ(), 1, 0, 0, 0, 0);
         w.spawnParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + 1, e.getZ(), 40, 0.4, 0.8, 0.4, 0.25);
@@ -123,7 +123,7 @@ public final class Awaken {
         ServerWorld w = (ServerWorld) e.getWorld();
         w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_WARDEN_SONIC_CHARGE, SoundCategory.PLAYERS, 0.7f, 1.8f);
         Motion.play(e, "barrage");
-        Tasks.later(3, () -> { if (f.token == tok && e.isAlive()) Fx.word(w, e.getPos().add(Combat.horizontal(e.getRotationVec(1f)).multiply(1.5)).add(0, 2.4, 0), Fx.Sfx.DODODO, 1.8f); });   // 2틱마다 좌우 번갈아 지르는 전용 모션 (평타 모션을 2틱마다 다시 틀면 예비 동작만 보여서 소극적으로 보였음)
+        Tasks.later(3, () -> { if (f.token == tok && e.isAlive()) Fx.word(w, e.getPos().add(Combat.horizontal(e.getRotationVec(1f)).multiply(1.5)).add(0, 2.4, 0), Fx.Sfx.DODODO, 1.3f); });   // 2틱마다 좌우 번갈아 지르는 전용 모션 (평타 모션을 2틱마다 다시 틀면 예비 동작만 보여서 소극적으로 보였음)
         DustParticleEffect fist = new DustParticleEffect(new Vector3f(1f, 0.95f, 0.85f), 1.3f);
         for (int i = 0; i < 8; i++) {
             int n = i;
@@ -161,10 +161,10 @@ public final class Awaken {
                 w.spawnParticles(ParticleTypes.SONIC_BOOM, c.x, c.y, c.z, 1, 0, 0, 0, 0);
                 Combat.hitStop(f, Combat.of(t), 4);
                 Fx.wave(w, c, 0.4, 3.0, Fx.WHITE, 7);
-                Fx.word(w, c.add(0, 1.4, 0), Fx.Sfx.DOGOOON, 2.2f);
+                Fx.word(w, c.add(0, 1.4, 0), Fx.Sfx.DOGOOON, 1.6f);
                 Fx.burst(w, c, c.subtract(e.getBoundingBox().getCenter()).normalize(), 2.6f);
-                Fx.impactFlash(w, c, 1.8f);
-                Fx.rings(w, c, 6f, 3);
+                Fx.impactFlash(w, c, 1.6f);
+                Fx.rings(w, c, c.subtract(e.getBoundingBox().getCenter()), 5f, 3);
                 Fx.smoke(w, t.getPos(), 26, 1.8);
                 Fx.lines(t, 1.2f); Fx.lines(e, 1.0f);
                 Fx.streak(t, 10);

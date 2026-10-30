@@ -189,7 +189,7 @@ public final class Fx {
      */
     public static void burst(ServerWorld w, Vec3d c, Vec3d dir, float size) {
         var rnd = w.getRandom();
-        int n = 14;
+        int n = 11;
         for (int i = 0; i < n; i++) {
             Vec3d d = new Vec3d(rnd.nextGaussian(), rnd.nextGaussian() * 0.7, rnd.nextGaussian()).normalize();
             if (dir != null) d = d.add(dir.multiply(0.8)).normalize();
@@ -198,7 +198,7 @@ public final class Fx {
             side = side.normalize();
             Vec3d up = d.crossProduct(side).normalize();
             float len = size * (0.6f + rnd.nextFloat() * 0.9f);
-            BlockState col = i % 3 == 0 ? INK : PAPER;
+            BlockState col = i % 5 == 0 ? INK : PAPER;
             spike(w, c.add(d.multiply(len * 0.5 + 0.2)), d, up, side, len, size * 0.09f, col, 3 + rnd.nextInt(2));
         }
     }
@@ -313,19 +313,50 @@ public final class Fx {
         Tasks.later(2 + grow + hold + shrink, d::discard);
     }
 
-    /** 충격 고리: 흰 고리가 퍼져 나감 (n 겹이면 1틱씩 늦게 여러 개) */
-    public static void rings(ServerWorld w, Vec3d c, float size, int n) {
+    /**
+     * 충격 고리 (ABA): 세상 속에 놓인 흰 고리가 퍼져 나감. axis = 고리 면에 수직인 방향
+     * (올려치기·슬램 = 위, 넉백 = 날아가는 방향). n 겹이면 2틱씩 늦게 더 크게
+     */
+    public static void rings(ServerWorld w, Vec3d c, Vec3d axis, float size, int n) {
+        Vec3d ax = axis == null || axis.lengthSquared() < 1e-4 ? new Vec3d(0, 1, 0) : axis.normalize();
         for (int i = 0; i < n; i++) {
             final int k = i;
-            Tasks.later(i * 2, () -> pop(w, c, Shape.RING, 0.3f, size * (1f + 0.35f * k), 5, 0, 0, 0));
+            Tasks.later(i * 2, () -> ring3d(w, c, ax, 0.3, size * (1f + 0.35f * k), 0.22f, 6 + k, PAPER));
         }
     }
 
-    /** 맞은 자리 번쩍 + 터지는 별 */
+    /** 고리 하나: 판 20장을 axis 둘레로 둥글게 놓고 r0 → r1 로 퍼지며 얇아짐 */
+    public static void ring3d(ServerWorld w, Vec3d c, Vec3d axis, double r0, double r1, float width, int life, BlockState color) {
+        Vec3d u = axis.crossProduct(Math.abs(axis.y) > 0.9 ? new Vec3d(1, 0, 0) : new Vec3d(0, 1, 0)).normalize();
+        Vec3d v = axis.crossProduct(u).normalize();
+        int n = 20;
+        for (int i = 0; i < n; i++) {
+            double a = Math.PI * 2 * i / n;
+            Vec3d radial = u.multiply(Math.cos(a)).add(v.multiply(Math.sin(a)));
+            Vec3d tangent = axis.crossProduct(radial).normalize();
+            DisplayEntity.BlockDisplayEntity d = EntityType.BLOCK_DISPLAY.create(w);
+            if (d == null) return;
+            d.refreshPositionAndAngles(c.x, c.y, c.z, 0, 0);
+            DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
+            ((BlockDisplayAccessor) d).bbc$setBlockState(color);
+            acc.bbc$setBrightness(new Brightness(15, 15));
+            Quaternionf q = basis(tangent, axis, radial);
+            float seg0 = (float) (Math.PI * 2 * r0 / n * 1.15), seg1 = (float) (Math.PI * 2 * r1 / n * 1.15);
+            acc.bbc$setTransformation(at(q, radial.multiply(r0), new Vector3f(seg0, 0.03f, width)));
+            w.spawnEntity(d);
+            Tasks.later(1, () -> {
+                if (d.isRemoved()) return;
+                acc.bbc$setInterpolationDuration(life);
+                acc.bbc$setStartInterpolation(0);
+                acc.bbc$setTransformation(at(q, radial.multiply(r1), new Vector3f(seg1, 0.005f, 0.02f)));
+            });
+            Tasks.later(life + 2, d::discard);
+        }
+    }
+
+    /** 맞은 자리 번쩍 (ABA 의 흰 구가 확 커졌다 사라짐) */
     public static void impactFlash(ServerWorld w, Vec3d c, float size) {
-        var rnd = w.getRandom();
-        pop(w, c, Shape.FLASH, 0.6f * size, 2.6f * size, 2, 0, 3, 0);
-        pop(w, c, Shape.STAR, 0.4f * size, 1.9f * size, 2, 2, 3, rnd.nextFloat() * 360);
+        pop(w, c, Shape.FLASH, 0.5f * size, 2.0f * size, 2, 0, 2, 0);
     }
 
     /** 먹 초승달 칼자국 (만화식 베기): 맞은 자리 둘레로 2~3개가 여러 각도로 그어짐 */
@@ -359,12 +390,11 @@ public final class Fx {
         Vec3d c = t.getBoundingBox().getCenter();
         Vec3d dir = c.subtract(atk.getBoundingBox().getCenter());
         dir = dir.lengthSquared() > 1e-4 ? dir.normalize() : null;
-        burst(w, c, dir, 1.6f * power);
+        burst(w, c, dir, 1.3f * power);
         impactFlash(w, c, power);
-        rings(w, c, 3.5f * power, 2);
-        if (words == BLADE) inkSlashes(w, c, 3, power);
+        rings(w, c, dir, 2.6f * power, 1);
         smoke(w, t.getPos(), (int) (8 * power), 0.9);
-        word(w, c.add(0, 1.2, 0), words, 1.6f * power);
+        word(w, c.add(0, 1.1, 0), words, 1.1f * power);
         lines(atk, 0.7f * power);
         lines(t, power);
         streak(t, 6);

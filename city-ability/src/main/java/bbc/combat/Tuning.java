@@ -25,12 +25,18 @@ public final class Tuning {
     public static final Hit HOP = new Hit(1.0f, Hit.Kind.AIR, 14, 0.05, 0.52, 12, false, false);
     /** 공중 평타: 경직 12, 둘 다 낙하가 느려짐 */
     public static final Hit AIR_M1 = new Hit(1.0f, Hit.Kind.AIR, 12, 0.08, 0.12, 12, false, false);
-    /** 다운 슬램: 공중에서 스페이스를 떼고 5타째. 땅에 꽂히고 튕김. 다운 11 + 떨어지는 시간 8 ≈ 0.95초 */
+    /** 다운 슬램: 공중에서 스페이스를 떼고 5타째. 상대가 먼저 땅에 꽂히고(아래로 -1.6) 나는 잠깐 떠 있다 늦게 착지.
+     *  다운 20 + 떨어지는 시간 8 */
     public static final int SLAM_STARTUP = 4, SLAM_RECOVERY = 6;
-    public static final Hit SLAM = new Hit(2.0f, Hit.Kind.DOWN, 11, 0.1, -1.6, 20, false, false);
-    /** 튕김: 꽂힌 상대가 이만큼 튀어 오르고, 이 틱 동안은 기술(평타 말고)이 들어감 = 익스텐더 자리 */
+    public static final Hit SLAM = new Hit(2.0f, Hit.Kind.DOWN, 20, 0.1, -1.6, 20, false, false);
+    /** ABA 규칙: 다운 슬램을 맞힌 쪽은 평타가 잠깐 막힘 → 바로 이으려면 기술(익스텐더)을 써야 함. 평타는 막힘이 풀린 뒤에야 들어감 */
+    public static final int SLAM_M1_LOCK = 12;
+    /** 슬램 맞힌 뒤 내 몸: 살짝 떠올랐다가 상대보다 늦게 착지 */
+    public static final double SLAM_HANG_VY = 0.18;
+    /** 튕김: 꽂힌 상대가 이만큼 튀어 오르고, 이 틱 동안은 쓰러진 상대도 맞음.
+     *  기술 = 다시 띄움(익스텐더), 평타 = 일으켜 세우며 지상 경직 (평타 막힘 12틱이 풀린 뒤라 빠듯하게만 들어감) */
     public static final double BOUNCE_VY = 0.32;
-    public static final int BOUNCE_WINDOW = 10;
+    public static final int BOUNCE_WINDOW = 22;
     /** 공중 래더: 공중에서 스페이스를 누른 채 5타째 → 둘 다 다시 띄우고 사슬 처음부터 (상대당 콤보 1번) */
     public static final Hit LADDER = new Hit(1.0f, Hit.Kind.AIR, 24, 0.05, 0.7, 12, false, false);
     public static final double LADDER_VY = 0.62;

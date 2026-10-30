@@ -207,13 +207,18 @@ public final class Combat {
             });
         } else if (air) {
             swing(p, a, weapon ? pr.motion() + "slam" : "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
-                if (hitArea(p, Tuning.SLAM, false) > 0) { // 내리꽂는 줄기
+                boolean slammed = hitArea(p, Tuning.SLAM, false) > 0;
+                if (slammed) { // 내리꽂는 줄기
                     ServerWorld w = ((ServerWorld) p.getWorld());
                     Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.6));
                     for (int i = 0; i < 10; i++) w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y + 1.5 - i * 0.3, c.z, 0, 0, -1, 0, 0.6);
                 }
                 a.airComboUntil = 0;
-                setVel(p, new Vec3d(0, -0.6, 0));
+                if (slammed) { // ABA: 상대가 먼저 꽂히고 나는 살짝 떴다가 늦게 착지 + 평타 잠깐 막힘
+                    setVel(p, new Vec3d(0, Tuning.SLAM_HANG_VY, 0));
+                    if (now < a.freezeUntil) a.resumeVel = new Vec3d(0, Tuning.SLAM_HANG_VY, 0);   // 히트스톱 뒤에 이 속도로
+                    a.m1ReadyAt = Math.max(a.m1ReadyAt, now + Tuning.SLAM_M1_LOCK);
+                } else setVel(p, new Vec3d(0, -0.6, 0));
             });
         } else if (up) {
             swing(p, a, "launch", Tuning.FLING_STARTUP, Tuning.FLING_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
@@ -348,8 +353,10 @@ public final class Combat {
         if (t == atk || !t.isAlive() || t.isRemoved()) return Result.MISS;
         Fighter v = of(t);
         if (now < v.invulnUntil) return Result.MISS;
-        boolean bounce = v.state == Fighter.State.DOWN && now < v.bounceUntil && !FROM_M1.get();
-        if (v.state == Fighter.State.DOWN && !h.downHit() && !bounce) return Result.MISS;
+        // 쓰러진 상대: 슬램 착지 뒤 튕김 창 안이면 무엇이든 맞음 (기술 = 다시 띄움, 평타 = 일으켜 세움)
+        boolean downOpen = v.state == Fighter.State.DOWN && now < v.bounceUntil;
+        boolean bounce = downOpen && !FROM_M1.get();
+        if (v.state == Fighter.State.DOWN && !h.downHit() && !downOpen) return Result.MISS;
 
         // 가드·패링 (앞에서 온 공격만, 평상 상태이고 후딜이 아닐 때)
         if (v.guardHeld && v.state == Fighter.State.IDLE && now >= v.recoveryUntil && front(t, atk.getPos())) {
@@ -359,7 +366,7 @@ public final class Combat {
             if (h.guardBreak() || v.guardGauge <= 0) {
                 breakGuard(v);
                 ServerWorld bw = (ServerWorld) t.getWorld();
-                Fx.word(bw, t.getEyePos().add(0, 1.0, 0), Fx.Sfx.BAKIN, 1.6f);
+                Fx.word(bw, t.getEyePos().add(0, 1.0, 0), Fx.Sfx.BAKIN, 1.1f);
                 Fx.burst(bw, t.getEyePos(), t.getPos().subtract(atk.getPos()).normalize(), 1.3f);
                 Fx.lines(t, 0.9f); Fx.lines(atk, 0.6f);
                 if (!deal(atk, t, h.damage())) return Result.MISS;
@@ -378,7 +385,7 @@ public final class Combat {
         // 튕김 중인 상대에게 들어간 기술은 다시 띄움 (익스텐더)
         if (bounce && (h.kind() == Hit.Kind.HIT || h.kind() == Hit.Kind.DOWN))
             h = new Hit(h.damage(), Hit.Kind.AIR, Math.max(h.stun(), 16), h.push() * 0.5, Math.max(h.lift(), 0.45), h.guardDmg(), h.guardBreak(), h.downHit());
-        if (bounce) v.bounceUntil = 0;
+        if (downOpen) v.bounceUntil = 0;
 
         // 콤보 보정
         Fighter a = of(atk);
@@ -491,8 +498,8 @@ public final class Combat {
                 Fx.mangaHit(w, atk, t, bladed(atk) ? Fx.BLADE : Fx.BLUNT, 1.0f);
             }
             case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); Fx.burst(w, c, new Vec3d(0, -1, 0), 1.2f); Fx.impactFlash(w, c, 0.8f); Fx.lines(atk, 0.5f); Fx.streak(t, 5); }
-            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); Fx.burst(w, c, new Vec3d(0, 1, 0), 0.9f); Fx.impactFlash(w, c, 0.7f); Fx.streak(t, 5); } else Fx.shake(t, 0.12f); }
-            case HIT -> { Fx.shake(t, h.damage() >= 2f ? 0.35f : 0.12f); Fx.impactFlash(w, c, h.damage() >= 2f ? 0.55f : 0.32f); }
+            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); Fx.burst(w, c, new Vec3d(0, 1, 0), 0.9f); Fx.impactFlash(w, c, 0.6f); Fx.rings(w, c, new Vec3d(0, 1, 0), 2.2f, 1); Fx.streak(t, 5); } else Fx.shake(t, 0.12f); }
+            case HIT -> { Fx.shake(t, h.damage() >= 2f ? 0.35f : 0.12f); Fx.impactFlash(w, c, h.damage() >= 2f ? 0.45f : 0.25f); }
         }
     }
 
@@ -529,6 +536,9 @@ public final class Combat {
 
     /** 히트스톱: 둘 다 ticks 동안 멈춤. 그만큼 후딜·경직을 늘려서 손해 보는 쪽이 없게 */
     static void hitStop(Fighter a, Fighter v, int ticks) {
+        // 멈춘 동안 속도를 0 으로 붙잡으므로, 멈추기 직전 속도(넉백 포함)를 기억했다가 풀릴 때 돌려줌
+        if (now >= a.freezeUntil) a.resumeVel = a.e.getVelocity();
+        if (now >= v.freezeUntil) v.resumeVel = v.e.getVelocity();
         a.freezeUntil = now + ticks; v.freezeUntil = now + ticks;
         a.m1ReadyAt += ticks; a.recoveryUntil += ticks;
         if (v.stunned()) v.stateUntil += ticks;
@@ -550,10 +560,10 @@ public final class Combat {
         sound(v.e, SoundEvents.ITEM_SHIELD_BLOCK, 1f, 1.8f);
         Motion.play(v.e, "parry");
         Vec3d mid = c.lerp(atk.getEyePos(), 0.5);
-        Fx.word(w, mid.add(0, 0.9, 0), Fx.Sfx.GAGIN, 1.5f);
+        Fx.word(w, mid.add(0, 0.9, 0), Fx.Sfx.GAGIN, 1.1f);
         Fx.burst(w, mid, null, 1.0f);
         Fx.impactFlash(w, mid, 0.8f);
-        Fx.rings(w, mid, 2.5f, 1);
+        Fx.rings(w, mid, atk.getPos().subtract(v.e.getPos()), 2.2f, 1);
         Fx.lines(v.e, 0.8f); Fx.lines(atk, 0.6f);
         Motion.play(atk, "hit");
         if (v.e instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "✦ 패링!", Formatting.AQUA);
@@ -718,9 +728,9 @@ public final class Combat {
                     sound(e, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), 0.5f, 1.4f);
                     sound(e, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
                     Fx.wave(w, e.getPos().add(0, 0.05, 0), 0.6, 4.6, Fx.WHITE, 8);
-                    Fx.word(w, e.getPos().add(0, 2.0, 0), Fx.SLAM, 1.8f);
+                    Fx.word(w, e.getPos().add(0, 2.0, 0), Fx.SLAM, 1.3f);
                     Fx.debris(w, e.getPos().add(0, 0.1, 0), 9, 1.8);
-                    Fx.rings(w, e.getPos().add(0, 0.6, 0), 4.5f, 3);
+                    Fx.rings(w, e.getPos().add(0, 0.15, 0), new Vec3d(0, 1, 0), 4.5f, 2);
                     Fx.smoke(w, e.getPos(), 22, 1.6);
                     Fx.lines(e, 0.8f);
                     Fx.shakeAround(w, e.getPos(), 10, 0.9f);
@@ -745,6 +755,7 @@ public final class Combat {
             // 히트스톱: 멈춘 동안 제자리
             if (now < f.tetherUntil) tether(e, f);
             if (now < f.freezeUntil) setVel(e, Vec3d.ZERO);
+            else if (f.resumeVel != null) { setVel(e, f.resumeVel); f.resumeVel = null; }
 
             // 대시
             if (f.dashTicks > 0) {
