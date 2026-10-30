@@ -455,9 +455,9 @@ public final class Combat {
         finally { OURS.set(false); }
     }
 
-    /** 넉백·다운 슬램·가드 깨기는 패링 불가 */
+    /** 패링 불가는 공격마다 따로 붙인다 (Hit.noParry, 보스 패턴 등) */
     private static boolean parryable(Hit h) {
-        return !h.guardBreak() && h.kind() != Hit.Kind.KNOCK && h.kind() != Hit.Kind.DOWN;
+        return !h.unparriable();
     }
 
     private static void parry(Fighter v, LivingEntity atk) {
