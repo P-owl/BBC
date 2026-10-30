@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "heal",
  "author": "bbc",
  "description": "",
@@ -7,16 +8,19 @@
   "returnTick": 0,
   "beginTick": 0,
   "endTick": 20,
-  "stopTick": 23,
+  "stopTick": 21,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
     "tick": 3,
     "easing": "EASEOUTQUAD",
     "turn": 0,
-    "torso": {
-     "pitch": 12
+    "body": {
+     "pitch": -8,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -25,6 +29,7 @@
     "turn": 0,
     "rightArm": {
      "pitch": -20,
+     "yaw": 0,
      "roll": 10
     }
    },
@@ -34,6 +39,7 @@
     "turn": 0,
     "leftArm": {
      "pitch": -20,
+     "yaw": 0,
      "roll": -10
     }
    },
@@ -42,15 +48,19 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "head": {
-     "pitch": 20
+     "pitch": 20,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
     "tick": 17,
     "easing": "EASEINOUTSINE",
     "turn": 0,
-    "torso": {
-     "pitch": 10
+    "body": {
+     "pitch": -6,
+     "yaw": 0,
+     "roll": 0
     }
    }
   ]

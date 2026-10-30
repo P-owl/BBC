@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "dash_l",
  "author": "bbc",
  "description": "",
@@ -6,9 +7,10 @@
   "isLoop": false,
   "returnTick": 0,
   "beginTick": 0,
-  "endTick": 7,
-  "stopTick": 10,
+  "endTick": 6,
+  "stopTick": 7,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
@@ -16,7 +18,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "body": {
-     "roll": -14
+     "pitch": 0,
+     "yaw": 0,
+     "roll": -12
     }
    },
    {
@@ -24,7 +28,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "rightArm": {
-     "roll": 40
+     "pitch": -20,
+     "yaw": 0,
+     "roll": 30
     }
    },
    {
@@ -32,7 +38,19 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "leftArm": {
-     "roll": -15
+     "pitch": -20,
+     "yaw": 0,
+     "roll": -10
+    }
+   },
+   {
+    "tick": 6,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": -5
     }
    }
   ]

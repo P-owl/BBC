@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "guard",
  "author": "bbc",
  "description": "",
@@ -6,97 +7,90 @@
   "isLoop": true,
   "returnTick": 1,
   "beginTick": 0,
-  "endTick": 4,
-  "stopTick": 4,
+  "endTick": 20,
+  "stopTick": 21,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
     "tick": 0,
-    "easing": "EASEOUTQUAD",
+    "easing": "EASEOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": -10,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "EASEOUTSINE",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": -10,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "EASEOUTSINE",
     "turn": 0,
     "rightArm": {
-     "pitch": -95,
-     "yaw": 38,
-     "roll": 5
+     "pitch": -100,
+     "yaw": -34,
+     "roll": 4
     }
    },
    {
     "tick": 0,
-    "easing": "EASEOUTQUAD",
+    "easing": "EASEOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": -100,
-     "yaw": -38,
-     "roll": -5
+     "pitch": -104,
+     "yaw": 34,
+     "roll": -4
     }
    },
    {
-    "tick": 0,
-    "easing": "EASEOUTQUAD",
+    "tick": 20,
+    "easing": "LINEAR",
     "turn": 0,
-    "torso": {
-     "pitch": 10
+    "body": {
+     "pitch": 0,
+     "yaw": -10,
+     "roll": 0
     }
    },
    {
-    "tick": 0,
-    "easing": "EASEOUTQUAD",
+    "tick": 20,
+    "easing": "LINEAR",
     "turn": 0,
-    "rightLeg": {
-     "pitch": -15
+    "head": {
+     "pitch": 0,
+     "yaw": -10,
+     "roll": 0
     }
    },
    {
-    "tick": 0,
-    "easing": "EASEOUTQUAD",
-    "turn": 0,
-    "leftLeg": {
-     "pitch": 10
-    }
-   },
-   {
-    "tick": 4,
+    "tick": 20,
     "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
-     "pitch": -95,
-     "yaw": 38,
-     "roll": 5
+     "pitch": -100,
+     "yaw": -34,
+     "roll": 4
     }
    },
    {
-    "tick": 4,
+    "tick": 20,
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -100,
-     "yaw": -38,
-     "roll": -5
-    }
-   },
-   {
-    "tick": 4,
-    "easing": "LINEAR",
-    "turn": 0,
-    "torso": {
-     "pitch": 10
-    }
-   },
-   {
-    "tick": 4,
-    "easing": "LINEAR",
-    "turn": 0,
-    "rightLeg": {
-     "pitch": -15
-    }
-   },
-   {
-    "tick": 4,
-    "easing": "LINEAR",
-    "turn": 0,
-    "leftLeg": {
-     "pitch": 10
+     "pitch": -104,
+     "yaw": 34,
+     "roll": -4
     }
    }
   ]

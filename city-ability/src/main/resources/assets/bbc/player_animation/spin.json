@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "spin",
  "author": "bbc",
  "description": "",
@@ -7,8 +8,9 @@
   "returnTick": 0,
   "beginTick": 0,
   "endTick": 8,
-  "stopTick": 8,
+  "stopTick": 9,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
@@ -16,15 +18,9 @@
     "easing": "LINEAR",
     "turn": 0,
     "body": {
-     "yaw": 0
-    }
-   },
-   {
-    "tick": 6,
-    "easing": "LINEAR",
-    "turn": 0,
-    "body": {
-     "yaw": 360
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -33,6 +29,7 @@
     "turn": 0,
     "rightArm": {
      "pitch": -90,
+     "yaw": 0,
      "roll": 80
     }
    },
@@ -42,7 +39,28 @@
     "turn": 0,
     "leftArm": {
      "pitch": -90,
+     "yaw": 0,
      "roll": -80
+    }
+   },
+   {
+    "tick": 6,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": 360,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 7,
+    "easing": "CONSTANT",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
     }
    }
   ]

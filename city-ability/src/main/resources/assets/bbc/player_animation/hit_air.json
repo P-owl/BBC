@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "hit_air",
  "author": "bbc",
  "description": "",
@@ -9,14 +10,15 @@
   "endTick": 14,
   "stopTick": 16,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
     "tick": 1,
     "easing": "EASEOUTEXPO",
     "turn": 0,
-    "torso": {
-     "pitch": -24,
+    "body": {
+     "pitch": 22,
      "yaw": 0,
      "roll": 0
     }
@@ -26,7 +28,7 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "head": {
-     "pitch": -26,
+     "pitch": -20,
      "yaw": 0,
      "roll": 0
     }
@@ -38,7 +40,7 @@
     "rightArm": {
      "pitch": -30,
      "yaw": 0,
-     "roll": 38
+     "roll": 40
     }
    },
    {
@@ -48,7 +50,7 @@
     "leftArm": {
      "pitch": -30,
      "yaw": 0,
-     "roll": -38
+     "roll": -40
     }
    },
    {
@@ -56,7 +58,7 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightLeg": {
-     "pitch": 26,
+     "pitch": 22,
      "yaw": 0,
      "roll": 6
     }
@@ -75,8 +77,8 @@
     "tick": 14,
     "easing": "LINEAR",
     "turn": 0,
-    "torso": {
-     "pitch": -20,
+    "body": {
+     "pitch": 18,
      "yaw": 0,
      "roll": 0
     }
@@ -86,7 +88,7 @@
     "easing": "LINEAR",
     "turn": 0,
     "head": {
-     "pitch": -22,
+     "pitch": -16,
      "yaw": 0,
      "roll": 0
     }
@@ -98,7 +100,7 @@
     "rightArm": {
      "pitch": -26,
      "yaw": 0,
-     "roll": 34
+     "roll": 36
     }
    },
    {
@@ -108,7 +110,7 @@
     "leftArm": {
      "pitch": -26,
      "yaw": 0,
-     "roll": -34
+     "roll": -36
     }
    },
    {
@@ -116,7 +118,7 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightLeg": {
-     "pitch": 22,
+     "pitch": 18,
      "yaw": 0,
      "roll": 6
     }

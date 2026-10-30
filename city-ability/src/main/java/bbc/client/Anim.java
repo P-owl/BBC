@@ -21,28 +21,47 @@ final class Anim {
     private Anim() {}
 
     private static final Identifier LAYER = Identifier.of("bbc", "combat");
+    /** 전투 모드 동안 깔리는 싸움 자세 (아래층). 공격 모션이 끝나면 팔이 차렷으로 떨어지지 않고 이 자세로 돌아온다 */
+    private static final Identifier STANCE = Identifier.of("bbc", "stance");
 
     static void init() {
         PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(LAYER, 1000, player -> new ModifierLayer<>());
+        PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(STANCE, 500, player -> new ModifierLayer<>());
     }
 
     @SuppressWarnings("unchecked")
-    static void play(AbstractClientPlayerEntity player, String motion) {
-        Object data = PlayerAnimationAccess.getPlayerAssociatedData(player).get(LAYER);
-        if (!(data instanceof ModifierLayer<?> raw)) return;
-        ModifierLayer<IAnimation> layer = (ModifierLayer<IAnimation>) raw;
-        if (motion.equals("stop")) {
-            layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(4, Ease.INOUTSINE), null);
-            return;
-        }
+    private static ModifierLayer<IAnimation> layer(AbstractClientPlayerEntity player, Identifier id) {
+        Object data = PlayerAnimationAccess.getPlayerAssociatedData(player).get(id);
+        return data instanceof ModifierLayer<?> raw ? (ModifierLayer<IAnimation>) raw : null;
+    }
+
+    private static IAnimation load(String motion) {
         var playable = PlayerAnimationRegistry.getAnimation(Identifier.of("bbc", motion));
-        if (playable == null) return;
+        if (playable == null) return null;
         IAnimation a = playable.playAnimation();
         if (a instanceof KeyframeAnimationPlayer k) {
             k.setFirstPersonMode(FirstPersonMode.THIRD_PERSON_MODEL);
             k.setFirstPersonConfiguration(new FirstPersonConfiguration(true, true, true, false));
         }
+        return a;
+    }
+
+    static void play(AbstractClientPlayerEntity player, String motion) {
+        if (motion.equals("#stance") || motion.equals("#stance_off")) {
+            ModifierLayer<IAnimation> st = layer(player, STANCE);
+            if (st != null) st.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(5, Ease.INOUTSINE),
+                    motion.equals("#stance") ? load("stance") : null);
+            return;
+        }
+        ModifierLayer<IAnimation> layer = layer(player, LAYER);
+        if (layer == null) return;
+        if (motion.equals("stop")) {
+            layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(4, Ease.INOUTSINE), null);
+            return;
+        }
+        IAnimation a = load(motion);
+        if (a == null) return;
         // 앞 모션에서 2틱 동안 섞어서 넘어감 (뚝뚝 끊기지 않게)
-        layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(2, Ease.OUTQUAD), a);
+        layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(2, Ease.INOUTSINE), a);
     }
 }

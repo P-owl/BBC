@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "hit",
  "author": "bbc",
  "description": "",
@@ -7,8 +8,9 @@
   "returnTick": 0,
   "beginTick": 0,
   "endTick": 11,
-  "stopTick": 13,
+  "stopTick": 12,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
@@ -16,18 +18,8 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "body": {
-     "pitch": 0,
-     "yaw": 24,
-     "roll": 0
-    }
-   },
-   {
-    "tick": 1,
-    "easing": "EASEOUTEXPO",
-    "turn": 0,
-    "torso": {
-     "pitch": -22,
-     "yaw": 0,
+     "pitch": 14,
+     "yaw": 18,
      "roll": 0
     }
    },
@@ -36,8 +28,8 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "head": {
-     "pitch": -24,
-     "yaw": -10,
+     "pitch": -18,
+     "yaw": 8,
      "roll": 0
     }
    },
@@ -46,9 +38,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightArm": {
-     "pitch": 14,
+     "pitch": 10,
      "yaw": 0,
-     "roll": 8
+     "roll": 14
     }
    },
    {
@@ -56,9 +48,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": 26,
+     "pitch": 18,
      "yaw": 0,
-     "roll": -6
+     "roll": -8
     }
    },
    {
@@ -66,7 +58,7 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightLeg": {
-     "pitch": 10,
+     "pitch": 8,
      "yaw": 0,
      "roll": 0
     }
@@ -86,18 +78,8 @@
     "easing": "LINEAR",
     "turn": 0,
     "body": {
-     "pitch": 0,
-     "yaw": 22,
-     "roll": 0
-    }
-   },
-   {
-    "tick": 4,
-    "easing": "LINEAR",
-    "turn": 0,
-    "torso": {
-     "pitch": -20,
-     "yaw": 0,
+     "pitch": 12,
+     "yaw": 16,
      "roll": 0
     }
    },
@@ -106,8 +88,8 @@
     "easing": "LINEAR",
     "turn": 0,
     "head": {
-     "pitch": -20,
-     "yaw": -8,
+     "pitch": -15,
+     "yaw": 6,
      "roll": 0
     }
    },
@@ -116,16 +98,6 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "body": {
-     "pitch": 0,
-     "yaw": 0,
-     "roll": 0
-    }
-   },
-   {
-    "tick": 11,
-    "easing": "EASEINOUTSINE",
-    "turn": 0,
-    "torso": {
      "pitch": 0,
      "yaw": 0,
      "roll": 0

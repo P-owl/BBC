@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "jump_air",
  "author": "bbc",
  "description": "",
@@ -7,8 +8,9 @@
   "returnTick": 0,
   "beginTick": 0,
   "endTick": 8,
-  "stopTick": 11,
+  "stopTick": 9,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
@@ -17,6 +19,7 @@
     "turn": 0,
     "rightArm": {
      "pitch": -160,
+     "yaw": 0,
      "roll": 20
     }
    },
@@ -26,6 +29,7 @@
     "turn": 0,
     "leftArm": {
      "pitch": -160,
+     "yaw": 0,
      "roll": -20
     }
    },
@@ -34,7 +38,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "rightLeg": {
-     "pitch": -60
+     "pitch": -60,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -42,7 +48,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "leftLeg": {
-     "pitch": -20
+     "pitch": -20,
+     "yaw": 0,
+     "roll": 0
     }
    }
   ]

@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "focus",
  "author": "bbc",
  "description": "",
@@ -7,8 +8,9 @@
   "returnTick": 0,
   "beginTick": 0,
   "endTick": 12,
-  "stopTick": 15,
+  "stopTick": 13,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
@@ -17,7 +19,8 @@
     "turn": 0,
     "rightArm": {
      "pitch": -70,
-     "yaw": 45
+     "yaw": -40,
+     "roll": 0
     }
    },
    {
@@ -26,15 +29,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": -70,
-     "yaw": -45
-    }
-   },
-   {
-    "tick": 2,
-    "easing": "EASEOUTQUAD",
-    "turn": 0,
-    "torso": {
-     "pitch": 8
+     "yaw": 40,
+     "roll": 0
     }
    },
    {
@@ -43,7 +39,8 @@
     "turn": 0,
     "rightArm": {
      "pitch": -70,
-     "yaw": 45
+     "yaw": -40,
+     "roll": 0
     }
    },
    {
@@ -52,7 +49,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": -70,
-     "yaw": -45
+     "yaw": 40,
+     "roll": 0
     }
    }
   ]

@@ -1,4 +1,5 @@
 {
+ "version": 3,
  "name": "evade",
  "author": "bbc",
  "description": "",
@@ -7,8 +8,9 @@
   "returnTick": 0,
   "beginTick": 0,
   "endTick": 9,
-  "stopTick": 9,
+  "stopTick": 10,
   "degrees": true,
+  "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
@@ -16,23 +18,9 @@
     "easing": "LINEAR",
     "turn": 0,
     "body": {
-     "pitch": 0
-    }
-   },
-   {
-    "tick": 8,
-    "easing": "LINEAR",
-    "turn": 0,
-    "body": {
-     "pitch": -360
-    }
-   },
-   {
-    "tick": 9,
-    "easing": "CONSTANT",
-    "turn": 0,
-    "body": {
-     "pitch": 0
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -40,7 +28,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "rightLeg": {
-     "pitch": -70
+     "pitch": -70,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -48,7 +38,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "leftLeg": {
-     "pitch": -70
+     "pitch": -70,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -56,7 +48,9 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "rightArm": {
-     "pitch": -60
+     "pitch": -60,
+     "yaw": 0,
+     "roll": 0
     }
    },
    {
@@ -64,7 +58,29 @@
     "easing": "EASEOUTQUAD",
     "turn": 0,
     "leftArm": {
-     "pitch": -60
+     "pitch": -60,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 8,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "pitch": 360,
+     "yaw": 0,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "CONSTANT",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": 0,
+     "roll": 0
     }
    }
   ]
