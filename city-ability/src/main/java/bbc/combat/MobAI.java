@@ -284,6 +284,10 @@ public final class MobAI {
         z.setCustomNameVisible(true);
         z.equipStack(EquipmentSlot.HEAD, new ItemStack(tier == Tier.BOSS ? Items.NETHERITE_HELMET : Items.LEATHER_HELMET)); // 햇빛에 안 타게
         z.setEquipmentDropChance(EquipmentSlot.HEAD, 0f);
+        if (tier == Tier.SKILLED) { // 숙련은 검을 들고 검 평타(5타, 조금 셈)를 씀
+            z.equipStack(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
+            z.setEquipmentDropChance(EquipmentSlot.MAINHAND, 0f);
+        }
         EntityAttributeInstance hp = z.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH);
         if (hp != null) hp.setBaseValue(tier.hp);
         z.setHealth(tier.hp);

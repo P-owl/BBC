@@ -19,6 +19,7 @@ import net.minecraft.client.util.InputUtil;
  * 전투 모드에서는
  *  - 좌클릭 = 평타 (MinecraftClientMixin). 스페이스를 누른 채면 띄우기·래더. 평타 중엔 바닐라 점프가 막힘 (KeyboardInputMixin)
  *  - 숫자 1~5 (핫바 키) = 기술. 전투 모드 동안 핫바 1~5 전환은 먹어 버린다
+ *  - E (인벤토리 키) = 스위치 (클래스 → 무기 A → 무기 B). 전투 모드 동안 인벤토리는 ` 로 모드를 끄고 연다
  *  - F(손 바꾸기 키) = 가드, 누르는 순간 패링 입력 창
  *  - Q(버리기 키) = 대시 (움직이는 방향으로), 경직 중이면 회피기
  * 바닐라 F·Q 동작은 전투 모드 동안 먹어 버린다. 키를 바꾸면 바뀐 키를 따른다.
@@ -78,6 +79,7 @@ public class BbcClient implements ClientModInitializer {
             if (g != guardSent) { send(g ? KeyPayload.GUARD_DOWN : KeyPayload.GUARD_UP); guardSent = g; }
             while (o.dropKey.wasPressed()) send(KeyPayload.DASH_BASE + dashDir(client));
             for (int i = 0; i < 5; i++) while (o.hotbarKeys[i].wasPressed()) send(KeyPayload.SKILL_BASE + i);
+            while (o.inventoryKey.wasPressed()) send(KeyPayload.SLOT_BASE); // E = 스위치 (전투 모드 동안 인벤토리 대신)
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

@@ -1,0 +1,164 @@
+package bbc.combat;
+
+import bbc.job.JobSkills;
+import bbc.job.Stamina;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.tag.ItemTags;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.math.Vec3d;
+
+/**
+ * 스위치 — 클래스와 무기 전환 (기획안 1부 ‘스위치’).
+ *  핫바 1번 칸 = 클래스(직업 평타·직업 기술 1~5), 2번 칸 = 무기 A, 3번 칸 = 무기 B.
+ *  E 로 클래스 → 무기 A → 무기 B 순서로 돌림 (무기가 없는 칸은 건너뜀). 전환 5틱.
+ *  무기 칸에선 평타가 무기 평타로 바뀌고, 숫자 1·2 = 무기 기술 2개.
+ *  스위치 캔슬: 평타·기술 후딜 중에 바꾸면 후딜이 취소됨. 콤보당 2번, 스태미나 15.
+ *
+ *  무기 종류 (지금은 바닐라 아이템으로 판별, 나중에 모드 무기 태그로)
+ *   검(모든 검)   : 5타, 기본 평타보다 조금 셈
+ *   창(삼지창)    : 4타, 사거리 +1칸
+ *   대검(모든 도끼): 느린 3타, 한 대가 아주 셈
+ */
+public final class Weapon {
+    private Weapon() {}
+
+    /** 평타 성질: 사슬 길이(마지막이 마무리), 선딜·후딜, 피해 배율, 사거리 추가, 모션 앞머리 */
+    public record M1Profile(int hits, int startup, int recovery, float dmgMul, double reachAdd, String motion, int finishStartup) {}
+
+    public static final M1Profile FIST = new M1Profile(5, Tuning.M1_STARTUP, Tuning.M1_RECOVERY, 1f, 0, "m1_", Tuning.FINISH_STARTUP);
+
+    public record WSkill(String name, String shortName, double cost, int cooldown) {}
+
+    public enum Type {
+        SWORD("검", new M1Profile(5, 4, 2, 1.2f, 0.2, "sw_", 5),
+                new WSkill("올려베기", "올려", 15, 5), new WSkill("질풍베기", "질풍", 15, 4)),
+        SPEAR("창", new M1Profile(4, 4, 3, 1.15f, 1.0, "sp_", 5),
+                new WSkill("꿰뚫기", "꿰뚫", 15, 5), new WSkill("휩쓸기", "휩쓸", 20, 7)),
+        GREATSWORD("대검", new M1Profile(3, 7, 4, 2.0f, 0.4, "gs_", 8),
+                new WSkill("가르기", "가르", 25, 8), new WSkill("회전베기", "회전", 20, 6));
+
+        public final String name;
+        public final M1Profile m1;
+        public final WSkill[] skills;
+        Type(String name, M1Profile m1, WSkill... skills) { this.name = name; this.m1 = m1; this.skills = skills; }
+    }
+
+    public static Type of(ItemStack s) {
+        if (s == null || s.isEmpty()) return null;
+        if (s.isIn(ItemTags.SWORDS)) return Type.SWORD;
+        if (s.isOf(Items.TRIDENT)) return Type.SPEAR;
+        if (s.isIn(ItemTags.AXES)) return Type.GREATSWORD;
+        return null;
+    }
+
+    /** 지금 쓰는 무기 (클래스 칸이면 null). 플레이어는 선택한 핫바 칸, 몬스터는 손에 든 것 */
+    public static Type current(LivingEntity e) {
+        if (e instanceof ServerPlayerEntity p) {
+            int sel = p.getInventory().selectedSlot;
+            return sel == 1 || sel == 2 ? of(p.getInventory().getStack(sel)) : null;
+        }
+        return of(e.getMainHandStack());
+    }
+
+    public static M1Profile profile(LivingEntity e) {
+        Type t = current(e);
+        return t == null ? FIST : t.m1;
+    }
+
+    // ═════════ 전환 ═════════
+
+    public static void cycle(ServerPlayerEntity p) {
+        Fighter f = Combat.of(p);
+        long now = Combat.now;
+        if (f.stunned() || now < f.switchReadyAt) return;
+        int sel = p.getInventory().selectedSlot;
+        int cur = sel == 1 || sel == 2 ? sel : 0;
+        int next = -1;
+        for (int i = 1; i <= 2; i++) {
+            int c = (cur + i) % 3;
+            if (c == 0 || of(p.getInventory().getStack(c)) != null) { next = c; break; }
+        }
+        if (next < 0 || next == cur) { JobSkills.bar(p, "핫바 2·3번 칸에 무기(검·삼지창·도끼)를 넣으면 E로 바꿀 수 있습니다", Formatting.GRAY); return; }
+        // 스위치 캔슬: 후딜 중이면 후딜을 지움 (콤보당 2번, 스태미나 15)
+        if (now < f.recoveryUntil) {
+            if (now > f.switchCancelResetAt) f.switchCancels = 0;
+            if (f.switchCancels >= 2) { JobSkills.bar(p, "이번 콤보에선 스위치 캔슬을 다 썼습니다", Formatting.GRAY); return; }
+            if (!Stamina.spend(p, 15)) { JobSkills.bar(p, "스태미나 부족", Formatting.RED); return; }
+            f.switchCancels++;
+            f.switchCancelResetAt = now + 60;
+            f.recoveryUntil = now;
+        }
+        f.m1ReadyAt = Math.max(Math.min(f.m1ReadyAt, now), now) + 5; // 전환 5틱
+        f.switchReadyAt = now + 5;
+        f.m1Index = 0;
+        p.getInventory().selectedSlot = next;
+        p.networkHandler.sendPacket(new UpdateSelectedSlotS2CPacket(next));
+        ServerWorld w = p.getServerWorld();
+        w.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ITEM_ARMOR_EQUIP_IRON.value(), SoundCategory.PLAYERS, 0.7f, 1.5f);
+        w.spawnParticles(ParticleTypes.ENCHANTED_HIT, p.getX(), p.getY() + 1, p.getZ(), 8, 0.3, 0.4, 0.3, 0.1);
+        Type t = next == 0 ? null : of(p.getInventory().getStack(next));
+        JobSkills.bar(p, t == null ? "⇄ 클래스" : "⇄ " + t.name, Formatting.AQUA);
+    }
+
+    // ═════════ 무기 기술 (숫자 1·2) ═════════
+
+    static final Hit RISE = new Hit(2f, Hit.Kind.AIR, 24, 0.05, 0.85, 20, false, false);
+    static final Hit GALE = new Hit(1.8f, Hit.Kind.HIT, 16, 0.15, 0, 15, false, false);
+    static final Hit PIERCE = new Hit(2.5f, Hit.Kind.HIT, 18, 0.3, 0, 25, false, false);
+    static final Hit SWEEP = new Hit(2f, Hit.Kind.KNOCK, 14, 1.0, 0.35, 25, false, false);
+    static final Hit CLEAVE = new Hit(4f, Hit.Kind.DOWN, 14, 0.2, -0.6, 60, true, false);   // 가드 깨기
+    static final Hit WHIRL = new Hit(2.2f, Hit.Kind.HIT, 16, 0.4, 0.1, 25, false, false);
+
+    /** 무기 기술 사용. 썼으면 true */
+    public static boolean useSkill(ServerPlayerEntity p, int idx) {
+        Type t = current(p);
+        if (t == null || idx < 0 || idx >= t.skills.length) return false;
+        Fighter f = Combat.of(p);
+        long now = Combat.now;
+        String key = t.name() + idx;
+        long cd = f.weaponCd.getOrDefault(key, 0L);
+        if (now < cd) { JobSkills.bar(p, t.skills[idx].name() + " 재사용까지 " + ((cd - now) / 20 + 1) + "초", Formatting.GRAY); return false; }
+        if (!Stamina.spend(p, t.skills[idx].cost())) { JobSkills.bar(p, "스태미나 부족", Formatting.RED); return false; }
+        Vec3d look = Combat.horizontal(p.getRotationVec(1f));
+        boolean air = !p.isOnGround();
+        switch (t) {
+            case SWORD -> {
+                if (idx == 0) { Combat.special(p, "sw_rise", 4, 6, RISE, 3.3); if (air) Combat.move(p, new Vec3d(0, 0.55, 0)); }
+                else { Combat.move(p, new Vec3d(look.x * 1.1, air ? 0.1 : 0.05, look.z * 1.1)); Combat.special(p, "sw_3", 3, 5, GALE, 3.0); }
+            }
+            case SPEAR -> {
+                if (idx == 0) { Combat.move(p, new Vec3d(look.x * 0.5, 0, look.z * 0.5)); Combat.special(p, "sp_thrust", 5, 6, PIERCE, 5.2); }
+                else Combat.special(p, "sp_sweep", 5, 8, SWEEP, 3.6);
+            }
+            case GREATSWORD -> {
+                if (idx == 0) Combat.special(p, "gs_cleave", 10, 8, CLEAVE, 3.6);
+                else Combat.special(p, "spin", 5, 7, WHIRL, 3.4);
+            }
+        }
+        f.weaponCd.put(key, now + t.skills[idx].cooldown() * 20L);
+        return true;
+    }
+
+    /** 액션바: 무기 칸일 때 */
+    public static MutableText hud(ServerPlayerEntity p, Type t) {
+        Fighter f = Combat.of(p);
+        MutableText m = Text.literal("🗡 " + t.name + "  ").formatted(Formatting.AQUA);
+        for (int i = 0; i < t.skills.length; i++) {
+            long left = f.weaponCd.getOrDefault(t.name() + i, 0L) - Combat.now;
+            WSkill s = t.skills[i];
+            m.append(Text.literal((i + 1) + " " + s.shortName() + (left > 0 ? " " + (left / 20 + 1) + "s" : "") + "  ")
+                    .formatted(left > 0 ? Formatting.DARK_GRAY : Formatting.GREEN));
+        }
+        return m;
+    }
+}

@@ -33,7 +33,13 @@ public final class Fighter {
     double awakenGauge;   // 0~100
     long awakenUntil;     // 각성 끝나는 틱 (0 = 각성 아님)
     boolean ultUsed;      // 이번 각성에 각성기를 썼나
-    public double awakenGauge() { return awakenGauge; }     // 허수아비: 최근 콤보 기록
+    public double awakenGauge() { return awakenGauge; }
+
+    // ── 스위치 ──
+    long switchReadyAt;
+    int switchCancels;
+    long switchCancelResetAt;
+    final java.util.Map<String, Long> weaponCd = new java.util.HashMap<>();  // 무기 기술 재사용 (무기종류+번호 → 끝나는 틱)     // 허수아비: 최근 콤보 기록
 
     // ── 때리는 쪽 ──
     int m1Index;          // 0~4 (다음에 나갈 평타, 땅·공중 합쳐서)

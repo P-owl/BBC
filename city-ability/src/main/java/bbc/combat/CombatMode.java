@@ -69,10 +69,13 @@ public final class CombatMode {
         if (action >= KeyPayload.DASH_BASE && action < KeyPayload.DASH_BASE + 4) { Combat.dash(p, action - KeyPayload.DASH_BASE); return; }
         if (action >= KeyPayload.SKILL_BASE && action < KeyPayload.SKILL_BASE + JobSkills.SLOTS) {
             if (!Combat.canAct(p)) return; // 경직·다운 중엔 기술 못 씀
-            if (JobSkills.useSlot(p, action - KeyPayload.SKILL_BASE)) Combat.afterSkill(p, 6);
+            int k = action - KeyPayload.SKILL_BASE;
+            if (Weapon.current(p) != null) { if (Weapon.useSkill(p, k)) Combat.afterSkill(p, 6); return; } // 무기 칸: 1·2 = 무기 기술
+            if (JobSkills.useSlot(p, k)) Combat.afterSkill(p, 6);
             return;
         }
         if (action == KeyPayload.AWAKEN) { Awaken.press(p); return; }
+        if (action == KeyPayload.SLOT_BASE) { Weapon.cycle(p); return; }
         // 스위치·임플란트·유물·마안은 이후에 연결
     }
 
@@ -86,7 +89,8 @@ public final class CombatMode {
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
             if (!active(p)) continue;
             if (!Jobs.hasCombat(Jobs.entry(p))) { set(p, false); continue; } // 직업을 잃음
-            p.sendMessage(Combat.hudPrefix(p).append(JobSkills.hud(p, Jobs.entry(p))), true);
+            Weapon.Type w = Weapon.current(p);
+            p.sendMessage(Combat.hudPrefix(p).append(w != null ? Weapon.hud(p, w) : JobSkills.hud(p, Jobs.entry(p))), true);
         }
     }
 }

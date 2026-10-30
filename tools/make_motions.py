@@ -156,6 +156,47 @@ anim("awaken", 20,
     + P(14, LIN, body=(8, 0, 0), head=(-26, 0, 0), rightArm=(-24, 0, 70, -12), leftArm=(-24, 0, -70, -12))
     + P(20, IO, **STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
 
+# ── 무기 평타 (오른손에 무기) ──
+# 검: 팔꿈치를 거의 편 채 어깨부터 크게 휘두름. 몸 회전이 칼끝을 끌고 감
+def slash(t_hit, end, start_arm, end_arm, body0, body1, legs=None, hold=3, left=None):
+    prep = dict(rightArm=start_arm, body=(0, body0, 0), head=(0, body0, 0))
+    hit = dict(rightArm=end_arm, body=(-8, body1, 0), head=(-6, body1, 0))
+    if left: hit["leftArm"] = left
+    return strike(t_hit, end, hit, prep, hold=hold, legs=legs)
+anim("sw_1", 10, slash(4, 10, (-95, 70, 10, -20), (-80, -60, -10, -5), -30, 30, LUNGE_R))          # 오른쪽 → 왼쪽 가로 베기
+anim("sw_2", 10, slash(4, 10, (-85, -65, -15, -25), (-90, 60, 10, -5), 25, -30, LUNGE_L))           # 왼쪽 → 오른쪽 되돌려 베기
+anim("sw_3", 10, slash(4, 10, (-165, 20, 20, -30), (-35, -25, -5, -5), -20, 20, LUNGE_R))           # 위 → 아래 사선 내려베기
+anim("sw_4", 10, slash(4, 10, (-20, 30, 10, -40), (-150, -20, -10, -10), -15, 15, LUNGE_R))         # 아래 → 위 올려베기
+anim("sw_5", 17, slash(5, 17, (-170, 0, 0, -50), (-40, 0, 0, 0), -30, 25,                             # 마무리: 크게 들었다가 내리쳐 날려보냄
+    dict(rightLeg=(30, 0, 0, 10), leftLeg=(-44, 0, 0, 40)), hold=6, left=(-50, 20, -10, -60)))
+anim("sw_rise", 11, slash(4, 11, (-10, 10, 10, -30), (-170, 0, 0, -5), -20, 10,
+    dict(rightLeg=(10, 0, 0, 4), leftLeg=(-20, 0, 0, 10)), hold=4))
+# 창: 두 손으로 잡고 찌르기. 앞손(왼손)이 받치고 뒷손이 밀어 넣음
+SPEAR_HOLD = dict(rightArm=(-60, 10, 0, -70), leftArm=(-75, 30, 0, -40))
+def thrust(t_hit, end, reach, legs, hold=3):
+    prep = dict(rightArm=(-50, 15, 0, -100), leftArm=(-70, 35, 0, -60), body=(0, -30, 0), head=(0, -30, 0))
+    hit = dict(rightArm=(-88, 15, 0, -reach), leftArm=(-90, 25, 0, -5), body=(-12, -20, 0), head=(-8, -20, 0))
+    return strike(t_hit, end, hit, prep, hold=hold, legs=legs)
+anim("sp_1", 11, thrust(4, 11, 20, LUNGE_L))
+anim("sp_2", 11, thrust(4, 11, 10, LUNGE_L))
+anim("sp_3", 11, thrust(4, 11, 0, dict(leftLeg=(-38, 0, 0, 34), rightLeg=(26, 0, 0, 8))))
+anim("sp_4", 17, thrust(5, 17, 0, dict(leftLeg=(-46, 0, 0, 40), rightLeg=(30, 0, 0, 10)), hold=6))
+anim("sp_thrust", 13, thrust(5, 13, 0, dict(leftLeg=(-50, 0, 0, 44), rightLeg=(34, 0, 0, 10)), hold=5))
+anim("sp_sweep", 14, strike(5, 14,  # 창을 옆으로 크게 휩쓸기
+    prep=dict(rightArm=(-80, -70, 0, -10), leftArm=(-80, -40, 0, -20), body=(0, 40, 0), head=(0, 20, 0)),
+    hit=dict(rightArm=(-80, 70, 0, -10), leftArm=(-80, 60, 0, -20), body=(0, -40, 0), head=(0, -20, 0)), hold=4))
+# 대검(도끼): 두 손으로 머리 위까지 들어 올렸다가 온몸으로 내리침. 느리지만 크고 무거움
+def heavy(t_hit, end, legs, hold=4, low=-35):
+    prep = dict(rightArm=(-175, 10, 0, -40), leftArm=(-175, 30, 0, -40), body=(8, -20, 0), head=(-10, -20, 0))
+    hit = dict(rightArm=(low, 5, 0, -5), leftArm=(low - 5, 25, 0, -10), body=(-22, 5, 0), head=(-14, 5, 0))
+    return strike(t_hit, end, hit, prep, hold=hold, legs=legs)
+anim("gs_1", 13, heavy(7, 13, LUNGE_L))
+anim("gs_2", 13, strike(7, 13,  # 옆으로 크게 후리기
+    prep=dict(rightArm=(-90, 80, 0, -20), leftArm=(-90, 60, 0, -30), body=(0, 50, 0), head=(0, 20, 0)),
+    hit=dict(rightArm=(-85, -70, 0, -5), leftArm=(-85, -50, 0, -10), body=(-10, -45, 0), head=(-6, -20, 0)), hold=4, legs=LUNGE_R))
+anim("gs_3", 20, heavy(8, 20, dict(rightLeg=(30, 0, 0, 10), leftLeg=(-46, 0, 0, 44)), hold=7, low=-20))
+anim("gs_cleave", 22, heavy(10, 22, dict(rightLeg=(34, 0, 0, 12), leftLeg=(-50, 0, 0, 50)), hold=8, low=-10))
+
 # ── 방어·이동 ──
 GUARD = dict(body=(0, -10, 0), head=(0, -10, 0), rightArm=(-62, -28, 6, -110), leftArm=(-66, 28, -6, -112))  # 두 팔뚝을 얼굴 앞에 세움
 anim("guard", 20, P(0, OS, **GUARD) + P(20, LIN, **GUARD), loop=True, ret=1)

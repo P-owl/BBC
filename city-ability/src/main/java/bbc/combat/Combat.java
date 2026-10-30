@@ -167,16 +167,18 @@ public final class Combat {
         if (now > a.m1ChainUntil) a.m1Index = 0;
         boolean air = !p.isOnGround() && now < a.airComboUntil;
         int idx = a.m1Index;
-        if (idx < 4) {
+        Weapon.M1Profile pr = Weapon.profile(p);   // 맨손·검·창·대검마다 사슬 길이·속도가 다름
+        boolean weapon = pr != Weapon.FIST;
+        if (idx < pr.hits() - 1) {
             a.m1Index++;
             if (air) {
-                swing(p, a, "air_" + (idx % 3 + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                swing(p, a, weapon ? pr.motion() + (idx % 3 + 1) : "air_" + (idx % 3 + 1), pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
                     hitArea(p, Tuning.AIR_M1, false);
                     a.airComboUntil = now + 24;
                     setVel(p, new Vec3d(p.getVelocity().x * 0.3, 0.12, p.getVelocity().z * 0.3));
                 });
             } else if (up && idx >= 1) {
-                swing(p, a, "launch", Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                swing(p, a, "launch", pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
                     if (hitArea(p, Tuning.HOP, false) > 0) {
                         a.airComboUntil = now + 30;
                         setVel(p, new Vec3d(0, Tuning.HOP_VY, 0));
@@ -184,7 +186,7 @@ public final class Combat {
                 });
             } else {
                 track(p);
-                swing(p, a, "m1_" + (idx + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
+                swing(p, a, pr.motion() + (idx + 1), pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
                         () -> hitArea(p, Tuning.M1, false));
             }
             return;
@@ -221,7 +223,7 @@ public final class Combat {
             });
         } else {
             track(p);
-            swing(p, a, "m1_5", Tuning.FINISH_STARTUP, Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
+            swing(p, a, pr.motion() + pr.hits(), pr.finishStartup(), Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
                     () -> { if (hitArea(p, Tuning.FINISH, false) > 0) ring(((ServerWorld) p.getWorld()), p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5)).add(0, 1, 0), 1.3, 18); });
         }
     }
@@ -269,9 +271,11 @@ public final class Combat {
     /** 평타 판정 안의 대상들을 때림. 맞힌 수를 돌려줌 */
     private static int hitArea(LivingEntity p, Hit h, boolean ladder) {
         int n = 0;
+        Weapon.M1Profile pr = Weapon.profile(p);
+        if (pr.dmgMul() != 1f) h = h.withDamage(h.damage() * pr.dmgMul());
         FROM_M1.set(true);
         try {
-            for (LivingEntity t : sphere(p, Tuning.M1_REACH, Tuning.M1_RADIUS, Tuning.M1_MAX_TARGETS)) {
+            for (LivingEntity t : sphere(p, Tuning.M1_REACH + pr.reachAdd(), Tuning.M1_RADIUS, Tuning.M1_MAX_TARGETS)) {
                 if (ladder) {
                     Fighter v = peek(t);
                     if (v == null || v.ladderUsed || v.state != Fighter.State.AIR) continue;

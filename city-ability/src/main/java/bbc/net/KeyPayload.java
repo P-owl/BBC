@@ -15,7 +15,7 @@ public record KeyPayload(int action) implements CustomPayload {
     /** + 0~4 = 1~5 칸 */
     public static final int SKILL_BASE = 10;
     public static final int GUARD_DOWN = 20, GUARD_UP = 21, DASH = 22, AWAKEN = 23;
-    /** + 0~2 = 클래스·무기A·무기B 슬롯 */
+    /** 스위치 (E): 클래스 → 무기 A → 무기 B 순서로 */
     public static final int SLOT_BASE = 30;
     public static final int IMPLANT = 40, RELIC = 41, EYE = 42;
     /** + 0 앞 1 뒤 2 왼쪽 3 오른쪽 (경직 중이면 회피기) */
