@@ -21,7 +21,8 @@ import net.minecraft.util.math.Vec3d;
 
 /**
  * 수련생 — 시험용 직업. 기술이 지상판/공중판으로 나뉘어서 ABA처럼 공중 콤보 중에 기술을 끼워 넣을 수 있다.
- *   예) 평타 2 → 스페이스 누른 채 평타(같이 뜸) → 공중 평타 → 2(공중 올려치기) → 공중 평타 → 스페이스 떼고 평타(다운 슬램) → 튕길 때 1(돌진 베기)
+ *   지상 예) 평타 4 → 5(어깨치기) → 평타 4 → 1(돌진 베기) → 평타 4 → 3(밀쳐내기)
+ *   공중 예) 평타 2 → 스페이스 누른 채 평타(같이 뜸) → 공중 평타 → 2(공중 올려치기) → 공중 평타 → 스페이스 떼고 평타(다운 슬램) → 튕길 때 1(돌진 베기)
  * 실제 직업들이 들어오면 지운다.
  */
 public final class TraineeJob implements JobType {
@@ -42,12 +43,13 @@ public final class TraineeJob implements JobType {
             new JobSkills.Skill("올려치기", "올려", 1, 20, 5, "지상: 띄움 / 공중: 한 번 더 띄워 공중 콤보를 이어 감"),
             new JobSkills.Skill("밀쳐내기", "밀침", 1, 25, 8, "지상: 주위를 날려 다운 / 공중: 앞 대상을 땅에 내리꽂음"),
             new JobSkills.Skill("숨 고르기", "회복", 1, 30, 15, "체력 6 회복"),
-            new JobSkills.Skill("도약", "도약", 1, 15, 4, "지상: 높이 뜀 / 공중: 2단 점프로 띄운 상대를 쫓아감"),
+            new JobSkills.Skill("어깨치기", "어깨", 1, 15, 4, "지상: 짧게 파고들며 어깨로 받음 = 평타로 다시 잇는 연계기 / 공중: 2단 점프로 띄운 상대를 쫓아감"),
             new JobSkills.Skill("집중", "집중", 2, 40, 30, "10초 동안 신속 II (숙련 수련생부터)"),
     };
 
     // 기술 판정
     private static final Hit DASH_CUT = new Hit(1.5f, Hit.Kind.HIT, 16, 0.15, 0, 15, false, false);
+    private static final Hit SHOULDER = new Hit(2f, Hit.Kind.HIT, 18, 0.1, 0, 20, false, false);
     private static final Hit RISE = new Hit(2.5f, Hit.Kind.AIR, 24, 0.05, 0.85, 25, false, false);
     private static final Hit AIR_RISE = new Hit(2f, Hit.Kind.AIR, 22, 0.05, 0.55, 20, false, false);
     private static final Hit BLAST = new Hit(2f, Hit.Kind.KNOCK, 12, 1.0, 0.4, 25, false, false);
@@ -93,9 +95,18 @@ public final class TraineeJob implements JobType {
                     }
                 }
                 case 3 -> { Motion.play(p, "heal"); p.heal(6f); }
-                case 4 -> { // 도약 / 2단 점프
-                    Motion.play(p, "jump_air");
-                    Combat.move(p, air ? new Vec3d(look.x * 0.4, 0.65, look.z * 0.4) : new Vec3d(look.x * 0.3, 1.1, look.z * 0.3));
+                case 4 -> {
+                    if (air) { // 2단 점프
+                        Motion.play(p, "jump_air");
+                        Combat.move(p, new Vec3d(look.x * 0.4, 0.65, look.z * 0.4));
+                    } else { // 어깨치기: 지상 연계기 (맞은 상대는 내 앞에 붙잡힌 채 경직 → 평타 4타로 다시 이어짐)
+                        Motion.play(p, "dash_attack");
+                        Combat.move(p, new Vec3d(look.x * 0.75, 0.05, look.z * 0.75));
+                        Tasks.later(2, () -> {
+                            for (LivingEntity t : Combat.targets(p, 2.6, 50, 2)) Combat.hit(p, t, SHOULDER);
+                            Combat.move(p, new Vec3d(0, p.getVelocity().y, 0));
+                        });
+                    }
                 }
                 case 5 -> { Motion.play(p, "focus"); p.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 200, 1)); }
                 default -> { return false; }

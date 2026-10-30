@@ -126,10 +126,9 @@ public final class Combat {
         f.m1ReadyAt = Math.max(f.m1ReadyAt, now + recovery);
         f.recoveryUntil = f.m1ReadyAt;
         f.m1ChainUntil = f.m1ReadyAt + Tuning.CHAIN_RESET;
-        if (!p.isOnGround() && now < f.airComboUntil + 10) {
-            f.airComboUntil = Math.max(f.airComboUntil, now + 30);
-            f.m1Index = 0;
-        }
+        // ABA처럼 '평타 4 → 기술 → 평타 4 → 기술'로 이어지게 기술 뒤엔 평타 사슬을 처음부터 (땅·공중 모두)
+        f.m1Index = 0;
+        if (!p.isOnGround() && now < f.airComboUntil + 10) f.airComboUntil = Math.max(f.airComboUntil, now + 30);
     }
 
     /** 기술용: 속도를 바로 넣음 (플레이어면 즉시 전송) */
@@ -362,6 +361,9 @@ public final class Combat {
         int stun = h.stun();
         if (h.kind() == Hit.Kind.HIT || h.kind() == Hit.Kind.AIR)
             stun = Math.max(Tuning.STUN_MIN, stun - (v.comboHits - 1) / Tuning.STUN_DECAY_EVERY);
+        // 땅에서 기술(평타 말고)로 맞힌 경직은 기술 후딜 + 평타 선딜보다 길게 → 기술 뒤 평타가 이어짐 (지상 익스텐더)
+        boolean groundSkill = !FROM_M1.get() && h.kind() == Hit.Kind.HIT && atk instanceof ServerPlayerEntity;
+        if (groundSkill) stun = Math.max(stun, Tuning.SKILL_MIN_STUN);
         float dmg = h.damage() * scale;
 
         if (!deal(atk, t, dmg)) { v.comboHits--; return Result.MISS; }
@@ -387,6 +389,12 @@ public final class Combat {
             Vec3d pull = want.subtract(t.getPos()).multiply(0.35);
             vel = new Vec3d(clamp(pull.x, 0.6), h.lift(), clamp(pull.z, 0.6));
             if (atk instanceof ServerPlayerEntity sp) setVel(sp, new Vec3d(atk.getVelocity().x * 0.3, Math.max(atk.getVelocity().y, h.lift()), atk.getVelocity().z * 0.3));
+        }
+        if (groundSkill && h.push() < 0.4) {
+            // 기술로 맞힌 상대를 내 앞 1.9칸에 붙잡아 둔다 (멀어져서 다음 평타가 헛치지 않게)
+            Vec3d want = atk.getPos().add(horizontal(atk.getRotationVec(1f)).multiply(1.9));
+            Vec3d pull = want.subtract(t.getPos()).multiply(0.4);
+            vel = new Vec3d(clamp(pull.x, 0.6), Math.min(t.getVelocity().y, 0.0), clamp(pull.z, 0.6));
         }
         setVel(t, vel);
 

@@ -7,8 +7,8 @@
   "isLoop": false,
   "returnTick": 0,
   "beginTick": 0,
-  "endTick": 9,
-  "stopTick": 10,
+  "endTick": 10,
+  "stopTick": 11,
   "degrees": true,
   "easeBeforeKeyframe": true,
   "nsfw": false,
@@ -60,10 +60,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
-     "pitch": -20,
-     "yaw": -8,
-     "roll": 4,
-     "bend": -110
+     "pitch": -5,
+     "yaw": -10,
+     "roll": 6,
+     "bend": -115
     }
    },
    {
@@ -71,8 +71,8 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "body": {
-     "pitch": -6,
-     "yaw": -10,
+     "pitch": -16,
+     "yaw": -24,
      "roll": 0
     }
    },
@@ -82,7 +82,7 @@
     "turn": 0,
     "head": {
      "pitch": -6,
-     "yaw": -10,
+     "yaw": -24,
      "roll": 0
     }
    },
@@ -91,10 +91,21 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightArm": {
-     "pitch": -118,
+     "pitch": -150,
      "yaw": -6,
      "roll": 0,
-     "bend": -48
+     "bend": -40
+    }
+   },
+   {
+    "tick": 4,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -30,
+     "yaw": 18,
+     "roll": -10,
+     "bend": -115
     }
    },
    {
@@ -102,8 +113,8 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "body": {
-     "pitch": 4,
-     "yaw": 10,
+     "pitch": 8,
+     "yaw": 18,
      "roll": 0
     }
    },
@@ -112,44 +123,55 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "head": {
-     "pitch": -4,
-     "yaw": 10,
+     "pitch": -18,
+     "yaw": 18,
      "roll": 0
     }
    },
    {
-    "tick": 6,
+    "tick": 7,
     "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
-     "pitch": -118,
+     "pitch": -150,
      "yaw": -6,
      "roll": 0,
-     "bend": -48
+     "bend": -40
     }
    },
    {
-    "tick": 6,
+    "tick": 7,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -30,
+     "yaw": 18,
+     "roll": -10,
+     "bend": -115
+    }
+   },
+   {
+    "tick": 7,
     "easing": "LINEAR",
     "turn": 0,
     "body": {
-     "pitch": 4,
-     "yaw": 10,
+     "pitch": 8,
+     "yaw": 18,
      "roll": 0
     }
    },
    {
-    "tick": 6,
+    "tick": 7,
     "easing": "LINEAR",
     "turn": 0,
     "head": {
-     "pitch": -4,
-     "yaw": 10,
+     "pitch": -18,
+     "yaw": 18,
      "roll": 0
     }
    },
    {
-    "tick": 9,
+    "tick": 10,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "body": {
@@ -159,7 +181,7 @@
     }
    },
    {
-    "tick": 9,
+    "tick": 10,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "head": {
@@ -169,7 +191,7 @@
     }
    },
    {
-    "tick": 9,
+    "tick": 10,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
@@ -180,7 +202,7 @@
     }
    },
    {
-    "tick": 9,
+    "tick": 10,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
@@ -213,14 +235,36 @@
     }
    },
    {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 12,
+     "yaw": 0,
+     "roll": 0,
+     "bend": 30
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -24,
+     "yaw": 0,
+     "roll": 0,
+     "bend": 32
+    }
+   },
+   {
     "tick": 4,
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightLeg": {
-     "pitch": 4,
+     "pitch": 6,
      "yaw": 0,
      "roll": 0,
-     "bend": 10
+     "bend": 8
     }
    },
    {
@@ -228,36 +272,36 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftLeg": {
-     "pitch": -10,
+     "pitch": -14,
      "yaw": 0,
      "roll": 0,
      "bend": 6
     }
    },
    {
-    "tick": 6,
+    "tick": 7,
     "easing": "LINEAR",
     "turn": 0,
     "rightLeg": {
-     "pitch": 4,
+     "pitch": 6,
      "yaw": 0,
      "roll": 0,
-     "bend": 10
+     "bend": 8
     }
    },
    {
-    "tick": 6,
+    "tick": 7,
     "easing": "LINEAR",
     "turn": 0,
     "leftLeg": {
-     "pitch": -10,
+     "pitch": -14,
      "yaw": 0,
      "roll": 0,
      "bend": 6
     }
    },
    {
-    "tick": 9,
+    "tick": 10,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightLeg": {
@@ -268,7 +312,7 @@
     }
    },
    {
-    "tick": 9,
+    "tick": 10,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftLeg": {

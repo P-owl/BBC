@@ -70,48 +70,63 @@ anim("stance", 40, P(0, LIN, **STANCE) + P(20, IO, rightArm=(-41, -18, 8, -102),
      + P(40, IO, **STANCE), loop=True, ret=0)
 
 
-def strike(t_hit, end, hit, prep=None, hold=2, legs=None):
-    """자세 → (prep: 판정 1틱 전 살짝) → 판정 틱에 1틱 만에 hit → hold 틱 유지 → end 에 자세로 (천천히)"""
+def strike(t_hit, end, hit, prep=None, hold=3, legs=None, prep_legs=None):
+    """자세 → 판정 1틱 전까지 크게 끌어당김(prep) → 판정 틱에 1틱 만에 hit → hold 틱 유지 → end 에 자세로 (천천히)"""
     keys = P(0, LIN, **STANCE)
     if prep: keys += P(t_hit - 1, IO, **prep)
     keys += P(t_hit, EX, **hit) + P(t_hit + hold, LIN, **hit) + P(end, IO, **STANCE)
-    if legs:  # 다리는 자세에 없으니 0에서 시작해 0으로 돌아옴
-        z = dict(rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
-        keys += P(0, LIN, **z) + P(t_hit, EX, **legs) + P(t_hit + hold, LIN, **legs) + P(end, IO, **z)
+    z = dict(rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+    if legs or prep_legs:  # 다리는 자세에 없으니 0에서 시작해 0으로 돌아옴
+        keys += P(0, LIN, **z)
+        if prep_legs: keys += P(t_hit - 1, IO, **prep_legs)
+        if legs: keys += P(t_hit, EX, **legs) + P(t_hit + hold, LIN, **legs)
+        keys += P(end, IO, **z)
     return keys
 
 
-# ── 평타 (선딜 4 → 판정 → 후딜 2, 다음 평타까지 7틱) ── 팔꿈치를 펴면서 뻗는 게 핵심
-anim("m1_1", 9, strike(4, 9,  # 왼손 잽: 몸을 조금 더 돌리며 앞손을 쭉 폄
-    hit=dict(leftArm=(-90, 6, 0, -4), body=(0, -22, 0), head=(0, -22, 0))))
-anim("m1_2", 9, strike(4, 9,  # 오른손 스트레이트: 몸이 왼쪽으로 돌며 뒷손이 나감, 뒷무릎이 살짝 꺾임
-    prep=dict(body=(0, -20, 0), head=(0, -20, 0)),
-    hit=dict(rightArm=(-92, 8, 0, -4), leftArm=(-45, 18, -6, -105), body=(0, 14, 0), head=(0, 14, 0)),
-    legs=dict(rightLeg=(8, 0, 0, 18), leftLeg=(-12, 0, 0, 6))))
-anim("m1_3", 9, strike(4, 9,  # 왼손 훅: 팔꿈치를 90°로 접은 채 바깥에서 안으로
-    prep=dict(leftArm=(-75, -32, -20, -55)),
-    hit=dict(leftArm=(-88, 34, -6, -62), body=(0, 2, 0), head=(0, 2, 0))))
-anim("m1_4", 9, strike(4, 9,  # 오른손 어퍼: 무릎을 굽혀 낮췄다가 팔꿈치를 접은 채 위로
-    prep=dict(rightArm=(-20, -8, 4, -110), body=(-6, -10, 0), head=(-6, -10, 0)),
-    hit=dict(rightArm=(-118, -6, 0, -48), body=(4, 10, 0), head=(-4, 10, 0)),
-    legs=dict(rightLeg=(4, 0, 0, 10), leftLeg=(-10, 0, 0, 6))))
-anim("m1_5", 16, strike(5, 16,  # 넉백: 한 발 내딛는 오른손 정권 (선딜 5, 오래 멈춤)
-    prep=dict(rightArm=(-30, -22, 10, -110), body=(0, -26, 0), head=(0, -26, 0)),
-    hit=dict(rightArm=(-94, 6, 0, 0), leftArm=(-36, 22, -8, -110), body=(-8, 20, 0), head=(-6, 20, 0)),
-    legs=dict(rightLeg=(20, 0, 0, 22), leftLeg=(-28, 0, 0, 14)), hold=5))
-anim("launch", 11, strike(4, 11,  # 올려치기 (뜨기·업 플링·래더): 무릎을 굽혀 숙였다가 오른팔을 위로 쭉
-    prep=dict(rightArm=(-15, -6, 4, -100), body=(-8, -10, 0), head=(-8, -10, 0)),
-    hit=dict(rightArm=(-168, -4, 0, -10), leftArm=(-30, 16, -8, -90), body=(6, 8, 0), head=(-14, 8, 0)),
-    legs=dict(rightLeg=(5, 0, 0, 6), leftLeg=(-14, 0, 0, 4)), hold=3))
+# ── 평타 (선딜 4 → 판정 → 후딜 2, 다음 평타까지 7틱) ──
+# '툭툭'이 아니라 '제대로 때리는' 느낌: 선딜 동안 주먹을 크게 뒤로 당기고 몸을 반대로 꼬았다가,
+# 판정 틱에 몸 전체를 40~60° 돌리며 앞발을 내딛고 상체를 숙여 체중을 싣는다. 판정 뒤 3틱 멈춤
+LUNGE_L = dict(leftLeg=(-32, 0, 0, 30), rightLeg=(22, 0, 0, 8))      # 왼발 내딛음
+LUNGE_R = dict(rightLeg=(-30, 0, 0, 28), leftLeg=(24, 0, 0, 8))      # 오른발 내딛음
+anim("m1_1", 10, strike(4, 10,  # 왼손 잽
+    prep=dict(leftArm=(-40, -8, -10, -125), body=(0, -8, 0), head=(0, -8, 0)),
+    hit=dict(leftArm=(-92, 8, 0, -2), rightArm=(-30, -20, 10, -115), body=(-10, -34, 0), head=(-8, -34, 0)),
+    legs=LUNGE_L))
+anim("m1_2", 10, strike(4, 10,  # 오른손 스트레이트: 몸을 오른쪽으로 꼬았다가 왼쪽으로 크게 돌리며 뒷손을 꽂음
+    prep=dict(rightArm=(-25, -24, 14, -128), body=(0, -38, 0), head=(0, -38, 0)),
+    hit=dict(rightArm=(-94, 10, 0, -2), leftArm=(-30, 20, -10, -118), body=(-12, 26, 0), head=(-10, 26, 0)),
+    prep_legs=dict(rightLeg=(10, 0, 0, 14), leftLeg=(-10, 0, 0, 10)),
+    legs=dict(rightLeg=(18, 0, 0, 10), leftLeg=(-28, 0, 0, 26))))
+anim("m1_3", 10, strike(4, 10,  # 왼손 훅: 팔꿈치를 90°로 접고 몸통째 크게 휘두름
+    prep=dict(leftArm=(-70, -50, -30, -60), body=(0, -40, 0), head=(0, -40, 0)),
+    hit=dict(leftArm=(-90, 46, -8, -70), rightArm=(-34, -20, 10, -115), body=(-8, 22, 0), head=(-6, 22, 0)),
+    legs=dict(leftLeg=(-20, 0, 0, 22), rightLeg=(14, 0, 0, 8))))
+anim("m1_4", 10, strike(4, 10,  # 오른손 어퍼: 무릎을 깊게 굽혀 낮췄다가 온몸으로 솟구침
+    prep=dict(rightArm=(-5, -10, 6, -115), body=(-16, -24, 0), head=(-6, -24, 0)),
+    hit=dict(rightArm=(-150, -6, 0, -40), leftArm=(-30, 18, -10, -115), body=(8, 18, 0), head=(-18, 18, 0)),
+    prep_legs=dict(rightLeg=(12, 0, 0, 30), leftLeg=(-24, 0, 0, 32)),
+    legs=dict(rightLeg=(6, 0, 0, 8), leftLeg=(-14, 0, 0, 6))))
+anim("m1_5", 17, strike(5, 17,  # 넉백: 크게 젖혔다가 한 발 깊게 내딛는 오른손 정권 (선딜 5, 오래 멈춤)
+    prep=dict(rightArm=(10, -30, 18, -125), leftArm=(-70, 30, -10, -60), body=(6, -52, 0), head=(0, -44, 0)),
+    hit=dict(rightArm=(-96, 8, 0, 0), leftArm=(-20, 24, -14, -120), body=(-18, 34, 0), head=(-14, 30, 0)),
+    prep_legs=dict(rightLeg=(14, 0, 0, 30), leftLeg=(-14, 0, 0, 20)),
+    legs=dict(rightLeg=(30, 0, 0, 10), leftLeg=(-44, 0, 0, 40)), hold=6))
+anim("launch", 12, strike(4, 12,  # 올려치기 (뜨기·업 플링·래더): 무릎을 깊게 굽혔다가 온몸을 펴며 팔을 하늘로
+    prep=dict(rightArm=(5, -10, 8, -110), leftArm=(-60, 20, -10, -90), body=(-18, -22, 0), head=(-4, -22, 0)),
+    hit=dict(rightArm=(-175, -4, 0, -6), leftArm=(-10, 16, -24, -60), body=(12, 14, 0), head=(-26, 14, 0)),
+    prep_legs=dict(rightLeg=(14, 0, 0, 34), leftLeg=(-24, 0, 0, 34)),
+    legs=dict(rightLeg=(10, 0, 0, 4), leftLeg=(-20, 0, 0, 10)), hold=4))
 
 # 공중 평타: 같은 손놀림 + 무릎을 당긴 다리
 AIR_LEGS = dict(rightLeg=(-50, 0, 4, 70), leftLeg=(-20, 0, -4, 50))
 def air(hit, prep=None):
-    k = strike(4, 9, hit, prep)
-    return k + P(0, LIN, **AIR_LEGS) + P(9, LIN, **AIR_LEGS)
-anim("air_1", 9, air(dict(leftArm=(-92, 6, 0, -4), body=(0, -22, 0), head=(0, -22, 0))))
-anim("air_2", 9, air(dict(rightArm=(-94, 8, 0, -4), leftArm=(-45, 18, -6, -105), body=(0, 14, 0), head=(0, 14, 0)),
-                     prep=dict(body=(0, -20, 0), head=(0, -20, 0))))
+    k = strike(4, 10, hit, prep)
+    return k + P(0, LIN, **AIR_LEGS) + P(10, LIN, **AIR_LEGS)
+anim("air_1", 10, air(dict(leftArm=(-94, 8, 0, -2), rightArm=(-30, -20, 10, -115), body=(-10, -34, 0), head=(-8, -34, 0)),
+                      prep=dict(leftArm=(-40, -8, -10, -125), body=(0, -8, 0), head=(0, -8, 0))))
+anim("air_2", 10, air(dict(rightArm=(-96, 10, 0, -2), leftArm=(-30, 20, -10, -118), body=(-12, 26, 0), head=(-10, 26, 0)),
+                      prep=dict(rightArm=(-25, -24, 14, -128), body=(0, -38, 0), head=(0, -38, 0))))
 anim("air_3", 9,  # 공중 앞차기: 무릎을 접었다가 쭉 폄
     P(0, LIN, **STANCE, **AIR_LEGS)
     + P(3, IO, rightLeg=(-60, 0, 0, 100), body=(4, -6, 0))
@@ -153,9 +168,9 @@ anim("evade", 9,  # 뒤로 공중제비 (body pitch +)
 
 # ── 맞을 때 ── 1틱 만에 몸 전체가 비틀리며 뒤로 젖혀짐(약 20°), 고개도 젖혀짐, 팔은 조금 벌어짐. 좌우 번갈아
 hit_r = (
-    P(1, EX, body=(14, 18, 0), head=(-18, 8, 0), rightArm=(10, 0, 14, -25), leftArm=(18, 0, -8, -35),
-      rightLeg=(8, 0, 0, 22), leftLeg=(-6, 0, 0, 12))
-    + P(4, LIN, body=(12, 16, 0), head=(-15, 6, 0))
+    P(1, EX, body=(24, 30, 0), head=(-30, 12, 0), rightArm=(20, 0, 26, -30), leftArm=(30, 0, -14, -45),
+      rightLeg=(14, 0, 0, 34), leftLeg=(-10, 0, 0, 18))
+    + P(5, LIN, body=(20, 26, 0), head=(-26, 10, 0))
     + P(11, IO, body=(0, 0, 0), head=(0, 0, 0), rightArm=(0, 0, 0, 0), leftArm=(0, 0, 0, 0), rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
 )
 anim("hit", 11, hit_r)

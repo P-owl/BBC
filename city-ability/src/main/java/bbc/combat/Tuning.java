@@ -36,6 +36,8 @@ public final class Tuning {
     public static final double LADDER_VY = 0.62;
     /** 넉백으로 날아간 상대가 땅에 떨어진 뒤 다운 */
     public static final int KNOCK_DOWN = 12;
+    /** 지상 익스텐더: 땅에서 기술로 맞힌 경직의 최소값. 기술 후딜(6) + 평타 선딜(4) + 여유 → 기술 뒤 평타가 이어짐 */
+    public static final int SKILL_MIN_STUN = 16;
     /** 평타 사슬이 끊기는 시간 (마지막 평타 후). 박자를 일부러 늦춰도 이어지게 넉넉히 */
     public static final int CHAIN_RESET = 14;
     /** 입력 버퍼: 다음 평타가 가능해지기 이 틱 전부터 누른 건 기억했다가 바로 나감 */
