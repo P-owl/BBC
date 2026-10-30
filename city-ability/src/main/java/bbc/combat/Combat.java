@@ -93,7 +93,8 @@ public final class Combat {
 
     public static boolean channeling(LivingEntity e) { Fighter f = peek(e); return f != null && f.channel != null; }
 
-    static void forEachFighter(java.util.function.Consumer<Fighter> c) { FIGHTERS.values().forEach(c); }
+    /** 복사본을 돈다 (도는 중에 hit() 이 새 Fighter 를 만들어도 안전하게) */
+    static void forEachFighter(java.util.function.Consumer<Fighter> c) { new ArrayList<>(FIGHTERS.values()).forEach(c); }
 
     /** 기술·평타를 쓸 수 있는 상태인가 (경직·다운·가드 깨짐이 아님) */
     public static boolean canAct(LivingEntity e) {
@@ -838,23 +839,17 @@ public final class Combat {
 
     /** 머리 위에 피해 숫자 (빨간 글씨, 0.9초 뒤 사라짐) */
     private static void damageNumber(ServerWorld w, LivingEntity t, float dmg) {
+        // NBT 로 읽히던 방식은 "Not a string" 오류가 나서 세터(접근자)로 바로 설정
         DisplayEntity.TextDisplayEntity d = EntityType.TEXT_DISPLAY.create(w);
         if (d == null) return;
-        NbtCompound n = new NbtCompound();
-        Text txt = Text.literal(String.format("-%.1f", dmg)).formatted(Formatting.RED, Formatting.BOLD);
-        n.putString("text", Text.Serialization.toJsonString(txt, w.getRegistryManager()));
-        n.putString("billboard", "center");
-        n.putInt("background", 0);
-        n.putBoolean("shadow", true);
-        NbtCompound tf = new NbtCompound();
-        tf.put("left_rotation", floats(0, 0, 0, 1));
-        tf.put("right_rotation", floats(0, 0, 0, 1));
-        tf.put("translation", floats(0, 0, 0));
-        tf.put("scale", floats(1.4f, 1.4f, 1.4f));
-        n.put("transformation", tf);
-        d.readNbt(n);
         double ox = (t.getRandom().nextDouble() - 0.5) * 0.8, oy = t.getRandom().nextDouble() * 0.4;
         d.refreshPositionAndAngles(t.getX() + ox, t.getY() + t.getHeight() + 0.3 + oy, t.getZ() + (t.getRandom().nextDouble() - 0.5) * 0.8, 0, 0);
+        var acc = (bbc.mixin.DisplayEntityAccessor) d;
+        ((bbc.mixin.TextDisplayAccessor) d).bbc$setText(Text.literal(String.format("-%.1f", dmg)).formatted(Formatting.RED, Formatting.BOLD));
+        ((bbc.mixin.TextDisplayAccessor) d).bbc$setBackground(0);
+        acc.bbc$setBillboardMode(DisplayEntity.BillboardMode.CENTER);
+        acc.bbc$setTransformation(new net.minecraft.util.math.AffineTransformation(new org.joml.Vector3f(), new org.joml.Quaternionf(),
+                new org.joml.Vector3f(1.4f, 1.4f, 1.4f), new org.joml.Quaternionf()));
         w.spawnEntity(d);
         Tasks.later(18, d::discard);
     }

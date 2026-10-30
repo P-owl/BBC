@@ -2,7 +2,7 @@
 도시 능력자 모션 생성기 — playerAnimator(Emotecraft JSON 형식 3판) 파일을 만든다.
     python tools/make_motions.py            # JSON 만들기
     python tools/preview_motions.py         # 미리보기 그림 (tools/preview/)
-결과: city-ability/src/main/resources/assets/bbc/player_animation/<이름>.json
+결과: city-ability/src/main/resources/assets/bbc/player_animations/<이름>.json
 
 ■ 축 방향 (playerAnimator·마인크래프트 소스에서 확인)
   body(몸 전체)  pitch + = 뒤로 젖힘   yaw + = 왼쪽으로 돎(오른어깨가 앞으로)   축은 발에서 0.7칸 위
@@ -22,7 +22,7 @@
 import json, os
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "city-ability", "src", "main", "resources",
-                   "assets", "bbc", "player_animation")
+                   "assets", "bbc", "player_animations")
 OQ, IQ, IO, LIN, EX, CONST = "EASEOUTQUAD", "EASEINQUAD", "EASEINOUTSINE", "LINEAR", "EASEOUTEXPO", "CONSTANT"
 OS = "EASEOUTSINE"
 
