@@ -486,9 +486,9 @@ public final class Combat {
                 Fx.wave(w, c, 0.4, 2.2, Fx.WHITE, 6);
                 Fx.mangaHit(w, atk, t, bladed(atk) ? Fx.BLADE : Fx.BLUNT, 1.0f);
             }
-            case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); Fx.burst(w, c, new Vec3d(0, -1, 0), 1.2f); Fx.lines(atk, 0.5f); Fx.streak(t, 5); }
-            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); Fx.burst(w, c, new Vec3d(0, 1, 0), 0.9f); Fx.streak(t, 5); } else Fx.shake(t, 0.12f); }
-            case HIT -> Fx.shake(t, h.damage() >= 2f ? 0.35f : 0.12f);
+            case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); Fx.burst(w, c, new Vec3d(0, -1, 0), 1.2f); Fx.impactFlash(w, c, 0.8f); Fx.lines(atk, 0.5f); Fx.streak(t, 5); }
+            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); Fx.burst(w, c, new Vec3d(0, 1, 0), 0.9f); Fx.impactFlash(w, c, 0.7f); Fx.streak(t, 5); } else Fx.shake(t, 0.12f); }
+            case HIT -> { Fx.shake(t, h.damage() >= 2f ? 0.35f : 0.12f); Fx.impactFlash(w, c, h.damage() >= 2f ? 0.55f : 0.32f); }
         }
     }
 
@@ -530,6 +530,8 @@ public final class Combat {
         Vec3d mid = c.lerp(atk.getEyePos(), 0.5);
         Fx.word(w, mid.add(0, 0.9, 0), Fx.Sfx.GAGIN, 1.5f);
         Fx.burst(w, mid, null, 1.0f);
+        Fx.impactFlash(w, mid, 0.8f);
+        Fx.rings(w, mid, 2.5f, 1);
         Fx.lines(v.e, 0.8f); Fx.lines(atk, 0.6f);
         Motion.play(atk, "hit");
         if (v.e instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "✦ 패링!", Formatting.AQUA);
@@ -696,6 +698,8 @@ public final class Combat {
                     Fx.wave(w, e.getPos().add(0, 0.05, 0), 0.6, 4.6, Fx.WHITE, 8);
                     Fx.word(w, e.getPos().add(0, 2.0, 0), Fx.SLAM, 1.8f);
                     Fx.debris(w, e.getPos().add(0, 0.1, 0), 9, 1.8);
+                    Fx.rings(w, e.getPos().add(0, 0.6, 0), 4.5f, 3);
+                    Fx.smoke(w, e.getPos(), 22, 1.6);
                     Fx.lines(e, 0.8f);
                     Fx.shakeAround(w, e.getPos(), 10, 0.9f);
                 }

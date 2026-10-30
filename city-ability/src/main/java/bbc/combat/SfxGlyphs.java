@@ -19,4 +19,11 @@ final class SfxGlyphs {
         "\ue016\uf801\ue017", // BUON ブォン!
         "\ue018\uf801\ue019\uf801\ue01a", // DOGOOON ドゴォォォン!!!
     };
+    static final String[] SHAPES = {
+        "\ue01b", // RING
+        "\ue01c", // FLASH
+        "\ue01d", // STAR
+        "\ue01e", // CRESCENT
+        "\ue01f", // SWISH
+    };
 }

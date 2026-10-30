@@ -109,6 +109,56 @@ NEG = "\uf801"               # 조각 사이 1칸 간격을 지우는 뒤로 가
 JAVA = os.path.join(HERE, "..", "city-ability", "src", "main", "java", "bbc", "combat", "SfxGlyphs.java")
 
 
+# ── 만화 이펙트 그림 (ABA 영상의 흰 충격 고리·번쩍 원·터지는 별, 만화의 먹 초승달) ──
+#    단어처럼 글꼴 글자 하나로 넣어 텍스트 디스플레이(항상 카메라를 봄)로 띄운다. Fx.Shape 와 같은 순서
+SHAPES = ["RING", "FLASH", "STAR", "CRESCENT", "SWISH"]
+SHAPE_PX = 240
+
+
+def shape(name, seed=7):
+    import math
+    S = SHAPE_PX
+    rnd = random.Random(seed)
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    c = S / 2
+    if name == "RING":       # 흰 고리 + 가는 회색 테두리, 고리 안쪽은 비어 있음
+        d.ellipse([6, 6, S - 6, S - 6], outline=(70, 70, 80, 255), width=24)
+        d.ellipse([9, 9, S - 9, S - 9], outline=(255, 255, 255, 255), width=18)
+    elif name == "FLASH":    # 가운데가 하얗고 가장자리로 갈수록 투명해지는 원
+        for r in range(int(c), 0, -2):
+            a = int(255 * min(1, (1 - r / c) * 2.2))
+            d.ellipse([c - r, c - r, c + r, c + r], fill=(255, 255, 255, a))
+    elif name == "STAR":     # 만화 타격 별: 들쭉날쭉한 흰 가시 + 검은 테두리 + 가운데 검은 가시
+        pts, pts2 = [], []
+        n = 18
+        for i in range(n * 2):
+            a = math.pi * i / n + rnd.uniform(-0.08, 0.08)
+            r = (c - 6) * (rnd.uniform(0.75, 1.0) if i % 2 == 0 else rnd.uniform(0.42, 0.55))
+            pts.append((c + math.cos(a) * r, c + math.sin(a) * r))
+            pts2.append((c + math.cos(a) * r * 0.38, c + math.sin(a) * r * 0.38))
+        d.polygon(pts, fill=(255, 255, 255, 255), outline=(0, 0, 0, 255), width=7)
+        d.polygon(pts2, fill=(0, 0, 0, 255))
+        d.ellipse([c - 18, c - 18, c + 18, c + 18], fill=(255, 255, 255, 255))
+    elif name == "CRESCENT": # 먹 초승달 (붓으로 한 번 그은 칼자국): 검은 초승달 + 흰 가장자리
+        m = Image.new("L", (S, S), 0)
+        md = ImageDraw.Draw(m)
+        md.ellipse([10, 10, S - 10, S - 10], fill=255)
+        md.ellipse([40, 2, S + 10, S - 30], fill=0)
+        m = rough(m, seed, 1.0)
+        img.paste((255, 255, 255, 255), (0, 0), grow(m, 5))
+        img.paste((5, 5, 5, 255), (0, 0), m)
+    elif name == "SWISH":    # 흰 바람 초승달 (휠윈드·회전 베기의 소용돌이 붓자국): 흰 초승달 + 회색 가장자리, 안쪽에 가는 결
+        m = Image.new("L", (S, S), 0)
+        md = ImageDraw.Draw(m)
+        md.ellipse([8, 8, S - 8, S - 8], fill=255)
+        md.ellipse([26, 0, S + 4, S - 22], fill=0)
+        m = rough(m, seed + 3, 1.0)
+        img.paste((90, 90, 100, 255), (0, 0), grow(m, 4))
+        img.paste((255, 255, 255, 255), (0, 0), m)
+    return img
+
+
 def build():
     d = os.path.join(OUT, "textures", "font", "sfx")
     os.makedirs(d, exist_ok=True)
@@ -132,6 +182,13 @@ def build():
         code += n
         providers.append({"type": "bitmap", "file": "bbc:font/sfx/" + fn, "height": 18, "ascent": 15, "chars": [chars]})
         strings.append(NEG.join(chars))
+    shape_chars = []
+    for name in SHAPES:
+        fn = "shape_" + name.lower() + ".png"
+        shape(name).save(os.path.join(d, fn))
+        ch = chr(code); code += 1
+        providers.append({"type": "bitmap", "file": "bbc:font/sfx/" + fn, "height": 32, "ascent": 16, "chars": [ch]})
+        shape_chars.append(ch)
     with open(os.path.join(OUT, "font", "sfx_jp.json"), "w") as f:
         json.dump({"providers": providers}, f, indent=1)
     esc = lambda s: "".join("\\u%04x" % ord(c) for c in s)
@@ -140,6 +197,9 @@ def build():
         f.write("final class SfxGlyphs {\n    private SfxGlyphs() {}\n    static final String[] WORDS = {\n")
         for (name, text, _, _), st in zip(WORDS, strings):
             f.write('        "%s", // %s %s\n' % (esc(st), name, text))
+        f.write("    };\n    static final String[] SHAPES = {\n")
+        for name, ch in zip(SHAPES, shape_chars):
+            f.write('        "%s", // %s\n' % (esc(ch), name))
         f.write("    };\n}\n")
     print(len(WORDS), "sfx,", code - 0xE000, "tiles")
 

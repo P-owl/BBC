@@ -132,6 +132,51 @@
    "chars": [
     "\ue018\ue019\ue01a"
    ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_ring.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue01b"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_flash.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue01c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_star.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue01d"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_crescent.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue01e"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_swish.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue01f"
+   ]
   }
  ]
 }

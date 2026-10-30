@@ -109,6 +109,7 @@ public final class Channel {
             hitCapped(e, f, t, WHIRL_HIT);
         }
         Fx.wave(w, e.getPos().add(0, 1.0, 0), 1.8, 2.8, Fx.WHITE, 4);
+        Fx.swirl(w, e.getPos().add(0, 1.0, 0), 2, 3.2f);
         w.spawnParticles(ParticleTypes.SWEEP_ATTACK, e.getX(), e.getY() + 1, e.getZ(), 4, 1.4, 0.2, 1.4, 0);
         w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.7f, 0.7f + e.getRandom().nextFloat() * 0.3f);
     }

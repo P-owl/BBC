@@ -177,6 +177,7 @@ public final class Weapon {
         boolean heavy = motion.startsWith("gs_");
         boolean finisher = motion.equals("sw_5") || motion.equals("sp_4") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
         boolean vertical = tilt >= 90;
+        if (motion.equals("sp_4") || motion.equals("gs_2")) Fx.swirl(w, o.add(f.multiply(0.6)), 3, 2.8f);   // 회전 후리기: 흰 소용돌이
         Fx.slash(w, p, heavy || motion.startsWith("sp_") ? 2.7 : 2.1, tilt, reverse, finisher ? Fx.GOLD : Fx.WHITE);
         w.spawnParticles(ParticleTypes.SWEEP_ATTACK, o.x + f.x * 1.6, o.y, o.z + f.z * 1.6, 1, 0, 0, 0, 0);
         if (heavy && vertical) { // 대검 내리치기: 땅이 갈라짐

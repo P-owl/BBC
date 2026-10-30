@@ -287,12 +287,83 @@ public final class Fx {
             ServerPlayNetworking.send(p, new FxPayload(FxPayload.LINES, strength));
     }
 
+    // ═════════ 카메라를 보는 그림 이펙트 (ABA 의 흰 충격 고리·번쩍 원, 만화의 타격 별·먹 초승달) ═════════
+
+    public enum Shape { RING, FLASH, STAR, CRESCENT, SWISH;
+        String glyph() { return SfxGlyphs.SHAPES[ordinal()]; } }
+
+    /** 그림 하나를 띄워 s0 → s1 로 grow 틱 동안 커지고, hold 틱 버틴 뒤 shrink 틱 동안 줄며 사라짐. rot = 화면에서 돌린 각(도) */
+    public static void pop(ServerWorld w, Vec3d pos, Shape sh, float s0, float s1, int grow, int hold, int shrink, float rot) {
+        DisplayEntity.TextDisplayEntity d = EntityType.TEXT_DISPLAY.create(w);
+        if (d == null) return;
+        d.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0, 0);
+        DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
+        TextDisplayAccessor ta = (TextDisplayAccessor) d;
+        ta.bbc$setText(Text.literal(sh.glyph()).setStyle(Style.EMPTY.withFont(SFX_FONT).withColor(0xFFFFFF)));
+        ta.bbc$setBackground(0);
+        ta.bbc$setDisplayFlags(DisplayEntity.TextDisplayEntity.SEE_THROUGH_FLAG);
+        acc.bbc$setBillboardMode(DisplayEntity.BillboardMode.CENTER);
+        acc.bbc$setBrightness(new Brightness(15, 15));
+        float r = (float) Math.toRadians(rot);
+        acc.bbc$setTransformation(tilted(s0, r, new Vector3f(), 0));
+        w.spawnEntity(d);
+        Tasks.later(1, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(grow); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(tilted(s1, r, new Vector3f(), 0)); } });
+        if (shrink > 0)
+            Tasks.later(1 + grow + hold, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(shrink); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(tilted(0.01f, r, new Vector3f(), 0)); } });
+        Tasks.later(2 + grow + hold + shrink, d::discard);
+    }
+
+    /** 충격 고리: 흰 고리가 퍼져 나감 (n 겹이면 1틱씩 늦게 여러 개) */
+    public static void rings(ServerWorld w, Vec3d c, float size, int n) {
+        for (int i = 0; i < n; i++) {
+            final int k = i;
+            Tasks.later(i * 2, () -> pop(w, c, Shape.RING, 0.3f, size * (1f + 0.35f * k), 5, 0, 0, 0));
+        }
+    }
+
+    /** 맞은 자리 번쩍 + 터지는 별 */
+    public static void impactFlash(ServerWorld w, Vec3d c, float size) {
+        var rnd = w.getRandom();
+        pop(w, c, Shape.FLASH, 0.6f * size, 2.6f * size, 2, 0, 3, 0);
+        pop(w, c, Shape.STAR, 0.4f * size, 1.9f * size, 2, 2, 3, rnd.nextFloat() * 360);
+    }
+
+    /** 먹 초승달 칼자국 (만화식 베기): 맞은 자리 둘레로 2~3개가 여러 각도로 그어짐 */
+    public static void inkSlashes(ServerWorld w, Vec3d c, int n, float size) {
+        var rnd = w.getRandom();
+        for (int i = 0; i < n; i++) {
+            float rot = rnd.nextFloat() * 360;
+            Vec3d at = c.add((rnd.nextDouble() - 0.5) * 0.5, (rnd.nextDouble() - 0.5) * 0.5, (rnd.nextDouble() - 0.5) * 0.5);
+            Tasks.later(i, () -> pop(w, at, Shape.CRESCENT, 0.5f * size, 2.4f * size, 2, 2, 3, rot));
+        }
+    }
+
+    /** 흰 바람 소용돌이 (ABA 가프 영상의 회오리 붓자국): 몸 둘레로 흰 초승달 n 개가 여러 각도로 돌며 퍼짐 */
+    public static void swirl(ServerWorld w, Vec3d c, int n, float size) {
+        var rnd = w.getRandom();
+        for (int i = 0; i < n; i++) {
+            float rot = rnd.nextFloat() * 360;
+            Vec3d at = c.add((rnd.nextDouble() - 0.5) * 0.8, (rnd.nextDouble() - 0.3) * 0.8, (rnd.nextDouble() - 0.5) * 0.8);
+            pop(w, at, Shape.SWISH, size * 0.8f, size * 1.6f, 3, 1, 2, rot);
+        }
+    }
+
+    /** ABA 처럼 큰 타격 뒤에 남는 흙먼지 구름 (낮게 퍼져 1~2초 머묾) */
+    public static void smoke(ServerWorld w, Vec3d c, int n, double spread) {
+        w.spawnParticles(net.minecraft.particle.ParticleTypes.CAMPFIRE_COSY_SMOKE, c.x, c.y + 0.2, c.z, n, spread, 0.15, spread, 0.012);
+        w.spawnParticles(net.minecraft.particle.ParticleTypes.POOF, c.x, c.y + 0.3, c.z, n, spread * 0.8, 0.2, spread * 0.8, 0.08);
+    }
+
     /** 큰 타격 한 번에 쓰는 만화 연출 묶음: 파열 + 효과음 + 집중선 (때린 쪽·맞은 쪽) */
     public static void mangaHit(ServerWorld w, LivingEntity atk, LivingEntity t, Sfx[] words, float power) {
         Vec3d c = t.getBoundingBox().getCenter();
         Vec3d dir = c.subtract(atk.getBoundingBox().getCenter());
         dir = dir.lengthSquared() > 1e-4 ? dir.normalize() : null;
         burst(w, c, dir, 1.6f * power);
+        impactFlash(w, c, power);
+        rings(w, c, 3.5f * power, 2);
+        if (words == BLADE) inkSlashes(w, c, 3, power);
+        smoke(w, t.getPos(), (int) (8 * power), 0.9);
         word(w, c.add(0, 1.2, 0), words, 1.6f * power);
         lines(atk, 0.7f * power);
         lines(t, power);

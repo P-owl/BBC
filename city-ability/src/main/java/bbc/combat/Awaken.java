@@ -80,6 +80,7 @@ public final class Awaken {
         Fx.flash(e, 0.55f);
         Fx.shakeAround(w, e.getPos(), 10, 0.7f);
         Fx.word(w, e.getPos().add(0, 2.6, 0), Fx.Sfx.GOGO, 2.0f);   // ゴゴゴゴ
+        Fx.rings(w, e.getPos().add(0, 1, 0), 5f, 3);
         Fx.lines(e, 1.0f);
         w.spawnParticles(ParticleTypes.FLASH, e.getX(), e.getY() + 1, e.getZ(), 1, 0, 0, 0, 0);
         w.spawnParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + 1, e.getZ(), 40, 0.4, 0.8, 0.4, 0.25);
@@ -162,6 +163,9 @@ public final class Awaken {
                 Fx.wave(w, c, 0.4, 3.0, Fx.WHITE, 7);
                 Fx.word(w, c.add(0, 1.4, 0), Fx.Sfx.DOGOOON, 2.2f);
                 Fx.burst(w, c, c.subtract(e.getBoundingBox().getCenter()).normalize(), 2.6f);
+                Fx.impactFlash(w, c, 1.8f);
+                Fx.rings(w, c, 6f, 3);
+                Fx.smoke(w, t.getPos(), 26, 1.8);
                 Fx.lines(t, 1.2f); Fx.lines(e, 1.0f);
                 Fx.streak(t, 10);
                 if (t.isOnGround()) Fx.debris(w, t.getPos(), 10, 1.8);

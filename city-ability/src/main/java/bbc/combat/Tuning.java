@@ -54,9 +54,9 @@ public final class Tuning {
     // ── 콤보 제한 ──
     /** 같은 콤보에서 3타마다 경직 -1 (최소 8, 평타 간격 7보다 길게) */
     public static final int STUN_DECAY_EVERY = 3, STUN_MIN = 8;
-    /** 10타까지 100%, 이후 타당 -4%, 최저 60% */
-    public static final int SCALE_FREE_HITS = 10;
-    public static final float SCALE_PER_HIT = 0.04f, SCALE_MIN = 0.6f;
+    /** ABA 영상: 30~80타 콤보에서도 평타 피해 숫자가 거의 그대로(4.1 → 4.2) → 보정을 약하게. 20타까지 100%, 이후 타당 -1.5%, 최저 75% */
+    public static final int SCALE_FREE_HITS = 20;
+    public static final float SCALE_PER_HIT = 0.015f, SCALE_MIN = 0.75f;
     /** 경직이 끝나고 이만큼 안 맞으면 콤보 끝 */
     public static final int COMBO_END_GAP = 10;
     /** 기상 무적 */
