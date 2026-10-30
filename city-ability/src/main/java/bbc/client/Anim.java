@@ -6,7 +6,6 @@ import dev.kosmx.playerAnim.api.layered.IAnimation;
 import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
 import dev.kosmx.playerAnim.api.layered.ModifierLayer;
 import dev.kosmx.playerAnim.api.layered.modifier.AbstractFadeModifier;
-import dev.kosmx.playerAnim.core.data.KeyframeAnimation;
 import dev.kosmx.playerAnim.core.util.Ease;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationFactory;
@@ -36,12 +35,14 @@ final class Anim {
             layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(4, Ease.INOUTSINE), null);
             return;
         }
-        KeyframeAnimation anim = PlayerAnimationRegistry.getAnimation(Identifier.of("bbc", motion));
-        if (anim == null) return;
-        KeyframeAnimationPlayer k = new KeyframeAnimationPlayer(anim);
-        k.setFirstPersonMode(FirstPersonMode.THIRD_PERSON_MODEL);
-        k.setFirstPersonConfiguration(new FirstPersonConfiguration(true, true, true, false));
+        var playable = PlayerAnimationRegistry.getAnimation(Identifier.of("bbc", motion));
+        if (playable == null) return;
+        IAnimation a = playable.playAnimation();
+        if (a instanceof KeyframeAnimationPlayer k) {
+            k.setFirstPersonMode(FirstPersonMode.THIRD_PERSON_MODEL);
+            k.setFirstPersonConfiguration(new FirstPersonConfiguration(true, true, true, false));
+        }
         // 앞 모션에서 2틱 동안 섞어서 넘어감 (뚝뚝 끊기지 않게)
-        layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(2, Ease.OUTQUAD), k);
+        layer.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(2, Ease.OUTQUAD), a);
     }
 }
