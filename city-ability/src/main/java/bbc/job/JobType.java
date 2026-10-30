@@ -23,4 +23,9 @@ public interface JobType {
     default JobSkills.Set skills() { return null; }
     default void onJoin(ServerPlayerEntity p, PlayerData.Entry e) {}
     default void onQuit(ServerPlayerEntity p, PlayerData.Entry e) {}
+    /** 각성 시작 (강화형은 버프, 교체형은 스킬 묶음 바꾸기 등) */
+    default void onAwaken(ServerPlayerEntity p, PlayerData.Entry e) {}
+    default void onAwakenEnd(ServerPlayerEntity p, PlayerData.Entry e) {}
+    /** 각성기. 썼으면 true. false 를 돌려주면 공통 각성기 ‘난무’가 나간다 */
+    default boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
 }

@@ -91,6 +91,8 @@ public final class Combat {
 
     public static Fighter peek(LivingEntity e) { return FIGHTERS.get(e.getUuid()); }
 
+    static void forEachFighter(java.util.function.Consumer<Fighter> c) { FIGHTERS.values().forEach(c); }
+
     /** 기술·평타를 쓸 수 있는 상태인가 (경직·다운·가드 깨짐이 아님) */
     public static boolean canAct(LivingEntity e) {
         Fighter f = peek(e);
@@ -379,8 +381,10 @@ public final class Combat {
         boolean groundSkill = !FROM_M1.get() && h.kind() == Hit.Kind.HIT;
         if (groundSkill) stun = Math.max(stun, Tuning.SKILL_MIN_STUN);
         float dmg = h.damage() * scale;
+        if (FROM_M1.get() && now < a.awakenUntil) dmg *= Awaken.M1_BONUS; // 각성 중 평타 강화
 
         if (!deal(atk, t, dmg)) { v.comboHits--; return Result.MISS; }
+        Awaken.onHit(atk, t, dmg);
         v.comboDamage += dmg;
         v.lastHitAt = now;
         v.lastAttacker = atk.getUuid();

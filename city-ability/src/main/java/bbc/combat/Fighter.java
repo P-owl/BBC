@@ -27,7 +27,13 @@ public final class Fighter {
     long bounceUntil;     // 튕김 중: 기술이 들어가는 창
     int sentStun = -1;    // 클라이언트에 마지막으로 보낸 경직 (붉은 칠)
     boolean freshHit;     // 방금 맞음 → 클라이언트 움찔 다시 시작
-    String dummyLast;     // 허수아비: 최근 콤보 기록
+    String dummyLast;
+
+    // ── 각성 ──
+    double awakenGauge;   // 0~100
+    long awakenUntil;     // 각성 끝나는 틱 (0 = 각성 아님)
+    boolean ultUsed;      // 이번 각성에 각성기를 썼나
+    public double awakenGauge() { return awakenGauge; }     // 허수아비: 최근 콤보 기록
 
     // ── 때리는 쪽 ──
     int m1Index;          // 0~4 (다음에 나갈 평타, 땅·공중 합쳐서)

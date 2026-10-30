@@ -72,7 +72,8 @@ public final class CombatMode {
             if (JobSkills.useSlot(p, action - KeyPayload.SKILL_BASE)) Combat.afterSkill(p, 6);
             return;
         }
-        // 각성·스위치·임플란트·유물·마안은 2단계 이후에 연결
+        if (action == KeyPayload.AWAKEN) { Awaken.press(p); return; }
+        // 스위치·임플란트·유물·마안은 이후에 연결
     }
 
     public static void register() {

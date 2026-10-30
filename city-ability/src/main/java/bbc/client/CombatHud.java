@@ -1,5 +1,6 @@
 package bbc.client;
 
+import bbc.net.AwakenPayload;
 import bbc.net.ComboPayload;
 import bbc.net.StunPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -43,6 +44,8 @@ final class CombatHud {
     private static float comboDamage;
     private static long comboAt = -1000;
     private static long clock;
+    private static int awGauge, awLeft;
+    private static boolean awUlt;
 
     static void init() {
         ClientPlayNetworking.registerGlobalReceiver(StunPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
@@ -56,6 +59,9 @@ final class CombatHud {
             comboHits = p.hits();
             comboDamage = p.damage();
             comboAt = clock;
+        }));
+        ClientPlayNetworking.registerGlobalReceiver(AwakenPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
+            awGauge = p.gauge(); awLeft = p.left(); awUlt = p.ultReady();
         }));
         ClientTickEvents.END_CLIENT_TICK.register(CombatHud::tick);
         HudRenderCallback.EVENT.register((ctx, counter) -> render(ctx));
@@ -147,6 +153,7 @@ final class CombatHud {
                 m.body.yaw = side * (0.6f * wind - 0.5f * out);
             }
             case "parry" -> { m.rightArm.pitch = -2.3f; m.rightArm.yaw = -0.5f; }
+            case "awaken" -> { m.rightArm.pitch = -0.4f; m.rightArm.roll = 1.2f; m.leftArm.pitch = -0.4f; m.leftArm.roll = -1.2f; m.head.pitch = -0.4f; }
             default -> { // 평타·공중 평타·기술: 한 손 지르기
                 arm.pitch = lerp(0.35f * wind, -1.75f, out);
                 arm.yaw = side * -0.15f * out;
@@ -158,9 +165,34 @@ final class CombatHud {
 
     private static float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
+    /** 화면 위 가운데 각성 막대 (ABA의 PRESS G 막대처럼). 각성 중엔 남은 시간 */
+    private static void awakenBar(DrawContext ctx, MinecraftClient c) {
+        TextRenderer tr = c.textRenderer;
+        int w = 182, h = 9, x = (ctx.getScaledWindowWidth() - w) / 2, y = 6;
+        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF000000);
+        ctx.fill(x, y, x + w, y + h, 0xFF3A0A0A);
+        String label;
+        int text = 0xFFFFFFFF;
+        if (awLeft > 0) {
+            int fw = (int) (w * Math.min(1.0, awLeft / 900.0));
+            ctx.fill(x, y, x + fw, y + h, 0xFFE0A020);
+            label = "각성 " + (awLeft / 20 + 1) + "초" + (awUlt ? "  ·  G 각성기" : "");
+        } else {
+            int fw = (int) (w * awGauge / 100.0);
+            boolean full = awGauge >= 100;
+            int col = full ? ((clock / 5) % 2 == 0 ? 0xFFFF3030 : 0xFFC01818) : 0xFFC01818;
+            ctx.fill(x, y, x + fw, y + h, col);
+            label = full ? "PRESS G" : "각성 " + awGauge + "%";
+            if (!full) text = 0xFFDDDDDD;
+        }
+        ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), x + w / 2, y + 1, text);
+    }
+
     private static void render(DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
-        if (c.options.hudHidden || comboHits <= 0) return;
+        if (c.options.hudHidden) return;
+        if (BbcClient.combat) awakenBar(ctx, c);
+        if (comboHits <= 0) return;
         long age = clock - comboAt;
         if (age > 30) return;
         TextRenderer tr = c.textRenderer;

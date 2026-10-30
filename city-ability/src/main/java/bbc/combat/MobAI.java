@@ -38,7 +38,8 @@ import java.util.UUID;
  *
  *  하급: 평타 2~5타만, 가끔 늦게 가드. 반응 0.5초
  *  숙련: 평타 5타·업 플링·뜨기→다운 슬램 콤보, 가드·패링, 대시로 파고들기, 가드 깨기, 콤보 중 회피기. 반응 0.35초
- *  보스: 숙련 전부 + 지상 연계기(평타 4 → 어깨치기 → 평타 4 …), 넉백 뒤 추격 대시 → 공중 콤보. 반응 0.2초
+ *  보스: 숙련 전부 + 지상 연계기(평타 4 → 어깨치기 → 평타 4 …), 넉백 뒤 추격 대시 → 공중 콤보,
+ *        각성 게이지가 차면 각성, 상대가 경직일 때 각성기(난무, 마지막 일격은 패링 불가). 반응 0.2초
  *
  * 사람처럼 보이게: 반응 시간 뒤에야 막고, 확률로 실수하고, 콤보 뒤엔 잠깐 쉰다. 큰 기술 전엔 빨간 빛·소리로 예고.
  */
@@ -145,6 +146,14 @@ public final class MobAI {
         }
         if (f.comboHits == 0) b.evadedThisCombo = false;
         face(m, t);
+
+        // ── 각성 (보스만): 게이지가 차면 각성, 각성 중 상대가 경직이면 각성기로 마무리 ──
+        if (b.tier == Tier.BOSS) {
+            if (now >= f.awakenUntil && f.awakenGauge >= Awaken.MAX) { Awaken.press(m); return; }
+            if (now < f.awakenUntil && !f.ultUsed && tf != null && tf.stunned() && dist < 3.2 && now >= f.m1ReadyAt) {
+                b.plan.clear(); Awaken.press(m); b.cooldownUntil = now + 30; return;
+            }
+        }
 
         // ── 방어: 상대가 휘두르기 시작한 걸 보면 굴려서 패링·가드 ──
         boolean attacking = now < f.recoveryUntil || !b.plan.isEmpty();
