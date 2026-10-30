@@ -26,6 +26,8 @@ public class Bbc implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(KeyPayload.ID, KeyPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(CombatStatePayload.ID, CombatStatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(MotionPayload.ID, MotionPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.StunPayload.ID, bbc.net.StunPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.ComboPayload.ID, bbc.net.ComboPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(KeyPayload.ID,
                 (payload, ctx) -> ctx.server().execute(() -> CombatMode.onKey(ctx.player(), payload.action())));
 

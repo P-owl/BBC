@@ -5,6 +5,10 @@ import bbc.job.JobSkills;
 import bbc.job.Stamina;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import bbc.net.ComboPayload;
+import bbc.net.StunPayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -16,6 +20,12 @@ import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtFloat;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.particle.DustParticleEffect;
+import org.joml.Vector3f;
 import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -59,6 +69,8 @@ public final class Combat {
 
     private static final Map<UUID, Fighter> FIGHTERS = new HashMap<>();
     private static final ThreadLocal<Boolean> OURS = ThreadLocal.withInitial(() -> false);
+    /** 지금 맞히는 게 평타인가 (튕김 창에는 기술만 들어감) */
+    private static final ThreadLocal<Boolean> FROM_M1 = ThreadLocal.withInitial(() -> false);
     static long now = 0;
 
     private static final Identifier SPEED_ID = Identifier.of("bbc", "combat_speed");
@@ -83,12 +95,6 @@ public final class Combat {
         return f == null || !f.stunned();
     }
 
-    /** 액션바에 콤보를 보여주는 중이면 직업 HUD로 덮지 않는다 */
-    public static boolean showingCombo(ServerPlayerEntity p) {
-        Fighter f = peek(p);
-        return f != null && now < f.comboShowUntil;
-    }
-
     /** 직업 HUD 앞에 붙는 전투 상태 (가드 게이지·회피기) */
     public static MutableText hudPrefix(ServerPlayerEntity p) {
         Fighter f = peek(p);
@@ -111,7 +117,7 @@ public final class Combat {
     }
 
     /**
-     * 기술을 쓴 뒤 호출. 평타 사슬을 이어 주고(기술 → 평타 → 기술 연계), 공중이면 체공을 늘리고 공중 평타를 다시 3번 쓸 수 있게 한다.
+     * 기술을 쓴 뒤 호출. 평타 사슬을 이어 주고(기술 → 평타 → 기술 연계), 공중이면 체공을 늘리고 공중 평타 사슬을 처음부터 다시 쓸 수 있게 한다.
      */
     public static void afterSkill(ServerPlayerEntity p, int recovery) {
         Fighter f = of(p);
@@ -120,7 +126,7 @@ public final class Combat {
         f.m1ChainUntil = f.m1ReadyAt + Tuning.CHAIN_RESET;
         if (!p.isOnGround() && now < f.airComboUntil + 10) {
             f.airComboUntil = Math.max(f.airComboUntil, now + 30);
-            f.airHits = 0;
+            f.m1Index = 0;
         }
     }
 
@@ -146,57 +152,82 @@ public final class Combat {
         doM1(p, a, up);
     }
 
+    /**
+     * 평타 한 사슬 = 5타 (땅·공중 섞어서 셈). ABA 규칙:
+     *   1~4타: 땅이면 평타, 2·3타째에 스페이스를 누르고 있으면 상대와 같이 살짝 뜸, 공중이면 공중 평타
+     *   5타째: 땅 + 스페이스 = 업 플링 / 땅 = 넉백 / 공중 + 스페이스 = 래더(다시 띄움) / 공중 = 다운 슬램
+     */
     private static void doM1(ServerPlayerEntity p, Fighter a, boolean up) {
         a.buffered = 0;
-        if (now > a.m1ChainUntil) { a.m1Index = 0; a.airHits = 0; }
+        if (now > a.m1ChainUntil) a.m1Index = 0;
         boolean air = !p.isOnGround() && now < a.airComboUntil;
-        if (air) {
-            if (a.airHits < 3) {
-                swing(p, a, "air_" + (a.airHits + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
-                    hitCone(p, Tuning.AIR_M1, false);
-                    a.airHits++;
-                    a.lastAirHitAt = now;
+        int idx = a.m1Index;
+        if (idx < 4) {
+            a.m1Index++;
+            if (air) {
+                swing(p, a, "air_" + (idx % 3 + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                    hitArea(p, Tuning.AIR_M1, false);
                     a.airComboUntil = now + 24;
                     setVel(p, new Vec3d(p.getVelocity().x * 0.3, 0.12, p.getVelocity().z * 0.3));
                 });
-            } else if (up && now - a.lastAirHitAt >= Tuning.LADDER_PAUSE) {
-                swing(p, a, "launch", Tuning.LAUNCH_STARTUP, Tuning.LAUNCH_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
-                    if (hitCone(p, Tuning.LADDER, true) > 0) {
-                        a.airHits = 0;
-                        a.airComboUntil = now + 40;
-                        setVel(p, new Vec3d(0, Tuning.LADDER.lift(), 0));
+            } else if (up && (idx == 1 || idx == 2)) {
+                swing(p, a, "launch", Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                    if (hitArea(p, Tuning.HOP, false) > 0) {
+                        a.airComboUntil = now + 30;
+                        setVel(p, new Vec3d(0, Tuning.HOP_VY, 0));
                     }
                 });
             } else {
-                swing(p, a, "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
-                    hitCone(p, Tuning.SLAM, false);
-                    a.airHits = 0;
-                    a.airComboUntil = 0;
-                    a.m1Index = 0;
-                    setVel(p, new Vec3d(0, -0.6, 0));
-                });
+                track(p);
+                swing(p, a, "m1_" + (idx + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
+                        () -> hitArea(p, Tuning.M1, false));
             }
             return;
         }
-        int idx = a.m1Index;
-        if (idx == 3 && up) {
-            a.m1Index = 0;
-            swing(p, a, "launch", Tuning.LAUNCH_STARTUP, Tuning.LAUNCH_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
-                if (hitCone(p, Tuning.LAUNCH, false) > 0) {
-                    a.airHits = 0;
+        a.m1Index = 0;
+        if (air && up) {
+            swing(p, a, "launch", Tuning.M1_STARTUP, Tuning.M1_RECOVERY + 2, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
+                if (hitArea(p, Tuning.LADDER, true) > 0) {
                     a.airComboUntil = now + 40;
-                    setVel(p, new Vec3d(0, Tuning.LAUNCH_VY, 0));
+                    setVel(p, new Vec3d(0, Tuning.LADDER_VY, 0));
+                } else { // 래더를 이미 썼으면 슬램으로
+                    hitArea(p, Tuning.SLAM, false);
+                    a.airComboUntil = 0;
                 }
             });
-        } else if (idx >= 4) {
-            a.m1Index = 0;
-            swing(p, a, "m1_5", Tuning.FINISH_STARTUP, Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
-                    () -> hitCone(p, Tuning.FINISH, false));
+        } else if (air) {
+            swing(p, a, "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
+                hitArea(p, Tuning.SLAM, false);
+                a.airComboUntil = 0;
+                setVel(p, new Vec3d(0, -0.6, 0));
+            });
+        } else if (up) {
+            swing(p, a, "launch", Tuning.FLING_STARTUP, Tuning.FLING_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
+                if (hitArea(p, Tuning.UP_FLING, false) > 0) {
+                    ServerWorld w = p.getServerWorld();
+                    Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5));
+                    ring(w, c.add(0, 0.2, 0), 1.6, 20);
+                    w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y + 1.5, c.z, 16, 0.15, 1.5, 0.15, 0.05);
+                }
+            });
         } else {
-            a.m1Index++;
-            swing(p, a, "m1_" + (idx + 1), Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
-                    () -> hitCone(p, Tuning.M1, false));
+            track(p);
+            swing(p, a, "m1_5", Tuning.FINISH_STARTUP, Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
+                    () -> { if (hitArea(p, Tuning.FINISH, false) > 0) ring(p.getServerWorld(), p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5)).add(0, 1, 0), 1.3, 18); });
         }
+    }
+
+    /** 평타마다 앞으로 붙기: 앞에 상대가 있으면 그쪽으로 조금 미끄러짐 */
+    private static void track(ServerPlayerEntity p) {
+        if (!p.isOnGround()) return;
+        List<LivingEntity> ts = sphere(p, Tuning.M1_REACH + 1.2, Tuning.M1_RADIUS + 0.6, 1);
+        if (ts.isEmpty()) return;
+        Vec3d to = ts.get(0).getPos().subtract(p.getPos());
+        double d = Math.sqrt(to.x * to.x + to.z * to.z);
+        if (d < 1.3) return;
+        Vec3d dir = horizontal(to);
+        double sp = Math.min(Tuning.M1_TRACK, (d - 1.2) * 0.3);
+        setVel(p, new Vec3d(dir.x * sp, p.getVelocity().y, dir.z * sp));
     }
 
     /** 휘두르기 시작 → 선딜 뒤 판정. 그사이 맞아서 경직되면 취소된다 */
@@ -214,18 +245,35 @@ public final class Combat {
         });
     }
 
-    /** 앞쪽 부채꼴 안의 대상들을 때림. 맞힌 수를 돌려줌 */
-    private static int hitCone(ServerPlayerEntity p, Hit h, boolean ladder) {
+    /** 평타 판정 안의 대상들을 때림. 맞힌 수를 돌려줌 */
+    private static int hitArea(ServerPlayerEntity p, Hit h, boolean ladder) {
         int n = 0;
-        for (LivingEntity t : cone(p, Tuning.M1_RANGE, Tuning.M1_HALF_ANGLE_DEG, Tuning.M1_MAX_TARGETS)) {
-            if (ladder) {
-                Fighter v = peek(t);
-                if (v == null || v.ladderUsed || v.state != Fighter.State.AIR) continue;
-                v.ladderUsed = true;
+        FROM_M1.set(true);
+        try {
+            for (LivingEntity t : sphere(p, Tuning.M1_REACH, Tuning.M1_RADIUS, Tuning.M1_MAX_TARGETS)) {
+                if (ladder) {
+                    Fighter v = peek(t);
+                    if (v == null || v.ladderUsed || v.state != Fighter.State.AIR) continue;
+                    v.ladderUsed = true;
+                }
+                if (hit(p, t, h) != Result.MISS) n++;
             }
-            if (hit(p, t, h) != Result.MISS) n++;
-        }
+        } finally { FROM_M1.set(false); }
         return n;
+    }
+
+    /** 평타 판정: 내 몸 중심에서 바라보는 쪽으로 reach 만큼 앞에 둔 구 (ABA 히트박스와 같은 방식). 위아래는 반만 따라감 */
+    private static List<LivingEntity> sphere(LivingEntity a, double reach, double radius, int max) {
+        Vec3d look = a.getRotationVec(1f);
+        Vec3d c = a.getBoundingBox().getCenter().add(look.x * reach, look.y * reach * 0.5, look.z * reach);
+        Box box = new Box(c, c).expand(radius + 0.5);
+        List<LivingEntity> out = new ArrayList<>();
+        for (Entity en : a.getWorld().getOtherEntities(a, box, x -> x instanceof LivingEntity && x.isAlive() && !(x instanceof ArmorStandEntity))) {
+            LivingEntity t = (LivingEntity) en;
+            if (closest(t.getBoundingBox(), c).squaredDistanceTo(c) <= radius * radius) out.add(t);
+        }
+        out.sort(Comparator.comparingDouble(t -> t.squaredDistanceTo(a)));
+        return out.size() > max ? out.subList(0, max) : out;
     }
 
     /** 기술용: 앞쪽 부채꼴 안의 대상 (가까운 순) */
@@ -265,7 +313,8 @@ public final class Combat {
         if (t == atk || !t.isAlive() || t.isRemoved()) return Result.MISS;
         Fighter v = of(t);
         if (now < v.invulnUntil) return Result.MISS;
-        if (v.state == Fighter.State.DOWN && !h.downHit()) return Result.MISS;
+        boolean bounce = v.state == Fighter.State.DOWN && now < v.bounceUntil && !FROM_M1.get();
+        if (v.state == Fighter.State.DOWN && !h.downHit() && !bounce) return Result.MISS;
 
         // 가드·패링 (앞에서 온 공격만, 평상 상태이고 후딜이 아닐 때)
         if (v.guardHeld && v.state == Fighter.State.IDLE && now >= v.recoveryUntil && front(t, atk.getPos())) {
@@ -287,6 +336,10 @@ public final class Combat {
         // 공중에 떠 있는 상대에게 지상 경직 기술이 맞으면 공중 경직으로 (기술로 공중 콤보 연계)
         boolean airborne = v.state == Fighter.State.AIR || (v.stunned() && !t.isOnGround() && v.state != Fighter.State.DOWN);
         if (h.kind() == Hit.Kind.HIT && airborne) h = new Hit(h.damage(), Hit.Kind.AIR, h.stun(), h.push() * 0.6, 0.12, h.guardDmg(), h.guardBreak(), h.downHit());
+        // 튕김 중인 상대에게 들어간 기술은 다시 띄움 (익스텐더)
+        if (bounce && (h.kind() == Hit.Kind.HIT || h.kind() == Hit.Kind.DOWN))
+            h = new Hit(h.damage(), Hit.Kind.AIR, Math.max(h.stun(), 16), h.push() * 0.5, Math.max(h.lift(), 0.45), h.guardDmg(), h.guardBreak(), h.downHit());
+        if (bounce) v.bounceUntil = 0;
 
         // 콤보 보정
         Fighter a = of(atk);
@@ -303,6 +356,10 @@ public final class Combat {
         v.comboDamage += dmg;
         v.lastHitAt = now;
         v.lastAttacker = atk.getUuid();
+        a.lastTarget = t.getUuid();
+        a.lastTargetAt = now;
+        v.knocked = h.kind() == Hit.Kind.KNOCK;
+        v.slammed = h.kind() == Hit.Kind.DOWN;
 
         // 속도 (바닐라 넉백을 덮어씀)
         Vec3d dir = away(atk, t);
@@ -329,26 +386,28 @@ public final class Combat {
                 if (atk instanceof ServerPlayerEntity) a.airComboUntil = Math.max(a.airComboUntil, now + 40);
             }
             case DOWN -> setState(v, Fighter.State.DOWN, stun + 8); // 떨어지는 시간 포함
-            case KNOCK -> setState(v, Fighter.State.DOWN, stun + 10);
+            case KNOCK -> {
+                // 날아가는 동안은 공중 경직 (대시로 쫓아가 잡을 수 있음), 떨어지면 다운
+                setState(v, Fighter.State.AIR, stun + 20);
+                if (atk instanceof ServerPlayerEntity) a.airComboUntil = Math.max(a.airComboUntil, now + 40);
+            }
         }
         Motion.play(t, switch (h.kind()) { case HIT -> "hit"; case AIR -> "hit_air"; default -> "knock"; });
 
         // 연출
         ServerWorld w = (ServerWorld) t.getWorld();
         Vec3d c = t.getBoundingBox().getCenter();
+        // 맞은 자리에 번쩍임 (상대 몸통에서 때린 쪽으로 조금)
+        Vec3d spark = c.add(horizontal(atk.getPos().subtract(t.getPos())).multiply(t.getWidth() * 0.5));
+        w.spawnParticles(ParticleTypes.FLASH, spark.x, spark.y, spark.z, 1, 0, 0, 0, 0);
         ParticleEffect fx = h.kind() == Hit.Kind.HIT ? ParticleTypes.CRIT : ParticleTypes.SWEEP_ATTACK;
         w.spawnParticles(fx, c.x, c.y, c.z, h.kind() == Hit.Kind.HIT ? 6 : 2, 0.25, 0.25, 0.25, 0.1);
-        if (h.kind() == Hit.Kind.DOWN) {
-            w.spawnParticles(ParticleTypes.EXPLOSION, t.getX(), t.getY(), t.getZ(), 1, 0, 0, 0, 0);
-            sound(t, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
-        }
+        if (h.kind() == Hit.Kind.DOWN) sound(t, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 0.7f);
         sound(t, SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, 0.7f, 0.9f + Math.min(v.comboHits, 20) * 0.03f);
+        damageNumber(w, t, dmg);
 
-        if (atk instanceof ServerPlayerEntity sp) {
-            a.comboShowUntil = now + 30;
-            sp.sendMessage(Text.literal("콤보 " + v.comboHits + "  ").formatted(Formatting.GOLD, Formatting.BOLD)
-                    .append(Text.literal(String.format("피해 %.1f", v.comboDamage)).formatted(Formatting.YELLOW)), true);
-        }
+        if (atk instanceof ServerPlayerEntity sp && ServerPlayNetworking.canSend(sp, ComboPayload.ID))
+            ServerPlayNetworking.send(sp, new ComboPayload(v.comboHits, v.comboDamage));
         return Result.HIT;
     }
 
@@ -385,8 +444,20 @@ public final class Combat {
     private static void setState(Fighter f, Fighter.State s, int ticks) {
         f.state = s;
         f.stateUntil = now + ticks;
-        if (s == Fighter.State.IDLE) f.stateEndedAt = now;
+        if (s == Fighter.State.IDLE) { f.stateEndedAt = now; f.knocked = false; f.slammed = false; }
         else { f.token++; f.dashTicks = 0; f.buffered = 0; }
+        syncStun(f);
+    }
+
+    /** 경직이 바뀌면 주변 클라이언트에 알림 → 경직 중인 몸을 붉게 칠함 (ABA 경직 더미처럼) */
+    private static void syncStun(Fighter f) {
+        int left = f.stunned() ? (int) Math.max(1, f.stateUntil - now) : 0;
+        if (left == 0 && f.sentStun == 0) return;
+        f.sentStun = left;
+        StunPayload pkt = new StunPayload(f.e.getId(), left);
+        for (ServerPlayerEntity o : PlayerLookup.tracking(f.e))
+            if (ServerPlayNetworking.canSend(o, StunPayload.ID)) ServerPlayNetworking.send(o, pkt);
+        if (f.e instanceof ServerPlayerEntity sp && ServerPlayNetworking.canSend(sp, StunPayload.ID)) ServerPlayNetworking.send(sp, pkt);
     }
 
     // ═════════ 가드·대시·회피기 ═════════
@@ -417,17 +488,43 @@ public final class Combat {
         double cost = cancel ? Tuning.DASH_CANCEL_COST : Tuning.DASH_COST;
         if (!Stamina.spend(p, cost)) { JobSkills.bar(p, "스태미나 부족", Formatting.RED); return; }
         if (cancel) { f.token++; f.m1ReadyAt = now; f.recoveryUntil = now; }
+        if (dir == 0 && chase(p, f)) return;
         double yaw = Math.toRadians(p.getYaw());
         Vec3d fwd = new Vec3d(-Math.sin(yaw), 0, Math.cos(yaw));
         Vec3d right = new Vec3d(-Math.cos(yaw), 0, -Math.sin(yaw));
         Vec3d d = switch (dir) { case 1 -> fwd.negate(); case 2 -> right.negate(); case 3 -> right; default -> fwd; };
         f.dashVel = d.multiply(Tuning.DASH_SPEED);
+        f.dashChase = false;
         f.dashTicks = Tuning.DASH_TICKS;
         f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
         f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
         Motion.play(p, switch (dir) { case 1 -> "dash_b"; case 2 -> "dash_l"; case 3 -> "dash_r"; default -> "dash_f"; });
         sound(p, SoundEvents.ENTITY_PHANTOM_FLAP, 0.6f, 1.6f);
         ((ServerWorld) p.getWorld()).spawnParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.2, p.getZ(), 6, 0.3, 0.05, 0.3, 0.02);
+    }
+
+    /**
+     * 추격 대시: 방금 날리거나 띄운 상대가 앞쪽에 있으면 그 앞까지 날아가 붙는다 (ABA: 넉백 → Q로 쫓아가 공중에서 다시 잡기).
+     */
+    private static boolean chase(ServerPlayerEntity p, Fighter f) {
+        if (f.lastTarget == null || now - f.lastTargetAt > Tuning.CHASE_MEMORY) return false;
+        if (!(p.getServerWorld().getEntity(f.lastTarget) instanceof LivingEntity t) || !t.isAlive()) return false;
+        Fighter v = peek(t);
+        if (v == null || (v.state != Fighter.State.AIR && v.state != Fighter.State.DOWN)) return false;
+        Vec3d to = t.getPos().subtract(p.getPos());
+        if (to.length() > Tuning.CHASE_RANGE || to.length() < 2) return false;
+        if (horizontal(to).dotProduct(horizontal(p.getRotationVec(1f))) < 0.3) return false;
+        Vec3d dest = t.getPos().subtract(horizontal(to).multiply(1.4));
+        f.dashVel = dest.subtract(p.getPos()).multiply(1.0 / Tuning.DASH_TICKS);
+        f.dashChase = true;
+        f.dashTicks = Tuning.DASH_TICKS;
+        f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
+        f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
+        if (v.state == Fighter.State.AIR) f.airComboUntil = Math.max(f.airComboUntil, now + Tuning.DASH_TICKS + 24);
+        Motion.play(p, "dash_f");
+        sound(p, SoundEvents.ENTITY_PHANTOM_FLAP, 0.7f, 1.9f);
+        ((ServerWorld) p.getWorld()).spawnParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.5, p.getZ(), 8, 0.3, 0.3, 0.3, 0.02);
+        return true;
     }
 
     private static void evade(ServerPlayerEntity p, Fighter f) {
@@ -467,9 +564,26 @@ public final class Combat {
             // 상태 끝
             if (f.state != Fighter.State.IDLE) {
                 if (f.state == Fighter.State.AIR && e.isOnGround() && now - f.lastHitAt >= 4) {
-                    // 공중 경직 중 착지 → 남은 경직은 짧게
-                    f.state = Fighter.State.HITSTUN;
-                    f.stateUntil = Math.min(f.stateUntil, now + 8);
+                    if (f.knocked) { // 넉백으로 날아가다 떨어짐 → 다운
+                        f.knocked = false;
+                        f.state = Fighter.State.DOWN;
+                        f.stateUntil = now + Tuning.KNOCK_DOWN;
+                        Motion.play(e, "knock");
+                    } else { // 공중 경직 중 착지 → 남은 경직은 짧게
+                        f.state = Fighter.State.HITSTUN;
+                        f.stateUntil = Math.min(f.stateUntil, now + 8);
+                    }
+                    syncStun(f);
+                }
+                if (f.state == Fighter.State.DOWN && f.slammed && e.isOnGround() && now - f.lastHitAt >= 2) {
+                    // 다운 슬램 착지 → 충격파 + 튕김. 튕기는 동안 기술이 들어감
+                    f.slammed = false;
+                    f.bounceUntil = now + Tuning.BOUNCE_WINDOW;
+                    setVel(e, new Vec3d(e.getVelocity().x * 0.2, Tuning.BOUNCE_VY, e.getVelocity().z * 0.2));
+                    ServerWorld w = (ServerWorld) e.getWorld();
+                    ring(w, e.getPos().add(0, 0.15, 0), 2.4, 28);
+                    w.spawnParticles(ParticleTypes.EXPLOSION, e.getX(), e.getY(), e.getZ(), 1, 0, 0, 0, 0);
+                    sound(e, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
                 }
                 if (now >= f.stateUntil) {
                     Fighter.State was = f.state;
@@ -491,7 +605,8 @@ public final class Combat {
             // 대시
             if (f.dashTicks > 0) {
                 f.dashTicks--;
-                setVel(e, new Vec3d(f.dashVel.x, Math.min(e.getVelocity().y, 0.1), f.dashVel.z));
+                setVel(e, f.dashChase ? f.dashVel : new Vec3d(f.dashVel.x, Math.min(e.getVelocity().y, 0.1), f.dashVel.z));
+                if (f.dashTicks == 0 && f.dashChase) setVel(e, new Vec3d(0, Math.max(0.05, Math.min(f.dashVel.y, 0.1)), 0));
             }
 
             // 미뤄둔 평타
@@ -501,7 +616,10 @@ public final class Combat {
             }
 
             // 허수아비: 3초 안 맞으면 체력 회복
-            if (e.getCommandTags().contains(DUMMY_TAG) && now - f.lastHitAt > 60 && e.getHealth() < e.getMaxHealth()) e.setHealth(e.getMaxHealth());
+            if (e.getCommandTags().contains(DUMMY_TAG)) {
+                if (now - f.lastHitAt > 60 && e.getHealth() < e.getMaxHealth()) e.setHealth(e.getMaxHealth());
+                dummyName(f);
+            }
 
             applyAttrs(f);
 
@@ -511,9 +629,19 @@ public final class Combat {
         }
     }
 
+    /** 허수아비 이름표: 경직 중엔 빨간 글씨로 남은 틱, 아니면 초록 '대기' + 최근 콤보 */
+    private static void dummyName(Fighter f) {
+        MutableText name = f.stunned()
+                ? Text.literal("경직 " + (f.stateUntil - now) + "틱").formatted(Formatting.RED, Formatting.BOLD)
+                : Text.literal("대기").formatted(Formatting.GREEN, Formatting.BOLD);
+        if (f.dummyLast != null) name.append(Text.literal("  " + f.dummyLast).formatted(Formatting.YELLOW));
+        if (f.comboHits > 0) name.append(Text.literal("  " + f.comboHits + "타").formatted(Formatting.GOLD));
+        f.e.setCustomName(name);
+    }
+
     private static void endCombo(Fighter f) {
         if (f.e.getCommandTags().contains(DUMMY_TAG) && f.comboHits > 0)
-            f.e.setCustomName(Text.literal("허수아비 · 최근 " + f.comboHits + "타 / " + String.format("%.1f", f.comboDamage)).formatted(Formatting.YELLOW));
+            f.dummyLast = "최근 " + f.comboHits + "타 / " + String.format("%.1f", f.comboDamage);
         f.comboHits = 0;
         f.comboDamage = 0;
         f.ladderUsed = false;
@@ -596,6 +724,46 @@ public final class Combat {
         Vec3d h = new Vec3d(v.x, 0, v.z);
         double l = h.length();
         return l < 1e-6 ? Vec3d.ZERO : h.multiply(1 / l);
+    }
+
+    /** 바닥에 퍼지는 흰 원 (충격파) */
+    static void ring(ServerWorld w, Vec3d c, double r, int n) {
+        DustParticleEffect white = new DustParticleEffect(new Vector3f(1f, 1f, 1f), 1.6f);
+        for (int i = 0; i < n; i++) {
+            double a = Math.PI * 2 * i / n;
+            double x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
+            w.spawnParticles(white, x, c.y, z, 1, 0, 0, 0, 0);
+            w.spawnParticles(ParticleTypes.CLOUD, x, c.y, z, 0, Math.cos(a), 0.02, Math.sin(a), 0.15);
+        }
+    }
+
+    /** 머리 위에 피해 숫자 (빨간 글씨, 0.9초 뒤 사라짐) */
+    private static void damageNumber(ServerWorld w, LivingEntity t, float dmg) {
+        DisplayEntity.TextDisplayEntity d = EntityType.TEXT_DISPLAY.create(w);
+        if (d == null) return;
+        NbtCompound n = new NbtCompound();
+        Text txt = Text.literal(String.format("-%.1f", dmg)).formatted(Formatting.RED, Formatting.BOLD);
+        n.putString("text", Text.Serialization.toJsonString(txt, w.getRegistryManager()));
+        n.putString("billboard", "center");
+        n.putInt("background", 0);
+        n.putBoolean("shadow", true);
+        NbtCompound tf = new NbtCompound();
+        tf.put("left_rotation", floats(0, 0, 0, 1));
+        tf.put("right_rotation", floats(0, 0, 0, 1));
+        tf.put("translation", floats(0, 0, 0));
+        tf.put("scale", floats(1.4f, 1.4f, 1.4f));
+        n.put("transformation", tf);
+        d.readNbt(n);
+        double ox = (t.getRandom().nextDouble() - 0.5) * 0.8, oy = t.getRandom().nextDouble() * 0.4;
+        d.refreshPositionAndAngles(t.getX() + ox, t.getY() + t.getHeight() + 0.3 + oy, t.getZ() + (t.getRandom().nextDouble() - 0.5) * 0.8, 0, 0);
+        w.spawnEntity(d);
+        Tasks.later(18, d::discard);
+    }
+
+    private static NbtList floats(float... v) {
+        NbtList l = new NbtList();
+        for (float f : v) l.add(NbtFloat.of(f));
+        return l;
     }
 
     static void setVel(LivingEntity e, Vec3d v) {

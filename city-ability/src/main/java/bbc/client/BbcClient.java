@@ -52,6 +52,7 @@ public class BbcClient implements ClientModInitializer {
         relic = key("relic", KEY_T);
 
         if (ANIM) Anim.init();
+        CombatHud.init();
         ClientPlayNetworking.registerGlobalReceiver(MotionPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
             if (!ANIM || ctx.client().world == null) return;
             if (ctx.client().world.getEntityById(payload.entityId()) instanceof AbstractClientPlayerEntity pl) Anim.play(pl, payload.motion());

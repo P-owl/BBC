@@ -83,7 +83,6 @@ public final class CombatMode {
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
             if (!active(p)) continue;
             if (!Jobs.hasCombat(Jobs.entry(p))) { set(p, false); continue; } // 직업을 잃음
-            if (Combat.showingCombo(p)) continue;
             p.sendMessage(Combat.hudPrefix(p).append(JobSkills.hud(p, Jobs.entry(p))), true);
         }
     }
