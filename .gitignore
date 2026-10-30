@@ -6,3 +6,4 @@ run/
 .idea/
 *.zip
 tools/preview/
+__pycache__/
