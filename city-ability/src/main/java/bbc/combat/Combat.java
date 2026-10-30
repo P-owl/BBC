@@ -106,6 +106,8 @@ public final class Combat {
             Formatting c = f.guardGauge < 30 ? Formatting.RED : f.guardHeld ? Formatting.AQUA : Formatting.GRAY;
             t.append(Text.literal("🛡" + (int) f.guardGauge + " ").formatted(c));
         }
+        long pl = f.parryLockUntil - now;
+        if (pl > 0) t.append(Text.literal("패링 " + (pl / 20 + 1) + "s  ").formatted(Formatting.DARK_GRAY));
         long ev = f.evadeCdUntil - now;
         t.append(ev > 0 ? Text.literal("회피 " + (ev / 20 + 1) + "s  ").formatted(Formatting.DARK_GRAY)
                 : Text.literal("회피 ✔  ").formatted(Formatting.GREEN));
@@ -341,7 +343,7 @@ public final class Combat {
 
         // 가드·패링 (앞에서 온 공격만, 평상 상태이고 후딜이 아닐 때)
         if (v.guardHeld && v.state == Fighter.State.IDLE && now >= v.recoveryUntil && front(t, atk.getPos())) {
-            if (now <= v.parryUntil) { parry(v, atk); return Result.PARRIED; }
+            if (now <= v.parryUntil && parryable(h)) { parry(v, atk); return Result.PARRIED; }
             v.guardUsedAt = now;
             v.guardGauge -= h.guardDmg();
             if (h.guardBreak() || v.guardGauge <= 0) {
@@ -453,9 +455,14 @@ public final class Combat {
         finally { OURS.set(false); }
     }
 
+    /** 넉백·다운 슬램·가드 깨기는 패링 불가 */
+    private static boolean parryable(Hit h) {
+        return !h.guardBreak() && h.kind() != Hit.Kind.KNOCK && h.kind() != Hit.Kind.DOWN;
+    }
+
     private static void parry(Fighter v, LivingEntity atk) {
         v.parryUntil = 0;
-        v.parryLockUntil = now;
+        v.parryLockUntil = now + Tuning.PARRY_SUCCESS_LOCK; // 연달아 패링 못 하게
         Fighter a = of(atk);
         setState(a, Fighter.State.HITSTUN, Tuning.PARRY_STUN);
         ServerWorld w = (ServerWorld) v.e.getWorld();

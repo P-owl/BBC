@@ -81,7 +81,7 @@ public final class MobAI {
         Brain(Tier t) { tier = t; }
         final List<String> plan = new ArrayList<>();
         int step;
-        long cooldownUntil, guardAt = -1, guardUntil, parryAt = -1, outOfReachSince = -1;
+        long cooldownUntil, guardAt = -1, guardUntil, parryAt = -1, outOfReachSince = -1, nextAt;
         int seenToken = -1;
         long targetGuardSince = -1;
         long lastBreakAt = -1000;
@@ -192,7 +192,7 @@ public final class MobAI {
         b.outOfReachSince = -1;
         if (f.dashTicks > 0) return;
         // 추격 대시는 넉백이 맞은 직후(후딜 중)에 바로 캔슬해서 나감, 나머지는 다음 평타가 가능해질 때
-        if (s.equals("CHASE") ? now < f.recoveryUntil - 9 : now < f.m1ReadyAt) return;
+        if (s.equals("CHASE") ? now < f.recoveryUntil - 9 : now < f.m1ReadyAt || now < b.nextAt) return;
         m.getNavigation().stop();
         switch (s) {
             case "M1" -> Combat.m1(m, false);
@@ -204,6 +204,10 @@ public final class MobAI {
             case "CHASE" -> Combat.dash(m, 0);
         }
         b.step++;
+        // 숙련·보스는 가끔 평타 박자를 일부러 늦춤 (ABA '슬로우 평타': 패링 타이밍을 흔듦). 사슬이 끊기지 않는 범위 안에서
+        // 상대가 이미 경직 중이면 늦추지 않음 (콤보가 끊기니까) → 막고 있거나 패링을 노릴 때만
+        if (b.tier != Tier.GRUNT && (tf == null || !tf.stunned()) && r.nextDouble() < (b.tier == Tier.BOSS ? 0.4 : 0.25))
+            b.nextAt = now + 2 + r.nextInt(5);
         if (b.step >= b.plan.size()) {
             b.plan.clear();
             b.cooldownUntil = now + 18 + r.nextInt(22); // 콤보 뒤엔 잠깐 쉼 (반격 기회)

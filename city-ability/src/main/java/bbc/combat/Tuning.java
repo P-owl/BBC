@@ -71,7 +71,11 @@ public final class Tuning {
     public static final double GUARD_SPEED = -0.6;                          // 가드 중 이동 -60%
     public static final int GUARD_BROKEN_STUN = 30;
     public static final double VANILLA_GUARD_DMG = 12;                      // 몬스터 공격을 막을 때
-    public static final int PARRY_WINDOW = 4, PARRY_FAIL_LOCK = 15, PARRY_STUN = 20;
+    /**
+     * 패링: 누르는 순간 3틱(0.15초)만 패링 창. 헛치면 1.5초, 성공해도 2.5초 동안 다시 패링 못 함 (막기만 됨).
+     * 넉백 5타·다운 슬램·가드 깨기는 패링 불가 (막거나 피해야 함). 패링당한 쪽 경직 14틱 = 반격 한 콤보만
+     */
+    public static final int PARRY_WINDOW = 3, PARRY_FAIL_LOCK = 30, PARRY_SUCCESS_LOCK = 50, PARRY_STUN = 14;
 
     // ── 대시·회피기 ──
     public static final int DASH_TICKS = 6, DASH_INVULN = 4, DASH_COOLDOWN = 40;
