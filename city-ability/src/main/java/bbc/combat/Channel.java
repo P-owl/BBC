@@ -143,6 +143,7 @@ public final class Channel {
                 if (en.squaredDistanceTo(e) < 3.2 * 3.2) Combat.hit(e, (LivingEntity) en, WHIRL_END);
             Fx.wave(w, e.getPos().add(0, 0.3, 0), 1.0, 4.0, Fx.WHITE, 7);
             Fx.shake(e, 0.4f);
+            Fx.word(w, e.getPos().add(0, 2.4, 0), Fx.Sfx.BUON, 1.5f);
         }
         // 재사용: 기본 + 쓴 시간 1초당 1초
         long cd = Combat.now + (k.baseCooldown + used / 20) * 20L;

@@ -49,6 +49,8 @@ final class CombatHud {
     private static boolean awUlt;
     private static float shakeStr, flashStr;
     private static long shakeAt = -100, flashAt = -100;
+    private static float linesStr;
+    private static long linesAt = -100;
 
     static void init() {
         ClientPlayNetworking.registerGlobalReceiver(StunPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
@@ -71,7 +73,8 @@ final class CombatHud {
                 float left = shakeStr * Math.max(0f, 1f - (clock - shakeAt) / 8f);
                 shakeStr = Math.min(2.5f, Math.max(left, p.strength()) + (left > 0 ? p.strength() * 0.3f : 0));
                 shakeAt = clock;
-            } else { flashStr = p.strength(); flashAt = clock; }
+            } else if (p.kind() == FxPayload.LINES) { linesStr = Math.max(p.strength(), linesStr * Math.max(0f, 1f - (clock - linesAt) / 7f)); linesAt = clock; }
+            else { flashStr = p.strength(); flashAt = clock; }
         }));
         ClientTickEvents.END_CLIENT_TICK.register(CombatHud::tick);
         HudRenderCallback.EVENT.register((ctx, counter) -> render(ctx));
@@ -231,12 +234,40 @@ final class CombatHud {
         return new float[]{ (float) Math.sin(age * 9.1) * amp, (float) Math.cos(age * 7.3) * amp * 0.8f };
     }
 
+    /**
+     * 집중선 (만화의 集中線): 화면 가장자리에서 가운데로 몰리는 가는 검은 쐐기들. 7틱 동안 매 틱 새로 그려 떨리듯 보이고 점점 옅어짐
+     */
+    private static void concentrationLines(DrawContext ctx) {
+        float la = linesStr * Math.max(0f, 1f - (clock - linesAt) / 7f);
+        if (la < 0.03f) return;
+        float W = ctx.getScaledWindowWidth(), H = ctx.getScaledWindowHeight();
+        float cx = W / 2f, cy = H / 2f, R = (float) Math.hypot(W, H) / 2f + 8;
+        java.util.Random r = new java.util.Random(linesAt * 7919L + clock);
+        var vc = ctx.getVertexConsumers().getBuffer(net.minecraft.client.render.RenderLayer.getGui());
+        var m = ctx.getMatrices().peek().getPositionMatrix();
+        int n = 70 + (int) (50 * Math.min(1f, la));
+        for (int i = 0; i < n; i++) {
+            double a = r.nextDouble() * Math.PI * 2;
+            float inner = R * (0.38f + 0.4f * r.nextFloat()) * (1.1f - 0.15f * Math.min(1f, la));
+            double wa = 0.004 + 0.018 * r.nextDouble();
+            int alpha = (int) (Math.min(1f, la) * (150 + r.nextInt(100)));
+            int col = (alpha << 24) | (r.nextInt(6) == 0 ? 0xFFFFFF : 0x000000);
+            float x1 = cx + (float) Math.cos(a - wa) * R, y1 = cy + (float) Math.sin(a - wa) * R;
+            float x2 = cx + (float) Math.cos(a + wa) * R, y2 = cy + (float) Math.sin(a + wa) * R;
+            float ix = cx + (float) Math.cos(a) * inner, iy = cy + (float) Math.sin(a) * inner;
+            vc.vertex(m, x1, y1, 0).color(col); vc.vertex(m, ix, iy, 0).color(col); vc.vertex(m, ix, iy, 0).color(col); vc.vertex(m, x2, y2, 0).color(col);
+            vc.vertex(m, x2, y2, 0).color(col); vc.vertex(m, ix, iy, 0).color(col); vc.vertex(m, ix, iy, 0).color(col); vc.vertex(m, x1, y1, 0).color(col);
+        }
+        ctx.draw();
+    }
+
     private static void render(DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.options.hudHidden) return;
         // 번쩍임: 화면 전체를 하얗게, 6틱에 걸쳐 사라짐
         float fa = flashStr * Math.max(0f, 1f - (clock - flashAt) / 6f);
         if (fa > 0.01f) ctx.fill(0, 0, ctx.getScaledWindowWidth(), ctx.getScaledWindowHeight(), ((int) (fa * 200) << 24) | 0xFFFFFF);
+        concentrationLines(ctx);
         if (BbcClient.combat) { awakenBar(ctx, c); staminaBar(ctx, c); }
         if (comboHits <= 0) return;
         long age = clock - comboAt;

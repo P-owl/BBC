@@ -358,6 +358,10 @@ public final class Combat {
             v.guardGauge -= h.guardDmg();
             if (h.guardBreak() || v.guardGauge <= 0) {
                 breakGuard(v);
+                ServerWorld bw = (ServerWorld) t.getWorld();
+                Fx.word(bw, t.getEyePos().add(0, 1.0, 0), Fx.Sfx.BAKIN, 1.6f);
+                Fx.burst(bw, t.getEyePos(), t.getPos().subtract(atk.getPos()).normalize(), 1.3f);
+                Fx.lines(t, 0.9f); Fx.lines(atk, 0.6f);
                 if (!deal(atk, t, h.damage())) return Result.MISS;
                 setVel(t, away(atk, t).multiply(0.3).add(0, t.getVelocity().y, 0));
                 return Result.HIT;
@@ -480,12 +484,18 @@ public final class Combat {
                 hitStop(a, v, 3);
                 Fx.shake(atk, 0.45f); Fx.shake(t, 0.8f);
                 Fx.wave(w, c, 0.4, 2.2, Fx.WHITE, 6);
-                Fx.comic(w, c.add(0, 1.3, 0), Fx.HIT_WORDS, Fx.HIT_STYLES, 1.7f);
+                Fx.mangaHit(w, atk, t, bladed(atk) ? Fx.BLADE : Fx.BLUNT, 1.0f);
             }
-            case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); }
-            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); } else Fx.shake(t, 0.12f); }
+            case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); Fx.burst(w, c, new Vec3d(0, -1, 0), 1.2f); Fx.lines(atk, 0.5f); Fx.streak(t, 5); }
+            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); Fx.burst(w, c, new Vec3d(0, 1, 0), 0.9f); Fx.streak(t, 5); } else Fx.shake(t, 0.12f); }
             case HIT -> Fx.shake(t, h.damage() >= 2f ? 0.35f : 0.12f);
         }
+    }
+
+    /** 칼·창·도끼를 든 공격인지 (효과음을 ザン 계열로) */
+    private static boolean bladed(LivingEntity e) {
+        var it = e.getMainHandStack().getItem();
+        return it instanceof net.minecraft.item.SwordItem || it instanceof net.minecraft.item.AxeItem || it instanceof net.minecraft.item.TridentItem;
     }
 
     /** 히트스톱: 둘 다 ticks 동안 멈춤. 그만큼 후딜·경직을 늘려서 손해 보는 쪽이 없게 */
@@ -510,6 +520,10 @@ public final class Combat {
         w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, 14, 0.3, 0.3, 0.3, 0.3);
         sound(v.e, SoundEvents.ITEM_SHIELD_BLOCK, 1f, 1.8f);
         Motion.play(v.e, "parry");
+        Vec3d mid = c.lerp(atk.getEyePos(), 0.5);
+        Fx.word(w, mid.add(0, 0.9, 0), Fx.Sfx.GAGIN, 1.5f);
+        Fx.burst(w, mid, null, 1.0f);
+        Fx.lines(v.e, 0.8f); Fx.lines(atk, 0.6f);
         Motion.play(atk, "hit");
         if (v.e instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "✦ 패링!", Formatting.AQUA);
         if (atk instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "패링당했다", Formatting.RED);
@@ -673,7 +687,9 @@ public final class Combat {
                     sound(e, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), 0.5f, 1.4f);
                     sound(e, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
                     Fx.wave(w, e.getPos().add(0, 0.05, 0), 0.6, 4.6, Fx.WHITE, 8);
-                    Fx.comic(w, e.getPos().add(0, 2.0, 0), Fx.SLAM_WORDS, new String[]{Fx.GOLD_SFX}, 1.9f);
+                    Fx.word(w, e.getPos().add(0, 2.0, 0), Fx.SLAM, 1.8f);
+                    Fx.debris(w, e.getPos().add(0, 0.1, 0), 9, 1.8);
+                    Fx.lines(e, 0.8f);
                     Fx.shakeAround(w, e.getPos(), 10, 0.9f);
                 }
                 if (now >= f.stateUntil) {

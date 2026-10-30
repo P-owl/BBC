@@ -1,0 +1,136 @@
+{
+ "providers": [
+  {
+   "type": "space",
+   "advances": {
+    " ": 4
+   }
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/don.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue000"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/baki.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue001"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/dogo.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue002"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/ga.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue003"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/zudon.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue004"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/dogon.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue005"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/zan.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue006"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/zuba.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue007"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/gagin.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue008"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/bakin.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue009"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/gogo.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue00a"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/dododo.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue00b"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/buon.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue00c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/dogooon.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue00d"
+   ]
+  }
+ ]
+}
