@@ -113,28 +113,51 @@ public final class Awaken {
         }
         Fighter f = Combat.of(e);
         int tok = ++f.token;
-        f.m1ReadyAt = Combat.now + 26;
+        f.m1ReadyAt = Combat.now + 30;
         f.recoveryUntil = f.m1ReadyAt;
         ServerWorld w = (ServerWorld) e.getWorld();
-        w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_WARDEN_SONIC_CHARGE, SoundCategory.PLAYERS, 0.6f, 1.8f);
+        w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_WARDEN_SONIC_CHARGE, SoundCategory.PLAYERS, 0.7f, 1.8f);
+        Motion.play(e, "barrage");   // 2틱마다 좌우 번갈아 지르는 전용 모션 (평타 모션을 2틱마다 다시 틀면 예비 동작만 보여서 소극적으로 보였음)
+        DustParticleEffect fist = new DustParticleEffect(new Vector3f(1f, 0.95f, 0.85f), 1.3f);
         for (int i = 0; i < 8; i++) {
             int n = i;
             Tasks.later(2 + i * 2, () -> {
                 if (f.token != tok || f.stunned() || !e.isAlive()) return;
-                Motion.play(e, n % 2 == 0 ? "m1_1" : "m1_2");
-                for (LivingEntity t : Combat.targets(e, 3.2, 60, 2)) Combat.hit(e, t, FLURRY);
+                // 이 사이 앞으로 조금씩 밀고 들어감
+                Vec3d fw = Combat.horizontal(e.getRotationVec(1f));
+                Combat.move(e, new Vec3d(fw.x * 0.12, e.getVelocity().y, fw.z * 0.12));
+                for (LivingEntity t : Combat.targets(e, 3.2, 60, 2)) {
+                    if (Combat.hit(e, t, FLURRY) != Combat.Result.HIT) continue;
+                    // 주먹 잔상: 내 어깨 → 상대 몸통으로 하얀 줄기 여러 갈래 + 맞은 자리 작은 충격파
+                    Vec3d from = e.getPos().add(0, 1.35, 0), to = t.getBoundingBox().getCenter();
+                    for (int k = 0; k < 3; k++) {
+                        Vec3d jit = new Vec3d((e.getRandom().nextDouble() - 0.5) * 0.7, (e.getRandom().nextDouble() - 0.5) * 0.6, (e.getRandom().nextDouble() - 0.5) * 0.7);
+                        for (double d = 0.3; d <= 1.0; d += 0.14) {
+                            Vec3d pt = from.lerp(to.add(jit), d);
+                            w.spawnParticles(fist, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0);
+                        }
+                    }
+                    w.spawnParticles(ParticleTypes.CRIT, to.x, to.y, to.z, 10, 0.3, 0.3, 0.3, 0.4);
+                    w.spawnParticles(ParticleTypes.SWEEP_ATTACK, to.x, to.y, to.z, 1, 0.2, 0.2, 0.2, 0);
+                    if (n % 2 == 1) Combat.ring(w, to, 0.8, 10);
+                }
+                w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 0.9f, 0.8f + e.getRandom().nextFloat() * 0.6f);
             });
         }
-        Tasks.later(20, () -> {
+        Tasks.later(18, () -> { if (f.token == tok && !f.stunned() && e.isAlive()) Motion.play(e, "barrage_end"); });
+        Tasks.later(22, () -> {
             if (f.token != tok || f.stunned() || !e.isAlive()) return;
-            Motion.play(e, "m1_5");
-            for (LivingEntity t : Combat.targets(e, 3.4, 60, 2)) {
-                if (Combat.hit(e, t, FLURRY_END) == Combat.Result.HIT) {
-                    Combat.ring(w, t.getPos().add(0, 1, 0), 2.2, 30);
-                    w.spawnParticles(ParticleTypes.EXPLOSION, t.getX(), t.getY() + 1, t.getZ(), 2, 0.3, 0.3, 0.3, 0);
-                }
+            for (LivingEntity t : Combat.targets(e, 3.6, 60, 2)) {
+                if (Combat.hit(e, t, FLURRY_END) != Combat.Result.HIT) continue;
+                Vec3d c = t.getBoundingBox().getCenter();
+                w.spawnParticles(ParticleTypes.SONIC_BOOM, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+                w.spawnParticles(ParticleTypes.EXPLOSION, c.x, c.y, c.z, 3, 0.4, 0.4, 0.4, 0);
+                w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, 30, 0.2, 0.2, 0.2, 0.35);
+                Combat.ring(w, c, 1.6, 22);
+                Combat.ring(w, t.getPos().add(0, 0.1, 0), 3.0, 34);
             }
-            w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.6f, 1.3f);
+            w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.8f, 1.2f);
+            w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_WARDEN_SONIC_BOOM, SoundCategory.PLAYERS, 0.5f, 1.6f);
         });
         return true;
     }

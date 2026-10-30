@@ -29,6 +29,24 @@ final class Anim {
         PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(STANCE, 500, player -> new ModifierLayer<>());
     }
 
+    /** 매 틱: 손에 든 무기에 맞는 싸움 자세로 (맨손·검·창·대검) */
+    static void tick(net.minecraft.client.MinecraftClient c) {
+        if (c.world == null) { STANCE_ON.clear(); return; }
+        var it = STANCE_ON.entrySet().iterator();
+        while (it.hasNext()) {
+            var en = it.next();
+            if (!(c.world.getEntityById(en.getKey()) instanceof AbstractClientPlayerEntity pl)) { it.remove(); continue; }
+            var stack = pl.getMainHandStack();
+            String want = stack.isIn(net.minecraft.registry.tag.ItemTags.SWORDS) ? "stance_sword"
+                    : stack.isOf(net.minecraft.item.Items.TRIDENT) ? "stance_spear"
+                    : stack.isIn(net.minecraft.registry.tag.ItemTags.AXES) ? "stance_gs" : "stance";
+            if (want.equals(en.getValue())) continue;
+            en.setValue(want);
+            ModifierLayer<IAnimation> st = layer(pl, STANCE);
+            if (st != null) st.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(4, Ease.INOUTSINE), load(want));
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static ModifierLayer<IAnimation> layer(AbstractClientPlayerEntity player, Identifier id) {
         Object data = PlayerAnimationAccess.getPlayerAssociatedData(player).get(id);
@@ -46,11 +64,14 @@ final class Anim {
         return a;
     }
 
+    /** 싸움 자세를 켠 플레이어 → 지금 깔린 자세 이름 (손에 든 무기에 따라 바뀜) */
+    private static final java.util.Map<Integer, String> STANCE_ON = new java.util.HashMap<>();
+
     static void play(AbstractClientPlayerEntity player, String motion) {
         if (motion.equals("#stance") || motion.equals("#stance_off")) {
             ModifierLayer<IAnimation> st = layer(player, STANCE);
-            if (st != null) st.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(5, Ease.INOUTSINE),
-                    motion.equals("#stance") ? load("stance") : null);
+            if (motion.equals("#stance")) STANCE_ON.put(player.getId(), "");
+            else { STANCE_ON.remove(player.getId()); if (st != null) st.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(5, Ease.INOUTSINE), null); }
             return;
         }
         ModifierLayer<IAnimation> layer = layer(player, LAYER);

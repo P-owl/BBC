@@ -26,7 +26,7 @@ def ease(name, f):
     return f
 
 PARTS = ["head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg", "torso"]
-AXES = ("pitch", "yaw", "roll", "bend", "axis")
+AXES = ("pitch", "yaw", "roll", "bend", "axis", "z")
 
 def tracks(anim):
     """part -> axis -> sorted list of (tick, value, ease)"""
@@ -77,6 +77,7 @@ MODEL = {
     "rightLeg": ((-1.9, 12, 0), (-2, 0, -2), (4, 12, 4), (70, 70, 140)),
     "leftLeg": ((1.9, 12, 0), (-2, 0, -2), (4, 12, 4), (110, 110, 180)),
 }
+ITEM = [0]   # 오른손 무기 길이(픽셀), 0 = 없음
 FACES = [(0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4), (2, 3, 7, 6), (1, 2, 6, 5), (0, 3, 7, 4)]
 
 def boxes(ps):
@@ -103,10 +104,24 @@ def boxes(ps):
             for i in range(8):
                 v = np.array([o[0] + sz[0] * (i in (1, 2, 5, 6)), y0 + (y1 - y0) * (i in (2, 3, 6, 7)), o[2] + sz[2] * (i >= 4)], float)
                 if lower: v = RB @ (v - mid) + mid
-                v = R @ v + np.array(piv, float)
+                v = R @ v + np.array(piv, float) + np.array([0, 0, r.get("z", 0) if limb else 0])
                 w = np.array([-v[0], -v[1], v[2]]) / 16 + np.array([0, 1.501, 0])   # scale(-1,-1,1), translate
                 w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0])        # 몸 전체 회전
                 corners.append(w)
+            if lower and name == "rightArm" and ITEM[0]:  # 손에 든 무기: 손에서 아래팔에 수직으로 (앞쪽) 뻗음
+                L = ITEM[0]
+                for i2 in range(8):
+                    pass
+                hand = np.array([o[0] + sz[0] / 2, o[1] + sz[1] - 1, o[2] + sz[2] / 2])
+                ic = []
+                for i2 in range(8):
+                    v = hand + np.array([(i2 in (1, 2, 5, 6)) - 0.5, (i2 in (2, 3, 6, 7)) - 0.5, -L * (i2 >= 4)])
+                    v = RB @ (v - mid) + mid
+                    v = R @ v + np.array(piv, float) + np.array([0, 0, r.get("z", 0)])
+                    w = np.array([-v[0], -v[1], v[2]]) / 16 + np.array([0, 1.501, 0])
+                    w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0])
+                    ic.append(w)
+                for f in FACES: polys.append(([ic[i] for i in f], (150, 150, 160)))
             for fi, f in enumerate(FACES):
                 c = col if not lower else tuple(int(x * 0.85) for x in col)
                 if name == "head" and fi == 0: c = (250, 220, 120)   # 얼굴(앞면) 표시

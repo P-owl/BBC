@@ -149,6 +149,48 @@ public final class Weapon {
         return true;
     }
 
+    // ═════════ 연출: 칼자국 ═════════
+
+    /** 무기 휘두를 때 판정 순간의 궤적. 검·대검 = 앞쪽 호(가로 또는 세로), 창 = 앞으로 뻗는 줄기 */
+    public static void trail(LivingEntity p, String motion) {
+        if (!(motion.startsWith("sw_") || motion.startsWith("sp_") || motion.startsWith("gs_"))) return;
+        ServerWorld w = (ServerWorld) p.getWorld();
+        Vec3d f = Combat.horizontal(p.getRotationVec(1f));
+        Vec3d r = new Vec3d(-f.z, 0, f.x);
+        Vec3d o = p.getPos().add(0, 1.2, 0);
+        net.minecraft.particle.DustParticleEffect white = new net.minecraft.particle.DustParticleEffect(new org.joml.Vector3f(1f, 1f, 1f), 1.2f);
+        if (motion.startsWith("sp_")) { // 찌르기: 앞으로 곧게
+            double len = motion.equals("sp_thrust") ? 5.0 : 3.8;
+            for (double d = 0.8; d < len; d += 0.25) w.spawnParticles(white, o.x + f.x * d, o.y - 0.1, o.z + f.z * d, 1, 0, 0, 0, 0);
+            w.spawnParticles(ParticleTypes.CRIT, o.x + f.x * len, o.y - 0.1, o.z + f.z * len, 6, 0.1, 0.1, 0.1, 0.2);
+            if (motion.equals("sp_sweep")) arc(w, o, f, r, 2.6, false, white);
+            return;
+        }
+        boolean vertical = motion.equals("sw_3") || motion.equals("sw_4") || motion.equals("sw_5") || motion.equals("sw_rise")
+                || motion.equals("gs_1") || motion.equals("gs_3") || motion.equals("gs_cleave");
+        double rad = motion.startsWith("gs_") ? 2.6 : 2.1;
+        arc(w, o, f, r, rad, vertical, white);
+        w.spawnParticles(ParticleTypes.SWEEP_ATTACK, o.x + f.x * 1.6, o.y, o.z + f.z * 1.6, 1, 0, 0, 0, 0);
+        if (motion.startsWith("gs_") && vertical) { // 대검 내리치기: 땅이 갈라짐
+            Vec3d g = p.getPos().add(f.multiply(2.2));
+            var ground = w.getBlockState(net.minecraft.util.math.BlockPos.ofFloored(g).down());
+            if (!ground.isAir()) w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK, ground), g.x, g.y + 0.1, g.z, 25, 0.6, 0.05, 0.6, 0.2);
+            Combat.ring(w, g.add(0, 0.1, 0), 1.2, 16);
+            w.playSound(null, g.x, g.y, g.z, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.3f, 1.6f);
+        }
+    }
+
+    /** 앞쪽 반원 호. vertical 이면 위에서 아래로, 아니면 오른쪽에서 왼쪽으로 */
+    private static void arc(ServerWorld w, Vec3d o, Vec3d f, Vec3d r, double rad, boolean vertical, net.minecraft.particle.ParticleEffect fx) {
+        for (int i = 0; i <= 14; i++) {
+            double a = Math.PI * (i / 14.0 - 0.5);          // -90° ~ +90°
+            double fw = Math.cos(a) * rad;
+            Vec3d pt = vertical ? o.add(f.multiply(fw)).add(0, Math.sin(-a) * rad * 0.8, 0)
+                                : o.add(f.multiply(fw)).add(r.multiply(Math.sin(a) * rad));
+            w.spawnParticles(fx, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0);
+        }
+    }
+
     /** 액션바: 무기 칸일 때 */
     public static MutableText hud(ServerPlayerEntity p, Type t) {
         Fighter f = Combat.of(p);

@@ -153,6 +153,14 @@ final class CombatHud {
                 m.body.yaw = side * (0.6f * wind - 0.5f * out);
             }
             case "parry" -> { m.rightArm.pitch = -2.3f; m.rightArm.yaw = -0.5f; }
+            case "barrage" -> { // 2틱마다 좌우 번갈아 지르기
+                boolean r = ((int) (a / 2)) % 2 == 0;
+                float ph = (a % 2) / 2f;
+                (r ? m.rightArm : m.leftArm).pitch = -1.7f + 0.6f * ph;
+                (r ? m.leftArm : m.rightArm).pitch = -0.5f;
+                m.body.yaw = (r ? 0.5f : -0.5f);
+                if (a > 18) MOB_MOTION.remove(e.getId());
+            }
             case "awaken" -> { m.rightArm.pitch = -0.4f; m.rightArm.roll = 1.2f; m.leftArm.pitch = -0.4f; m.leftArm.roll = -1.2f; m.head.pitch = -0.4f; }
             default -> { // 평타·공중 평타·기술: 한 손 지르기
                 arm.pitch = lerp(0.35f * wind, -1.75f, out);

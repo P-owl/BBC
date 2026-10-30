@@ -1,0 +1,118 @@
+{
+ "version": 3,
+ "name": "stance_spear",
+ "author": "bbc",
+ "description": "",
+ "emote": {
+  "isLoop": true,
+  "returnTick": 0,
+  "beginTick": 0,
+  "endTick": 40,
+  "stopTick": 41,
+  "degrees": true,
+  "easeBeforeKeyframe": true,
+  "nsfw": false,
+  "moves": [
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": -24,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": -24,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -12,
+     "yaw": 4,
+     "roll": 6,
+     "bend": -4,
+     "z": 1
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -48,
+     "yaw": 26,
+     "roll": -4,
+     "bend": -26,
+     "z": -2
+    }
+   },
+   {
+    "tick": 20,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -51,
+     "yaw": 26,
+     "roll": -4,
+     "bend": -26,
+     "z": -2
+    }
+   },
+   {
+    "tick": 40,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": -24,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 40,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": -24,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 40,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -12,
+     "yaw": 4,
+     "roll": 6,
+     "bend": -4,
+     "z": 1
+    }
+   },
+   {
+    "tick": 40,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -48,
+     "yaw": 26,
+     "roll": -4,
+     "bend": -26,
+     "z": -2
+    }
+   }
+  ]
+ }
+}

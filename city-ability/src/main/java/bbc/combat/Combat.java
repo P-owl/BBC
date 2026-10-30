@@ -252,6 +252,7 @@ public final class Combat {
         sound(p, sfx, 0.5f, 1.3f);
         Tasks.later(startup, () -> {
             if (a.token != tok || a.stunned() || !p.isAlive() || p.isRemoved()) return;
+            Weapon.trail(p, motion);   // 무기 모션이면 칼자국·찌르기 줄기
             resolve.run();
         });
     }

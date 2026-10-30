@@ -83,6 +83,7 @@ public class BbcClient implements ClientModInitializer {
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (ANIM) Anim.tick(client);
             if (client.player == null) return;
             while (toggle.wasPressed()) send(KeyPayload.TOGGLE);
             for (int i = 0; i < 5; i++) while (SKILL[i].wasPressed()) if (combat) send(KeyPayload.SKILL_BASE + i);
