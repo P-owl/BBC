@@ -17,7 +17,8 @@ import net.minecraft.client.util.InputUtil;
 /**
  * 클라이언트: 전투 키 등록과 전송.
  * 전투 모드에서는
- *  - 좌클릭 = 평타 (MinecraftClientMixin). 스페이스를 누른 채면 띄우기·래더
+ *  - 좌클릭 = 평타 (MinecraftClientMixin). 스페이스를 누른 채면 띄우기·래더. 평타 중엔 바닐라 점프가 막힘 (KeyboardInputMixin)
+ *  - 숫자 1~5 (핫바 키) = 기술. 전투 모드 동안 핫바 1~5 전환은 먹어 버린다
  *  - F(손 바꾸기 키) = 가드, 누르는 순간 패링 입력 창
  *  - Q(버리기 키) = 대시 (움직이는 방향으로), 경직 중이면 회피기
  * 바닐라 F·Q 동작은 전투 모드 동안 먹어 버린다. 키를 바꾸면 바뀐 키를 따른다.
@@ -26,7 +27,7 @@ import net.minecraft.client.util.InputUtil;
 public class BbcClient implements ClientModInitializer {
     private static final String CAT = "category.bbc";
     // GLFW 키 코드
-    private static final int KEY_GRAVE = 96, KEY_B = 66, KEY_C = 67, KEY_G = 71, KEY_H = 72, KEY_R = 82, KEY_T = 84, KEY_V = 86, KEY_X = 88, KEY_Z = 90;
+    private static final int KEY_GRAVE = 96, KEY_G = 71, KEY_H = 72, KEY_R = 82, KEY_T = 84;
     public static boolean combat = false;
     /** playerAnimator 가 깔려 있나 (없으면 모션 없이 돈다) */
     static final boolean ANIM = hasAnimator();
@@ -35,7 +36,6 @@ public class BbcClient implements ClientModInitializer {
 
     private static KeyBinding toggle, awaken, eye, implant, relic;
     private static final KeyBinding[] SKILL = new KeyBinding[5];
-    private static final int[] SKILL_KEYS = {KEY_Z, KEY_X, KEY_C, KEY_V, KEY_B};
     private static final String[] SKILL_NAMES = {"z", "x", "c", "v", "b"};
 
     private static KeyBinding key(String id, int code) {
@@ -45,7 +45,8 @@ public class BbcClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         toggle = key("toggle", KEY_GRAVE);
-        for (int i = 0; i < 5; i++) SKILL[i] = key("skill_" + SKILL_NAMES[i], SKILL_KEYS[i]);
+        // 기본은 숫자키(핫바 키)로 쓰고, 따로 키를 지정하고 싶은 사람만 설정에서 이 키를 정함 (기본 없음)
+        for (int i = 0; i < 5; i++) SKILL[i] = key("skill_" + SKILL_NAMES[i], InputUtil.UNKNOWN_KEY.getCode());
         awaken = key("awaken", KEY_G);
         eye = key("eye", KEY_R);
         implant = key("implant", KEY_H);
@@ -74,6 +75,7 @@ public class BbcClient implements ClientModInitializer {
             boolean g = o.swapHandsKey.isPressed();
             if (g != guardSent) { send(g ? KeyPayload.GUARD_DOWN : KeyPayload.GUARD_UP); guardSent = g; }
             while (o.dropKey.wasPressed()) send(KeyPayload.DASH_BASE + dashDir(client));
+            for (int i = 0; i < 5; i++) while (o.hotbarKeys[i].wasPressed()) send(KeyPayload.SKILL_BASE + i);
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -95,6 +97,13 @@ public class BbcClient implements ClientModInitializer {
         if (!press && t - lastM1 < 2) return;
         lastM1 = t;
         send(c.options.jumpKey.isPressed() ? KeyPayload.M1_UP : KeyPayload.M1);
+    }
+
+    /** 평타를 치는 중이면 바닐라 점프를 막음 (점프 키는 평타 입력 판정으로만 씀) */
+    public static boolean blockJump() {
+        MinecraftClient c = MinecraftClient.getInstance();
+        if (!combat || c.player == null || c.world == null || c.currentScreen != null) return false;
+        return c.options.attackKey.isPressed() || c.world.getTime() - lastM1 < 6;
     }
 
     /** 0 앞 1 뒤 2 왼쪽 3 오른쪽 */

@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.Text;
@@ -20,12 +21,15 @@ import java.util.Map;
 /**
  * 전투 연출 (클라이언트).
  *  - 경직 중인 엔티티 몸을 붉게 칠함 (피격 붉은빛을 경직 동안 계속 켜 둠). ABA 경직 더미처럼 경직이 눈에 보인다.
+ *  - 몬스터(사람 모양)는 맞을 때 움찔하는 자세, 공중 경직 중엔 팔다리를 벌린 자세 (플레이어는 playerAnimator 모션)
  *  - 내가 넣는 콤보 타수를 화면 왼쪽에 크게 띄움 (1.5초 동안 안 늘면 사라짐)
  */
 final class CombatHud {
     private CombatHud() {}
 
     private static final Map<Integer, Long> STUN = new HashMap<>();
+    /** 엔티티 → {맞은 틱, 상태} */
+    private static final Map<Integer, long[]> HURT = new HashMap<>();
     private static int comboHits;
     private static float comboDamage;
     private static long comboAt = -1000;
@@ -33,8 +37,11 @@ final class CombatHud {
 
     static void init() {
         ClientPlayNetworking.registerGlobalReceiver(StunPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
-            if (p.ticks() <= 0) STUN.remove(p.entityId());
-            else STUN.put(p.entityId(), clock + p.ticks());
+            if (p.ticks() <= 0) { STUN.remove(p.entityId()); HURT.remove(p.entityId()); return; }
+            STUN.put(p.entityId(), clock + p.ticks());
+            long[] h = HURT.computeIfAbsent(p.entityId(), k -> new long[]{-100, 0});
+            if (p.fresh()) h[0] = clock;
+            h[1] = p.state();
         }));
         ClientPlayNetworking.registerGlobalReceiver(ComboPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             comboHits = p.hits();
@@ -47,15 +54,47 @@ final class CombatHud {
 
     private static void tick(MinecraftClient c) {
         clock++;
-        if (c.world == null) { STUN.clear(); return; }
+        if (c.world == null) { STUN.clear(); HURT.clear(); return; }
         Iterator<Map.Entry<Integer, Long>> it = STUN.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Integer, Long> en = it.next();
             Entity e = c.world.getEntityById(en.getKey());
-            if (e == null || clock > en.getValue()) { it.remove(); continue; }
+            if (e == null || clock > en.getValue()) { it.remove(); HURT.remove(en.getKey()); continue; }
             // 내 화면은 흔들리면 안 되니 나는 빼고
             if (e != c.player && e instanceof LivingEntity le) le.hurtTime = Math.max(le.hurtTime, 2);
         }
+    }
+
+    /** 사람 모양 몬스터 모델에 피격 자세를 덧씌움 (LivingEntityRendererMixin 이 setAngles 직후 부름). 각도는 라디안 */
+    static void pose(LivingEntity e, BipedEntityModel<?> m, float delta) {
+        long[] h = HURT.get(e.getId());
+        if (h == null) return;
+        float age = clock - h[0] + delta;
+        // 맞은 순간 1틱 만에 확 젖혀졌다가 6틱에 걸쳐 돌아옴
+        float f = age < 0 ? 0 : age < 1 ? age : Math.max(0f, 1f - (age - 1f) / 6f);
+        int state = (int) h[1];
+        if (state == 2) { // 공중 경직: 팔다리를 벌리고 젖혀진 채로
+            m.head.pitch -= 0.35f;
+            m.rightArm.pitch = -0.6f; m.rightArm.roll = 1.0f;
+            m.leftArm.pitch = -0.6f; m.leftArm.roll = -1.0f;
+            m.rightLeg.pitch = 0.45f; m.leftLeg.pitch = -0.3f;
+            m.rightLeg.roll = 0.15f; m.leftLeg.roll = -0.15f;
+        } else if (state == 3) { // 다운: 고개를 떨구고 팔을 늘어뜨림
+            m.head.pitch = 0.7f;
+            m.rightArm.pitch = 0.3f; m.leftArm.pitch = 0.3f;
+            m.rightArm.roll = 0.25f; m.leftArm.roll = -0.25f;
+        }
+        if (f > 0) { // 움찔: 고개·몸통이 뒤로, 팔이 뒤로 튐
+            boolean alt = (h[0] & 1) == 0; // 번갈아 좌우
+            m.head.pitch -= 0.55f * f;
+            m.head.yaw += (alt ? 0.3f : -0.3f) * f;
+            m.body.pitch -= 0.22f * f;
+            m.body.yaw += (alt ? 0.2f : -0.2f) * f;
+            m.rightArm.pitch += 0.7f * f; m.rightArm.roll += 0.45f * f;
+            m.leftArm.pitch += 0.55f * f; m.leftArm.roll -= 0.45f * f;
+            m.rightLeg.pitch += 0.2f * f; m.leftLeg.pitch -= 0.15f * f;
+        }
+        m.hat.copyTransform(m.head);
     }
 
     private static void render(DrawContext ctx) {

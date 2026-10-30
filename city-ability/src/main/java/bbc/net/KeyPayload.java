@@ -12,7 +12,7 @@ public record KeyPayload(int action) implements CustomPayload {
     public static final int TOGGLE = 0;
     /** 평타 / 스페이스를 누른 채 평타 (띄우기·래더) */
     public static final int M1 = 1, M1_UP = 2;
-    /** + 0~4 = Z·X·C·V·B 칸 */
+    /** + 0~4 = 1~5 칸 */
     public static final int SKILL_BASE = 10;
     public static final int GUARD_DOWN = 20, GUARD_UP = 21, DASH = 22, AWAKEN = 23;
     /** + 0~2 = 클래스·무기A·무기B 슬롯 */

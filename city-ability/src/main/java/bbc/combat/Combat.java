@@ -19,6 +19,7 @@ import net.minecraft.entity.attribute.EntityAttributeInstance;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -154,7 +155,7 @@ public final class Combat {
 
     /**
      * 평타 한 사슬 = 5타 (땅·공중 섞어서 셈). ABA 규칙:
-     *   1~4타: 땅이면 평타, 2·3타째에 스페이스를 누르고 있으면 상대와 같이 살짝 뜸, 공중이면 공중 평타
+     *   1~4타: 땅이면 평타, 2~4타째에 스페이스를 누르고 있으면 상대와 같이 살짝 뜸, 공중이면 공중 평타
      *   5타째: 땅 + 스페이스 = 업 플링 / 땅 = 넉백 / 공중 + 스페이스 = 래더(다시 띄움) / 공중 = 다운 슬램
      */
     private static void doM1(ServerPlayerEntity p, Fighter a, boolean up) {
@@ -170,7 +171,7 @@ public final class Combat {
                     a.airComboUntil = now + 24;
                     setVel(p, new Vec3d(p.getVelocity().x * 0.3, 0.12, p.getVelocity().z * 0.3));
                 });
-            } else if (up && (idx == 1 || idx == 2)) {
+            } else if (up && idx >= 1) {
                 swing(p, a, "launch", Tuning.M1_STARTUP, Tuning.M1_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
                     if (hitArea(p, Tuning.HOP, false) > 0) {
                         a.airComboUntil = now + 30;
@@ -278,7 +279,13 @@ public final class Combat {
 
     /** 기술용: 앞쪽 부채꼴 안의 대상 (가까운 순) */
     public static List<LivingEntity> targets(LivingEntity a, double range, double halfAngleDeg, int max) {
-        return cone(a, range, halfAngleDeg, max);
+        List<LivingEntity> out = new ArrayList<>(cone(a, range, halfAngleDeg, 99));
+        // 부채꼴이 놓치는 바로 앞·옆도 (평타와 같은 구)
+        for (LivingEntity t : sphere(a, range * 0.45, Math.max(1.6, range * 0.6), 99)) if (!out.contains(t)) out.add(t);
+        // 공중에선 시선이 엇나가기 쉬우니 내 몸 주위도
+        if (!a.isOnGround()) for (LivingEntity t : sphere(a, 0, range * 0.75, 99)) if (!out.contains(t)) out.add(t);
+        out.sort(Comparator.comparingDouble(t -> t.squaredDistanceTo(a)));
+        return out.size() > max ? out.subList(0, max) : out;
     }
 
     private static List<LivingEntity> cone(LivingEntity a, double range, double halfAngleDeg, int max) {
@@ -359,6 +366,7 @@ public final class Combat {
         a.lastTarget = t.getUuid();
         a.lastTargetAt = now;
         v.knocked = h.kind() == Hit.Kind.KNOCK;
+        v.freshHit = true;
         v.slammed = h.kind() == Hit.Kind.DOWN;
 
         // 속도 (바닐라 넉백을 덮어씀)
@@ -370,7 +378,7 @@ public final class Combat {
         boolean atkInAir = !atk.isOnGround();
         if (h.kind() == Hit.Kind.AIR && atkInAir && h.lift() < 0.3) {
             // 공중에서 때릴 땐 상대를 내 앞 1.7칸에 붙잡아 둔다 (간격이 벌어져 콤보가 끊기지 않게)
-            Vec3d want = atk.getPos().add(horizontal(atk.getRotationVec(1f)).multiply(1.7));
+            Vec3d want = atk.getPos().add(horizontal(atk.getRotationVec(1f)).multiply(2.0));
             Vec3d pull = want.subtract(t.getPos()).multiply(0.35);
             vel = new Vec3d(clamp(pull.x, 0.6), h.lift(), clamp(pull.z, 0.6));
             if (atk instanceof ServerPlayerEntity sp) setVel(sp, new Vec3d(atk.getVelocity().x * 0.3, Math.max(atk.getVelocity().y, h.lift()), atk.getVelocity().z * 0.3));
@@ -392,14 +400,15 @@ public final class Combat {
                 if (atk instanceof ServerPlayerEntity) a.airComboUntil = Math.max(a.airComboUntil, now + 40);
             }
         }
-        Motion.play(t, switch (h.kind()) { case HIT -> "hit"; case AIR -> "hit_air"; default -> "knock"; });
+        Motion.play(t, switch (h.kind()) { case HIT -> v.comboHits % 2 == 0 ? "hit_2" : "hit"; case AIR -> "hit_air"; default -> "knock"; });
 
         // 연출
         ServerWorld w = (ServerWorld) t.getWorld();
         Vec3d c = t.getBoundingBox().getCenter();
         // 맞은 자리에 번쩍임 (상대 몸통에서 때린 쪽으로 조금)
         Vec3d spark = c.add(horizontal(atk.getPos().subtract(t.getPos())).multiply(t.getWidth() * 0.5));
-        w.spawnParticles(ParticleTypes.FLASH, spark.x, spark.y, spark.z, 1, 0, 0, 0, 0);
+        w.spawnParticles(new DustParticleEffect(new Vector3f(1f, 0.95f, 0.8f), 0.9f), spark.x, spark.y, spark.z, 6, 0.12, 0.12, 0.12, 0);
+        w.spawnParticles(ParticleTypes.END_ROD, spark.x, spark.y, spark.z, 3, 0.02, 0.02, 0.02, 0.12);
         ParticleEffect fx = h.kind() == Hit.Kind.HIT ? ParticleTypes.CRIT : ParticleTypes.SWEEP_ATTACK;
         w.spawnParticles(fx, c.x, c.y, c.z, h.kind() == Hit.Kind.HIT ? 6 : 2, 0.25, 0.25, 0.25, 0.1);
         if (h.kind() == Hit.Kind.DOWN) sound(t, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, 0.8f, 0.7f);
@@ -452,9 +461,10 @@ public final class Combat {
     /** 경직이 바뀌면 주변 클라이언트에 알림 → 경직 중인 몸을 붉게 칠함 (ABA 경직 더미처럼) */
     private static void syncStun(Fighter f) {
         int left = f.stunned() ? (int) Math.max(1, f.stateUntil - now) : 0;
-        if (left == 0 && f.sentStun == 0) return;
+        if (left == 0 && f.sentStun == 0) { f.freshHit = false; return; }
         f.sentStun = left;
-        StunPayload pkt = new StunPayload(f.e.getId(), left);
+        StunPayload pkt = new StunPayload(f.e.getId(), left, f.state.ordinal(), f.freshHit);
+        f.freshHit = false;
         for (ServerPlayerEntity o : PlayerLookup.tracking(f.e))
             if (ServerPlayNetworking.canSend(o, StunPayload.ID)) ServerPlayNetworking.send(o, pkt);
         if (f.e instanceof ServerPlayerEntity sp && ServerPlayNetworking.canSend(sp, StunPayload.ID)) ServerPlayNetworking.send(sp, pkt);
@@ -632,16 +642,15 @@ public final class Combat {
     /** 허수아비 이름표: 경직 중엔 빨간 글씨로 남은 틱, 아니면 초록 '대기' + 최근 콤보 */
     private static void dummyName(Fighter f) {
         MutableText name = f.stunned()
-                ? Text.literal("경직 " + (f.stateUntil - now) + "틱").formatted(Formatting.RED, Formatting.BOLD)
+                ? Text.literal("경직 " + (f.stateUntil - now)).formatted(Formatting.RED, Formatting.BOLD)
                 : Text.literal("대기").formatted(Formatting.GREEN, Formatting.BOLD);
-        if (f.dummyLast != null) name.append(Text.literal("  " + f.dummyLast).formatted(Formatting.YELLOW));
-        if (f.comboHits > 0) name.append(Text.literal("  " + f.comboHits + "타").formatted(Formatting.GOLD));
+        if (!f.stunned() && f.dummyLast != null) name.append(Text.literal(" · " + f.dummyLast).formatted(Formatting.YELLOW));
         f.e.setCustomName(name);
     }
 
     private static void endCombo(Fighter f) {
         if (f.e.getCommandTags().contains(DUMMY_TAG) && f.comboHits > 0)
-            f.dummyLast = "최근 " + f.comboHits + "타 / " + String.format("%.1f", f.comboDamage);
+            f.dummyLast = "최근 " + f.comboHits + "타";
         f.comboHits = 0;
         f.comboDamage = 0;
         f.ladderUsed = false;
@@ -651,6 +660,12 @@ public final class Combat {
 
     private static boolean allowDamage(LivingEntity e, DamageSource src, float amount) {
         if (OURS.get()) return true;
+        // 전투 중 낙하 피해 없음 (띄우기·슬램·추격 대시로 높이 오르내리니까)
+        if (src.isIn(DamageTypeTags.IS_FALL)) {
+            if (e instanceof ServerPlayerEntity sp && CombatMode.active(sp)) return false;
+            Fighter ff = peek(e);
+            if (ff != null && now - Math.max(ff.lastHitAt, ff.touchedAt) < 200) return false;
+        }
         Entity atk = src.getAttacker();
         if (atk instanceof LivingEntity la) {
             Fighter fa = peek(la);

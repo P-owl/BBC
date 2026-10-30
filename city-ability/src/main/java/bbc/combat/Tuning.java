@@ -14,13 +14,13 @@ public final class Tuning {
     public static final Hit M1 = new Hit(1.0f, Hit.Kind.HIT, 10, 0.12, 0.0, 12, false, false);
     /** 평타마다 앞으로 붙는 속도 (상대가 멀어지지 않게) */
     public static final double M1_TRACK = 0.28;
-    /** 5타 넉백: 선딜 5 · 후딜 14. 날려보내고 떨어지면 다운. 가드 깨기 */
+    /** 5타 넉백: 선딜 5 · 후딜 14. 날려보내고 떨어지면 다운. 가드는 못 깸 (ABA처럼 가드 깨기는 기술 몫) */
     public static final int FINISH_STARTUP = 5, FINISH_NEXT = 20;
-    public static final Hit FINISH = new Hit(2.0f, Hit.Kind.KNOCK, 16, 1.25, 0.35, 30, true, false);
+    public static final Hit FINISH = new Hit(2.0f, Hit.Kind.KNOCK, 16, 1.25, 0.35, 30, false, false);
     /** 업 플링: 5타째에 스페이스를 누르고 있으면. 상대만 높이 띄움 (약 6칸). 떨어지는 상대를 땅에서 평타로 다시 잡는다 (래더) */
     public static final int FLING_STARTUP = 5, FLING_RECOVERY = 8;
     public static final Hit UP_FLING = new Hit(1.5f, Hit.Kind.AIR, 40, 0.0, 1.15, 12, false, false);
-    /** 뜨기: 2·3타째에 스페이스를 누르고 있으면 상대와 같이 살짝 뜸 → 공중 평타로 이어짐 */
+    /** 뜨기: 2~4타째에 스페이스를 누르고 있으면 상대와 같이 살짝 뜸 → 공중 평타로 이어짐 */
     public static final double HOP_VY = 0.5;
     public static final Hit HOP = new Hit(1.0f, Hit.Kind.AIR, 14, 0.05, 0.52, 12, false, false);
     /** 공중 평타: 경직 12, 둘 다 낙하가 느려짐 */

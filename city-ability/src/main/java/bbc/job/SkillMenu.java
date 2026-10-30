@@ -12,7 +12,7 @@ import net.minecraft.util.Formatting;
 import java.util.List;
 
 /**
- * 기술 장착 창. 윗줄 = 기술 풀, 아랫줄 = Z·X·C·V·B 칸.
+ * 기술 장착 창. 윗줄 = 기술 풀, 아랫줄 = 1~5 칸.
  * 기술을 누르면 비어 있는 칸(없으면 마지막 칸)에 장착, 아랫줄 칸을 누르면 비운다.
  */
 public class SkillMenu extends ButtonMenu {
@@ -20,7 +20,7 @@ public class SkillMenu extends ButtonMenu {
 
     public static void open(ServerPlayerEntity p) {
         if (JobSkills.of(Jobs.entry(p)) == null) { JobSkills.bar(p, "전투 기술이 있는 직업이 아닙니다", Formatting.GRAY); return; }
-        p.openHandledScreen(new SimpleNamedScreenHandlerFactory((id, inv, x) -> new SkillMenu(id, inv, p), Text.literal("기술 장착 (Z·X·C·V·B)")));
+        p.openHandledScreen(new SimpleNamedScreenHandlerFactory((id, inv, x) -> new SkillMenu(id, inv, p), Text.literal("기술 장착 (1~5)")));
     }
 
     private SkillMenu(int syncId, PlayerInventory inv, ServerPlayerEntity player) {

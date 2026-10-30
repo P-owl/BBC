@@ -13,14 +13,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 클래스 슬롯 기술. 직업마다 기술 목록(풀)이 있고, 그중 최대 5개를 Z·X·C·V·B 칸에 장착한다.
+ * 클래스 슬롯 기술. 직업마다 기술 목록(풀)이 있고, 그중 최대 5개를 1~5 칸에 장착한다 (전투 모드에선 숫자키 = 기술).
  * 장착 정보는 jd 의 "<prefix>equip" (예: "0,1,2,3,4") 에 저장.
  */
 public final class JobSkills {
     private JobSkills() {}
 
     public static final int SLOTS = 5;
-    public static final String[] KEYS = {"Z", "X", "C", "V", "B"};
+    public static final String[] KEYS = {"1", "2", "3", "4", "5"};
 
     /** cooldown = 초, cost = 기본 자원(스태미나) */
     public record Skill(String name, String shortName, int rank, double cost, int cooldown, String desc) {}
