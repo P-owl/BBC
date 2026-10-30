@@ -30,6 +30,15 @@ final class CombatHud {
     private static final Map<Integer, Long> STUN = new HashMap<>();
     /** 엔티티 → {맞은 틱, 상태} */
     private static final Map<Integer, long[]> HURT = new HashMap<>();
+    /** 몬스터 모션: 엔티티 → (이름, 시작 틱) */
+    private static final Map<Integer, String> MOB_MOTION = new HashMap<>();
+    private static final Map<Integer, Long> MOB_MOTION_AT = new HashMap<>();
+
+    static void mobMotion(int id, String motion) {
+        if (motion.equals("stop") || motion.startsWith("#")) { MOB_MOTION.remove(id); MOB_MOTION_AT.remove(id); return; }
+        MOB_MOTION.put(id, motion);
+        MOB_MOTION_AT.put(id, clock);
+    }
     private static int comboHits;
     private static float comboDamage;
     private static long comboAt = -1000;
@@ -67,8 +76,9 @@ final class CombatHud {
 
     /** 사람 모양 몬스터 모델에 피격 자세를 덧씌움 (LivingEntityRendererMixin 이 setAngles 직후 부름). 각도는 라디안 */
     static void pose(LivingEntity e, BipedEntityModel<?> m, float delta) {
+        attackPose(e, m, delta);
         long[] h = HURT.get(e.getId());
-        if (h == null) return;
+        if (h == null) { m.hat.copyTransform(m.head); return; }
         float age = clock - h[0] + delta;
         // 맞은 순간 1틱 만에 확 젖혀졌다가 6틱에 걸쳐 돌아옴
         float f = age < 0 ? 0 : age < 1 ? age : Math.max(0f, 1f - (age - 1f) / 6f);
@@ -96,6 +106,57 @@ final class CombatHud {
         }
         m.hat.copyTransform(m.head);
     }
+
+    /** 몬스터 공격 자세 (전투 AI 몹). 각도는 라디안, 팔 pitch - = 앞으로 */
+    private static void attackPose(LivingEntity e, BipedEntityModel<?> m, float delta) {
+        String mo = MOB_MOTION.get(e.getId());
+        if (mo == null) return;
+        if (STUN.containsKey(e.getId())) { MOB_MOTION.remove(e.getId()); return; }
+        float a = clock - MOB_MOTION_AT.get(e.getId()) + delta;
+        if (mo.equals("guard")) { // 팔뚝을 얼굴 앞에 교차 (놓을 때까지)
+            m.rightArm.pitch = -1.7f; m.rightArm.yaw = -0.7f; m.leftArm.pitch = -1.75f; m.leftArm.yaw = 0.7f;
+            m.body.yaw = 0; return;
+        }
+        boolean right = !(mo.endsWith("_2") || mo.endsWith("_4"));
+        var arm = right ? m.rightArm : m.leftArm;
+        var other = right ? m.leftArm : m.rightArm;
+        float side = right ? 1f : -1f;
+        int hitAt = mo.equals("m1_5") ? 5 : mo.equals("guard_break") ? 10 : 4;
+        float end = hitAt + 6;
+        if (a > end + 4) { MOB_MOTION.remove(e.getId()); return; }
+        // 0 → hitAt: 당김, hitAt: 1틱 만에 뻗음, 이후 천천히 돌아옴
+        float wind = a < hitAt ? a / hitAt : 0f;
+        float out = a < hitAt ? 0f : a < end ? 1f : Math.max(0f, 1f - (a - end) / 4f);
+        float snap = a < hitAt ? 0f : Math.min(1f, (a - hitAt) * 1.5f);
+        out *= snap;
+        switch (mo) {
+            case "launch" -> {
+                arm.pitch = lerp(0.4f, -3.0f, out) * (wind > 0 ? 1 : 1);
+                if (wind > 0) arm.pitch = 0.4f * wind;
+                m.body.pitch = 0.25f * wind - 0.15f * out;
+            }
+            case "slam" -> {
+                float up = a < hitAt ? Math.min(1f, a / 2f) : 0f;
+                m.rightArm.pitch = up > 0 ? -3.0f * up : lerp(-3.0f, -0.6f, snap);
+                m.leftArm.pitch = m.rightArm.pitch;
+                m.body.pitch = 0.45f * out;
+                m.head.pitch += 0.4f * out;
+            }
+            case "m1_5", "guard_break" -> {
+                m.rightArm.pitch = lerp(0.5f * wind, -1.7f, out); m.leftArm.pitch = lerp(0.5f * wind, -1.7f, out);
+                m.body.yaw = side * (0.6f * wind - 0.5f * out);
+            }
+            case "parry" -> { m.rightArm.pitch = -2.3f; m.rightArm.yaw = -0.5f; }
+            default -> { // 평타·공중 평타·기술: 한 손 지르기
+                arm.pitch = lerp(0.35f * wind, -1.75f, out);
+                arm.yaw = side * -0.15f * out;
+                other.pitch = -0.9f;
+                m.body.yaw = side * (0.45f * wind - 0.5f * out);
+            }
+        }
+    }
+
+    private static float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
     private static void render(DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();

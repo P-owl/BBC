@@ -143,7 +143,7 @@ public final class Combat {
     // ═════════ 평타 ═════════
 
     /** 평타 입력. up = 스페이스를 누른 채 (띄우기·래더) */
-    public static void m1(ServerPlayerEntity p, boolean up) {
+    public static void m1(LivingEntity p, boolean up) { // 플레이어 입력과 몬스터 AI 가 같이 쓴다
         Fighter a = of(p);
         if (a.stunned() || a.guardHeld || a.dashTicks > 0) return;
         if (now < a.m1ReadyAt) {
@@ -158,7 +158,7 @@ public final class Combat {
      *   1~4타: 땅이면 평타, 2~4타째에 스페이스를 누르고 있으면 상대와 같이 살짝 뜸, 공중이면 공중 평타
      *   5타째: 땅 + 스페이스 = 업 플링 / 땅 = 넉백 / 공중 + 스페이스 = 래더(다시 띄움) / 공중 = 다운 슬램
      */
-    private static void doM1(ServerPlayerEntity p, Fighter a, boolean up) {
+    private static void doM1(LivingEntity p, Fighter a, boolean up) {
         a.buffered = 0;
         if (now > a.m1ChainUntil) a.m1Index = 0;
         boolean air = !p.isOnGround() && now < a.airComboUntil;
@@ -199,7 +199,7 @@ public final class Combat {
         } else if (air) {
             swing(p, a, "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
                 if (hitArea(p, Tuning.SLAM, false) > 0) { // 내리꽂는 줄기
-                    ServerWorld w = p.getServerWorld();
+                    ServerWorld w = ((ServerWorld) p.getWorld());
                     Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.6));
                     for (int i = 0; i < 10; i++) w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y + 1.5 - i * 0.3, c.z, 0, 0, -1, 0, 0.6);
                 }
@@ -209,7 +209,7 @@ public final class Combat {
         } else if (up) {
             swing(p, a, "launch", Tuning.FLING_STARTUP, Tuning.FLING_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
                 if (hitArea(p, Tuning.UP_FLING, false) > 0) {
-                    ServerWorld w = p.getServerWorld();
+                    ServerWorld w = ((ServerWorld) p.getWorld());
                     Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5));
                     ring(w, c.add(0, 0.2, 0), 1.6, 20);
                     w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y + 1.5, c.z, 16, 0.15, 1.5, 0.15, 0.05);
@@ -218,12 +218,12 @@ public final class Combat {
         } else {
             track(p);
             swing(p, a, "m1_5", Tuning.FINISH_STARTUP, Tuning.FINISH_NEXT - Tuning.FINISH_STARTUP - 1, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK,
-                    () -> { if (hitArea(p, Tuning.FINISH, false) > 0) ring(p.getServerWorld(), p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5)).add(0, 1, 0), 1.3, 18); });
+                    () -> { if (hitArea(p, Tuning.FINISH, false) > 0) ring(((ServerWorld) p.getWorld()), p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5)).add(0, 1, 0), 1.3, 18); });
         }
     }
 
     /** 평타마다 앞으로 붙기: 앞에 상대가 있으면 그쪽으로 조금 미끄러짐 */
-    private static void track(ServerPlayerEntity p) {
+    private static void track(LivingEntity p) {
         if (!p.isOnGround()) return;
         List<LivingEntity> ts = sphere(p, Tuning.M1_REACH + 1.2, Tuning.M1_RADIUS + 0.6, 1);
         if (ts.isEmpty()) return;
@@ -236,7 +236,7 @@ public final class Combat {
     }
 
     /** 휘두르기 시작 → 선딜 뒤 판정. 그사이 맞아서 경직되면 취소된다 */
-    private static void swing(ServerPlayerEntity p, Fighter a, String motion, int startup, int recovery, SoundEvent sfx, Runnable resolve) {
+    private static void swing(LivingEntity p, Fighter a, String motion, int startup, int recovery, SoundEvent sfx, Runnable resolve) {
         int tok = ++a.token;
         Motion.play(p, motion);
         a.m1ReadyAt = now + startup + 1 + recovery;
@@ -250,8 +250,20 @@ public final class Combat {
         });
     }
 
+    /**
+     * 기술 한 방 (몬스터 AI·직업 기술 공용): motion 을 틀고 startup 틱 뒤 앞쪽 range 안을 h 로 때림. 평타가 아니라서 지상 연계 규칙이 걸린다.
+     */
+    public static void special(LivingEntity p, String motion, int startup, int recovery, Hit h, double range) {
+        Fighter a = of(p);
+        if (a.stunned()) return;
+        swing(p, a, motion, startup, recovery, SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, () -> {
+            for (LivingEntity t : targets(p, range, 55, 2)) hit(p, t, h);
+        });
+        a.m1Index = 0; // 기술 뒤엔 평타 사슬 처음부터
+    }
+
     /** 평타 판정 안의 대상들을 때림. 맞힌 수를 돌려줌 */
-    private static int hitArea(ServerPlayerEntity p, Hit h, boolean ladder) {
+    private static int hitArea(LivingEntity p, Hit h, boolean ladder) {
         int n = 0;
         FROM_M1.set(true);
         try {
@@ -362,7 +374,7 @@ public final class Combat {
         if (h.kind() == Hit.Kind.HIT || h.kind() == Hit.Kind.AIR)
             stun = Math.max(Tuning.STUN_MIN, stun - (v.comboHits - 1) / Tuning.STUN_DECAY_EVERY);
         // 땅에서 기술(평타 말고)로 맞힌 경직은 기술 후딜 + 평타 선딜보다 길게 → 기술 뒤 평타가 이어짐 (지상 익스텐더)
-        boolean groundSkill = !FROM_M1.get() && h.kind() == Hit.Kind.HIT && atk instanceof ServerPlayerEntity;
+        boolean groundSkill = !FROM_M1.get() && h.kind() == Hit.Kind.HIT;
         if (groundSkill) stun = Math.max(stun, Tuning.SKILL_MIN_STUN);
         float dmg = h.damage() * scale;
 
@@ -388,7 +400,7 @@ public final class Combat {
             Vec3d want = atk.getPos().add(horizontal(atk.getRotationVec(1f)).multiply(2.0));
             Vec3d pull = want.subtract(t.getPos()).multiply(0.35);
             vel = new Vec3d(clamp(pull.x, 0.6), h.lift(), clamp(pull.z, 0.6));
-            if (atk instanceof ServerPlayerEntity sp) setVel(sp, new Vec3d(atk.getVelocity().x * 0.3, Math.max(atk.getVelocity().y, h.lift()), atk.getVelocity().z * 0.3));
+            setVel(atk, new Vec3d(atk.getVelocity().x * 0.3, Math.max(atk.getVelocity().y, h.lift()), atk.getVelocity().z * 0.3));
         }
         if (groundSkill && h.push() < 0.4) {
             // 기술로 맞힌 상대를 내 앞 1.9칸에 붙잡아 둔다 (멀어져서 다음 평타가 헛치지 않게)
@@ -404,13 +416,13 @@ public final class Combat {
             case AIR -> {
                 setState(v, Fighter.State.AIR, stun);
                 // 띄운 쪽은 점프해서 바로 공중 평타로 이을 수 있음
-                if (atk instanceof ServerPlayerEntity) a.airComboUntil = Math.max(a.airComboUntil, now + 40);
+                a.airComboUntil = Math.max(a.airComboUntil, now + 40);
             }
             case DOWN -> setState(v, Fighter.State.DOWN, stun + 8); // 떨어지는 시간 포함
             case KNOCK -> {
                 // 날아가는 동안은 공중 경직 (대시로 쫓아가 잡을 수 있음), 떨어지면 다운
                 setState(v, Fighter.State.AIR, stun + 20);
-                if (atk instanceof ServerPlayerEntity) a.airComboUntil = Math.max(a.airComboUntil, now + 40);
+                a.airComboUntil = Math.max(a.airComboUntil, now + 40);
             }
         }
         Motion.play(t, switch (h.kind()) { case HIT -> v.comboHits % 2 == 0 ? "hit_2" : "hit"; case AIR -> "hit_air"; default -> "knock"; });
@@ -485,7 +497,7 @@ public final class Combat {
 
     // ═════════ 가드·대시·회피기 ═════════
 
-    public static void guard(ServerPlayerEntity p, boolean down) {
+    public static void guard(LivingEntity p, boolean down) {
         Fighter f = of(p);
         if (!down) {
             if (f.guardHeld && !f.stunned()) Motion.play(p, "stop");
@@ -502,14 +514,14 @@ public final class Combat {
     }
 
     /** dir: 0 앞 1 뒤 2 왼쪽 3 오른쪽. 경직 중이면 회피기 */
-    public static void dash(ServerPlayerEntity p, int dir) {
+    public static void dash(LivingEntity p, int dir) {
         Fighter f = of(p);
         if (f.state == Fighter.State.HITSTUN || f.state == Fighter.State.AIR || f.state == Fighter.State.GUARD_BROKEN) { evade(p, f); return; }
         if (f.state == Fighter.State.DOWN) return;
         if (now < f.dashCdUntil) return;
         boolean cancel = now < f.recoveryUntil;
         double cost = cancel ? Tuning.DASH_CANCEL_COST : Tuning.DASH_COST;
-        if (!Stamina.spend(p, cost)) { JobSkills.bar(p, "스태미나 부족", Formatting.RED); return; }
+        if (p instanceof ServerPlayerEntity sp && !Stamina.spend(sp, cost)) { JobSkills.bar(sp, "스태미나 부족", Formatting.RED); return; }
         if (cancel) { f.token++; f.m1ReadyAt = now; f.recoveryUntil = now; }
         if (dir == 0 && chase(p, f)) return;
         double yaw = Math.toRadians(p.getYaw());
@@ -529,9 +541,9 @@ public final class Combat {
     /**
      * 추격 대시: 방금 날리거나 띄운 상대가 앞쪽에 있으면 그 앞까지 날아가 붙는다 (ABA: 넉백 → Q로 쫓아가 공중에서 다시 잡기).
      */
-    private static boolean chase(ServerPlayerEntity p, Fighter f) {
+    private static boolean chase(LivingEntity p, Fighter f) {
         if (f.lastTarget == null || now - f.lastTargetAt > Tuning.CHASE_MEMORY) return false;
-        if (!(p.getServerWorld().getEntity(f.lastTarget) instanceof LivingEntity t) || !t.isAlive()) return false;
+        if (!(((ServerWorld) p.getWorld()).getEntity(f.lastTarget) instanceof LivingEntity t) || !t.isAlive()) return false;
         Fighter v = peek(t);
         if (v == null || (v.state != Fighter.State.AIR && v.state != Fighter.State.DOWN)) return false;
         Vec3d to = t.getPos().subtract(p.getPos());
@@ -550,9 +562,9 @@ public final class Combat {
         return true;
     }
 
-    private static void evade(ServerPlayerEntity p, Fighter f) {
+    private static void evade(LivingEntity p, Fighter f) {
         long left = f.evadeCdUntil - now;
-        if (left > 0) { JobSkills.bar(p, "회피기 재사용까지 " + (left / 20 + 1) + "초", Formatting.GRAY); return; }
+        if (left > 0) { if (p instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "회피기 재사용까지 " + (left / 20 + 1) + "초", Formatting.GRAY); return; }
         setState(f, Fighter.State.IDLE, 0);
         f.invulnUntil = now + Tuning.EVADE_INVULN;
         f.evadeCdUntil = now + Tuning.EVADE_COOLDOWN;
@@ -690,6 +702,7 @@ public final class Combat {
             Fighter fa = peek(la);
             if (fa != null && fa.stunned()) return false;                                  // 경직 중엔 못 때림
             if (la.getCommandTags().contains(DUMMY_TAG)) return false;                    // 허수아비는 안 때림
+            if (MobAI.tier(la) != null && src.getSource() == la) return false;            // 전투 AI 몹은 바닐라 근접 대신 평타로만 때림
             if (la instanceof ServerPlayerEntity sp && CombatMode.active(sp) && src.getSource() == la) return false; // 전투 모드에선 바닐라 근접 꺼짐
         }
         if (e.getCommandTags().contains(DUMMY_TAG) && amount >= e.getHealth() - 1) e.setHealth(e.getMaxHealth());

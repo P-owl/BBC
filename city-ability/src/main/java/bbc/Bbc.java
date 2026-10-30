@@ -36,6 +36,7 @@ public class Bbc implements ModInitializer {
         Tasks.register();
         Stamina.register();
         Combat.register();
+        bbc.combat.MobAI.register();
         CombatMode.register();
         Commands.register();
         LOG.info("BBC 도시 능력자 로드됨");

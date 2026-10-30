@@ -15,10 +15,10 @@ public final class Motion {
     private Motion() {}
 
     public static void play(LivingEntity e, String motion) {
-        if (!(e instanceof ServerPlayerEntity sp)) return;
-        MotionPayload pkt = new MotionPayload(sp.getId(), motion);
-        if (ServerPlayNetworking.canSend(sp, MotionPayload.ID)) ServerPlayNetworking.send(sp, pkt);
-        for (ServerPlayerEntity o : PlayerLookup.tracking(sp))
-            if (o != sp && ServerPlayNetworking.canSend(o, MotionPayload.ID)) ServerPlayNetworking.send(o, pkt);
+        // 플레이어는 playerAnimator 모션, 사람 모양 몬스터는 클라이언트가 간단한 자세를 덧씌움 (CombatHud.pose)
+        MotionPayload pkt = new MotionPayload(e.getId(), motion);
+        if (e instanceof ServerPlayerEntity sp && ServerPlayNetworking.canSend(sp, MotionPayload.ID)) ServerPlayNetworking.send(sp, pkt);
+        for (ServerPlayerEntity o : PlayerLookup.tracking(e))
+            if (o != e && ServerPlayNetworking.canSend(o, MotionPayload.ID)) ServerPlayNetworking.send(o, pkt);
     }
 }

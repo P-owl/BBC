@@ -24,6 +24,7 @@ import net.minecraft.util.Formatting;
  * /bbc admin quit <플레이어>        직업 없애기 (관리자)
  * /bbc admin rank <플레이어> <등급> 등급 바꾸기 (관리자)
  * /bbc admin dummy               콤보 연습용 허수아비 소환 (관리자)
+ * /bbc admin opponent <단계>      전투 AI 연습 상대 소환: grunt(하급) / skilled(숙련) / boss(보스)
  */
 public final class Commands {
     private Commands() {}
@@ -46,6 +47,10 @@ public final class Commands {
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .executes(c -> { ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player"); CombatMode.set(p, false); Jobs.quit(p); ok(c, p.getName().getString() + " 직업 없앰"); return 1; })))
                         .then(CommandManager.literal("dummy").executes(c -> { bbc.combat.Combat.spawnDummy(c.getSource().getPlayerOrThrow()); return 1; }))
+                        .then(CommandManager.literal("opponent")
+                                .then(CommandManager.literal("grunt").executes(c -> { bbc.combat.MobAI.spawnOpponent(c.getSource().getPlayerOrThrow(), bbc.combat.MobAI.Tier.GRUNT); return 1; }))
+                                .then(CommandManager.literal("skilled").executes(c -> { bbc.combat.MobAI.spawnOpponent(c.getSource().getPlayerOrThrow(), bbc.combat.MobAI.Tier.SKILLED); return 1; }))
+                                .then(CommandManager.literal("boss").executes(c -> { bbc.combat.MobAI.spawnOpponent(c.getSource().getPlayerOrThrow(), bbc.combat.MobAI.Tier.BOSS); return 1; })))
                         .then(CommandManager.literal("rank")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .then(CommandManager.argument("rank", IntegerArgumentType.integer(1, 99))
