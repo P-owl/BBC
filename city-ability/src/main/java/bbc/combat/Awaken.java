@@ -156,7 +156,7 @@ public final class Awaken {
                 w.spawnParticles(ParticleTypes.SONIC_BOOM, c.x, c.y, c.z, 1, 0, 0, 0, 0);
                 Combat.hitStop(f, Combat.of(t), 4);
                 Fx.wave(w, c, 0.4, 3.0, Fx.WHITE, 7);
-                Fx.word(w, c.add(0, 1.3, 0), "쾅!!", Formatting.RED, 2.0f);
+                Fx.word(w, c.add(0, 1.4, 0), "KA-BOOM!!", Fx.RED_TXT, 2.4f);
                 Fx.shake(t, 1.1f);
                 w.spawnParticles(ParticleTypes.EXPLOSION, c.x, c.y, c.z, 3, 0.4, 0.4, 0.4, 0);
                 w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, 30, 0.2, 0.2, 0.2, 0.35);

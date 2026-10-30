@@ -9,4 +9,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 public interface TextDisplayAccessor {
     @Invoker("setText") void bbc$setText(Text t);
     @Invoker("setBackground") void bbc$setBackground(int argb);
+    @Invoker("setDisplayFlags") void bbc$setDisplayFlags(byte flags);
+    @Invoker("setLineWidth") void bbc$setLineWidth(int w);
 }

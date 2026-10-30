@@ -167,11 +167,17 @@ public final class Weapon {
             w.spawnParticles(ParticleTypes.CRIT, o.x + f.x * len, o.y - 0.1, o.z + f.z * len, 6, 0.1, 0.1, 0.1, 0.2);
             return;
         }
-        boolean vertical = motion.equals("sw_3") || motion.equals("sw_4") || motion.equals("sw_5") || motion.equals("sw_rise")
-                || motion.equals("gs_1") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
-        boolean reverse = motion.equals("sw_2") || motion.equals("sw_4") || motion.equals("sw_rise");   // 왼→오 / 아래→위
+        // 모션마다 휘두른 방향 그대로 (make_motions.py 와 맞춤): 기울기, 반대 방향(왼→오 / 아래→위)
+        double tilt = switch (motion) {
+            case "sw_3", "sw_4", "sp_1", "sp_2", "gs_1" -> 50;
+            case "sw_5", "sw_rise", "gs_3", "gs_cleave", "sw_slam", "sp_slam", "gs_slam" -> 90;
+            default -> 0;   // sw_1, sw_2, sp_sweep, gs_2: 가로
+        };
+        boolean reverse = switch (motion) { case "sw_2", "sw_4", "sw_rise", "sp_2", "gs_2" -> true; default -> false; };
         boolean heavy = motion.startsWith("gs_");
-        Fx.slash(w, p, heavy ? 2.6 : 2.1, vertical, reverse, Fx.WHITE);
+        boolean finisher = motion.equals("sw_5") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
+        boolean vertical = tilt >= 90;
+        Fx.slash(w, p, heavy ? 2.6 : 2.1, tilt, reverse, finisher ? Fx.GOLD : Fx.WHITE);
         w.spawnParticles(ParticleTypes.SWEEP_ATTACK, o.x + f.x * 1.6, o.y, o.z + f.z * 1.6, 1, 0, 0, 0, 0);
         if (heavy && vertical) { // 대검 내리치기: 땅이 갈라짐
             Vec3d g = p.getPos().add(f.multiply(2.2));

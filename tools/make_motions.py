@@ -19,7 +19,8 @@
   - 크게 움직이는 건 뻗는 팔 하나와 몸 전체 회전(10~25°)뿐
   - 맞을 때는 1틱 만에 몸이 비틀리며 젖혀지고 팔은 조금만
 """
-import json, os
+import json, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "city-ability", "src", "main", "resources",
                    "assets", "bbc", "player_animations")
@@ -158,129 +159,205 @@ anim("awaken", 20,
     + P(20, IO, **STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
 
 # ── 무기 (오른손) ──
-# 바닐라 모델에서 손에 든 무기는 항상 '아래팔에 수직'으로 붙는다: 아래팔이 늘어지면(0°) 칼끝이 앞을, 아래팔이 앞으로(-90°) 들리면 칼끝이 위를 본다.
-# 그래서 칼끝 방향 = 아래팔 각도(팔 pitch + 팔꿈치 bend) - 90°. 앞쪽 비스듬히 위(-120°)를 보게 하려면 아래팔이 -30° 근처여야 한다.
-#  - 가로 베기: 아래팔을 -30° 근처로 두고, 위팔 yaw + 몸 회전으로 쓸어 넘김 (칼날이 수평에 가깝게 지나감)
-#  - 내려베기: 팔을 머리 위로(칼끝이 등 뒤로 → 크게 젖힌 예비 동작) → 앞 아래로 내리침 (칼끝이 앞을 봄)
-#  - 찌르기: 팔을 거의 늘어뜨린 채(칼끝이 앞) 팔 자체를 앞으로 밀어냄 (z 위치) + 몸을 숙임
-SWORD_STANCE = dict(body=(0, -16, 0), head=(0, -16, 0),
-                    rightArm=(-22, -6, 6, -10, None, 0), leftArm=(-52, 20, -6, -85, None, 0))
-SPEAR_STANCE = dict(body=(0, -24, 0), head=(0, -24, 0),
-                    rightArm=(-12, 4, 6, -4, None, 1), leftArm=(-48, 26, -4, -26, None, -2))
-GS_STANCE = dict(body=(0, -20, 0), head=(0, -20, 0),
-                 rightArm=(-34, -22, 4, -12, None, -1), leftArm=(-40, 26, -4, -12, None, -1))
-anim("stance_sword", 40, P(0, LIN, **SWORD_STANCE) + P(20, IO, rightArm=(-25, -6, 6, -10, None, 0)) + P(40, IO, **SWORD_STANCE), loop=True)
-anim("stance_spear", 40, P(0, LIN, **SPEAR_STANCE) + P(20, IO, leftArm=(-51, 26, -4, -26, None, -2)) + P(40, IO, **SPEAR_STANCE), loop=True)
-anim("stance_gs", 40, P(0, LIN, **GS_STANCE) + P(20, IO, rightArm=(-37, -22, 4, -12, None, -1)) + P(40, IO, **GS_STANCE), loop=True)
+# 바닐라 모델에서 손에 든 무기는 항상 '아래팔에 수직'으로 붙는다. 그래서 각도를 손으로 맞추지 않고
+# "위팔이 가리킬 방향 u + 칼끝이 가리킬 방향 v" 로 자세를 적고 armsolve 가 (pitch, yaw, roll) 을 푼다 (몸 기준 x=오른쪽, y=위, z=뒤).
+#
+# ABA 무기 영상(검·대검·창)과 에픽파이트 영상을 프레임 단위로 본 결과:
+#  1) 팔을 '어깨 높이까지 쭉 뻗어' 몸 앞을 반원 넘게 쓸어 넘긴다. 팔을 늘어뜨린 채 손목만 도는 게 아님 → 칼끝이 그리는 호가 크다
+#  2) 상체가 40~60° 감겼다가 반대로 40~60° 풀린다 (합 90~110°). 발은 매 타 반 발씩 내딛고 무릎을 굽혀 자세가 낮다
+#  3) 휘두르기는 2틱: 감긴 자세(칼끝이 등 뒤) → 1틱 만에 칼끝이 앞을 지나며 → 판정 틱에 끝까지. 칼끝이 손보다 늦게 따라옴(채찍)
+#  4) 검은 친 자세로 멈춰 버팀, 대검은 친 뒤에도 무게에 끌려 몸이 같은 방향으로 더 돌아감, 창은 봉처럼 비스듬히 휘두르다 마지막에 찌름
+#  5) 기본 자세: 검은 오른 허리 아래로 칼끝이 앞 아래, 대검은 날을 앞 오른쪽 땅에 끌듯, 창은 허리에서 창끝이 앞
+import armsolve as S
 
 
-# ── 에픽파이트 무기 공격을 관절 위치로 재 본 결과 (검 auto1·도끼 auto1 순운동학) ──
-#  1) 예비 동작은 '천천히 끌어올리는' 게 아니라 첫 1틱에 이미 감긴 자세다. 그 뒤 판정 전까지는 거의 멈춘 채 긴장(조금만 더 감음)
-#  2) 휘두르기는 1~2틱. 손이 먼저 가고 칼끝이 뒤따라오다(손목이 늦게 따라옴) 마지막에 확 따라잡는다 → 채찍 같은 속도감
-#     → 우리는 손목이 없어서, 감을 때 팔꿈치를 접어 칼끝을 뒤로 남겨 두고, 칠 때 팔꿈치를 펴서 칼끝이 따라오게 만든다
-#  3) 검(가벼움): 친 자세로 딱 멈춰서 오래 버팀. 도끼·대검(무거움): 친 뒤에도 무게에 끌려 몸이 같은 방향으로 계속 돌아감(관성)
-#  4) 몸통 비틀기 20~30°가 일을 하고, 발은 거의 그대로. 마무리 타만 크게 내딛음
-def wswing(base, t_hit, end, coil, hit, follow, hold_to, coil2=None, legs_coil=None, legs_hit=None):
-    keys = P(0, LIN, **base) + P(1, EX, **coil)
-    keys += P(t_hit - 1, LIN, **(coil2 or coil))
-    keys += P(t_hit, EX, **hit) + P(hold_to, OS, **follow) + P(end, IO, **base)
-    z = dict(rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
-    if legs_coil or legs_hit:
-        keys += P(0, LIN, **z)
-        if legs_coil: keys += P(1, EX, **legs_coil) + P(t_hit - 1, LIN, **legs_coil)
-        if legs_hit: keys += P(t_hit, EX, **legs_hit) + P(hold_to, OS, **legs_hit)
-        keys += P(end, IO, **z)
+class D:
+    """방향으로 적은 팔 자세 (u: 위팔 방향, v: 칼끝 방향, bend: 팔꿈치, z: 앞뒤 위치)"""
+    def __init__(self, u, v, bend=0, z=None): self.u, self.v, self.bend, self.z = u, v, bend, z
+
+
+def seq(frames):
+    """frames = [(tick, easing, {부위: 튜플 또는 D})]. D 는 풀어서, 같은 부위의 앞 키와 가장 가까운 오일러 각으로 이어 붙임"""
+    keys, last = [], {}
+    for t, ease, parts in frames:
+        out = {}
+        for part, v in parts.items():
+            if isinstance(v, D):
+                tup = S.arm(v.u, v.v, v.bend, v.z)
+                tup = S.near(tup, last.get(part))
+            else:
+                tup = v
+            last[part] = tup
+            out[part] = tup
+        keys += P(t, ease, **out)
     return keys
 
-LUNGE_R2 = dict(rightLeg=(-30, 0, 0, 26), leftLeg=(20, 0, 0, 8))
-LUNGE_L2 = dict(leftLeg=(-30, 0, 0, 26), rightLeg=(20, 0, 0, 8))
-SET = dict(rightLeg=(8, 0, 0, 16), leftLeg=(-12, 0, 0, 16))           # 무릎을 살짝 굽혀 버팀
 
-# 검 (판정 4틱, 친 자세로 4틱 버팀)
-anim("sw_1", 11, wswing(SWORD_STANCE, 4, 11,  # 오른쪽 → 왼쪽 가로 베기
-    coil=dict(rightArm=(-45, 70, 25, -60), body=(0, -36, 0), head=(0, -24, 0)),
-    coil2=dict(rightArm=(-46, 78, 28, -66), body=(0, -40, 0)),
-    hit=dict(rightArm=(-24, -50, -12, -4), leftArm=(-30, 30, -20, -70), body=(-6, 26, 0), head=(-4, 10, 0)),
-    follow=dict(rightArm=(-22, -60, -14, -4), body=(-6, 30, 0)), hold_to=8, legs_coil=SET, legs_hit=LUNGE_L2))
-anim("sw_2", 11, wswing(SWORD_STANCE, 4, 11,  # 왼쪽 → 오른쪽 되돌려 베기
-    coil=dict(rightArm=(-55, -70, -25, -70), body=(0, 30, 0), head=(0, 12, 0)),
-    coil2=dict(rightArm=(-56, -76, -28, -74), body=(0, 34, 0)),
-    hit=dict(rightArm=(-24, 55, 14, -4), leftArm=(-40, 10, -10, -80), body=(-6, -36, 0), head=(-4, -22, 0)),
-    follow=dict(rightArm=(-22, 64, 16, -4), body=(-6, -40, 0)), hold_to=8, legs_coil=SET, legs_hit=LUNGE_R2))
-anim("sw_3", 11, wswing(SWORD_STANCE, 4, 11,  # 머리 위 → 앞 아래로 내려베기
-    coil=dict(rightArm=(-168, 15, 10, -55), leftArm=(-150, -10, -10, -60), body=(8, -14, 0), head=(-10, -14, 0)),
-    coil2=dict(rightArm=(-176, 15, 10, -60), body=(10, -16, 0)),
-    hit=dict(rightArm=(-22, -5, 0, -4), leftArm=(-30, 20, -10, -40), body=(-20, 8, 0), head=(-8, 8, 0)),
-    follow=dict(rightArm=(-14, -5, 0, -4), body=(-22, 10, 0)), hold_to=8, legs_coil=SET, legs_hit=LUNGE_R2))
-anim("sw_4", 11, wswing(SWORD_STANCE, 4, 11,  # 아래 → 위로 올려베기
-    coil=dict(rightArm=(15, 25, 15, -30), body=(-12, -26, 0), head=(-4, -26, 0)),
-    hit=dict(rightArm=(-152, -10, -5, -8), leftArm=(-40, 25, -20, -60), body=(8, 16, 0), head=(-18, 16, 0)),
-    follow=dict(rightArm=(-164, -12, -5, -8), body=(10, 18, 0)), hold_to=8,
-    legs_coil=dict(rightLeg=(12, 0, 0, 34), leftLeg=(-22, 0, 0, 34)), legs_hit=dict(rightLeg=(6, 0, 0, 4), leftLeg=(-14, 0, 0, 6))))
-anim("sw_5", 18, wswing(SWORD_STANCE, 5, 18,  # 마무리: 두 손으로 머리 위까지 → 내딛으며 내리쳐 날려보냄
-    coil=dict(rightArm=(-178, 10, 0, -55), leftArm=(-172, -10, 0, -55), body=(12, -28, 0), head=(-14, -28, 0)),
-    hit=dict(rightArm=(-18, 0, 0, 0), leftArm=(-22, 10, 0, -10), body=(-28, 14, 0), head=(-10, 14, 0)),
-    follow=dict(rightArm=(-8, 0, 0, 0), body=(-30, 16, 0)), hold_to=13,
-    legs_coil=dict(rightLeg=(14, 0, 0, 30), leftLeg=(-14, 0, 0, 20)), legs_hit=dict(rightLeg=(30, 0, 0, 10), leftLeg=(-46, 0, 0, 44))))
-anim("sw_rise", 12, wswing(SWORD_STANCE, 4, 12,
-    coil=dict(rightArm=(18, 20, 15, -35), body=(-16, -24, 0), head=(-6, -24, 0)),
-    hit=dict(rightArm=(-175, -5, 0, -5), leftArm=(-20, 20, -30, -40), body=(14, 14, 0), head=(-28, 14, 0)),
-    follow=dict(rightArm=(-182, -5, 0, -5), body=(16, 14, 0)), hold_to=9,
-    legs_coil=dict(rightLeg=(14, 0, 0, 38), leftLeg=(-26, 0, 0, 38)), legs_hit=dict(rightLeg=(10, 0, 0, 4), leftLeg=(-20, 0, 0, 8))))
+def cut(base, t_hit, end, coil, mid, hit, follow, hold_to, coil2=None):
+    """감기(1틱 만에) → 버팀 → 휘두름 중간(판정 1틱 전) → 판정(끝까지) → 따라감(hold_to) → 자세로.
+    각 단계는 부위 dict. 다리는 base 에 없으면 0 에서 시작해 0 으로 돌아감"""
+    z = dict(rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+    b0 = {**z, **base}
+    fr = [(0, LIN, b0), (1, EX, coil)]
+    if t_hit - 2 > 1: fr.append((t_hit - 2, LIN, coil2 or coil))
+    fr += [(t_hit - 1, IQ, mid), (t_hit, OQ, hit), (hold_to, OS, follow), (end, IO, b0)]
+    # 단계마다 빠진 부위는 앞 단계 값을 이어 씀 (팔·몸·다리 모두 같은 틱에 키가 있어야 보간이 같이 감)
+    full, cur = [], {}
+    for t, e, parts in fr:
+        cur = {**cur, **parts}
+        full.append((t, e, dict(cur)))
+    return seq(full)
 
-# 무기 다운 슬램 (ABA 대검 캐릭터 영상: 공중에서 무기를 머리 위로 세웠다가 그대로 아래로 쪼개듯 내리찍음)
-TUCK2 = dict(rightLeg=(-40, 0, 0, 70), leftLeg=(-30, 0, 0, 70))
+
+def legs(r, l):  # (pitch, roll, bend) 오른다리·왼다리. roll + = 바깥으로 벌림
+    return dict(rightLeg=(r[0], 0, r[1], r[2]), leftLeg=(l[0], 0, -l[1], l[2]))
+
+WIDE = legs((10, 6, 20), (-14, 6, 20))          # 무릎 굽혀 넓게 버팀
+STEP_L = legs((28, 6, 12), (-42, 4, 40))        # 왼발 깊게 내딛음
+STEP_R = legs((-40, 4, 38), (28, 6, 12))        # 오른발 깊게 내딛음
+CROUCH = legs((16, 8, 40), (-26, 8, 40))        # 낮게 웅크림
+RISE = legs((8, 2, 4), (-16, 2, 8))             # 솟구침
+
+# 기본 자세 (전투 모드 위층: 다리는 건드리지 않아 걷기는 그대로)
+SWORD_STANCE = dict(body=(0, -16, 0), head=(0, -16, 0),
+                    rightArm=D((0.3, -0.92, -0.2), (0.25, -0.35, -1), -28), leftArm=(-40, 14, -6, -70))
+SPEAR_STANCE = dict(body=(0, -28, 0), head=(0, -24, 0),
+                    rightArm=D((0.15, -0.97, 0.15), (0.05, 0.05, -1), -20, 1), leftArm=D((0.05, -0.55, -0.8), (0.1, 0.4, -1), -40, -1))
+GS_STANCE = dict(body=(0, -18, 0), head=(0, -18, 0),
+                 rightArm=D((0.35, -0.93, 0.05), (0.35, -0.45, -0.85), -12), leftArm=(-30, 16, -10, -50))
+# 자세 기본값은 seq 로 풀어 둠 (loop 숨쉬기용)
+def solved(st): return {k: (tuple(S.arm(v.u, v.v, v.bend, v.z)) if isinstance(v, D) else v) for k, v in st.items()}
+anim("stance_sword", 40, seq([(0, LIN, SWORD_STANCE), (20, IO, {"rightArm": D((0.3, -0.92, -0.25), (0.25, -0.3, -1), -32)}), (40, IO, SWORD_STANCE)]), loop=True)
+anim("stance_spear", 40, seq([(0, LIN, SPEAR_STANCE), (20, IO, {"body": (0, -30, 0)}), (40, IO, SPEAR_STANCE)]), loop=True)
+anim("stance_gs", 40, seq([(0, LIN, GS_STANCE), (20, IO, {"rightArm": D((0.35, -0.93, 0.0), (0.35, -0.5, -0.8), -14)}), (40, IO, GS_STANCE)]), loop=True)
+
+L_BAL = (-10, 30, -40, -40)     # 왼팔: 반대쪽으로 벌려 균형
+L_GUARD = (-50, 20, -6, -80)
+
+# ── 검 (판정 4틱, 친 자세로 버팀) ──
+anim("sw_1", 11, cut(SWORD_STANCE, 4, 11,  # 오른쪽 뒤 → 왼쪽 앞까지 어깨 높이 가로 베기
+    coil=dict(body=(0, -44, 0), head=(0, -28, 0), rightArm=D((0.6, 0.3, 0.75), (0.75, 0.15, -0.6), -30), leftArm=(-70, 40, -10, -80), **WIDE),
+    coil2=dict(body=(0, -48, 0), rightArm=D((0.58, 0.32, 0.78), (0.8, 0.15, -0.55), -34)),
+    mid=dict(body=(-4, -14, 0), head=(-4, -14, 0), rightArm=D((0.7, 0.12, -0.7), (-0.7, 0.12, -0.7), -6)),
+    hit=dict(body=(-8, 26, 0), head=(-6, 12, 0), rightArm=D((-0.35, 0.1, -0.93), (-0.93, 0.15, 0.35)), leftArm=L_BAL, **STEP_L),
+    follow=dict(body=(-8, 32, 0), rightArm=D((-0.7, 0.1, -0.7), (-0.7, 0.25, 0.65))), hold_to=8))
+anim("sw_2", 11, cut(SWORD_STANCE, 4, 11,  # 되돌려 베기: 팔을 가슴 앞 왼쪽으로 감았다가 오른쪽 끝까지
+    coil=dict(body=(0, 20, 0), head=(0, 12, 0), rightArm=D((-0.75, 0.2, -0.4), (-0.4, 0.2, 0.75), -45), leftArm=(-20, 10, -20, -60), **WIDE),
+    coil2=dict(body=(0, 24, 0), rightArm=D((-0.77, 0.22, -0.36), (-0.36, 0.2, 0.8), -50)),
+    mid=dict(body=(-4, 4, 0), head=(-4, 4, 0), rightArm=D((-0.6, 0.12, -0.8), (0.8, 0.12, -0.6), -6)),
+    hit=dict(body=(-8, -28, 0), head=(-6, -16, 0), rightArm=D((0.35, 0.1, -0.93), (0.93, 0.15, 0.35)), leftArm=(-40, 50, -30, -70), **STEP_R),
+    follow=dict(body=(-8, -34, 0), rightArm=D((0.7, 0.1, -0.7), (0.7, 0.25, 0.65))), hold_to=8))
+anim("sw_3", 11, cut(SWORD_STANCE, 4, 11,  # 오른쪽 위 → 왼쪽 아래 사선 내려베기
+    coil=dict(body=(10, -34, 0), head=(-8, -22, 0), rightArm=D((0.4, 0.88, 0.25), (0.15, -0.2, 1), -45), leftArm=(-110, 30, -20, -60), **WIDE),
+    coil2=dict(body=(12, -38, 0), rightArm=D((0.38, 0.9, 0.22), (0.1, -0.3, 1), -50)),
+    mid=dict(body=(0, -6, 0), head=(-4, -6, 0), rightArm=D((0.3, 0.45, -0.84), (0.25, 0.85, 0.4), -10)),
+    hit=dict(body=(-24, 22, 0), head=(-10, 10, 0), rightArm=D((-0.35, -0.85, -0.4), (-0.5, -0.45, -0.75), -10), leftArm=L_BAL, **STEP_R),
+    follow=dict(body=(-26, 26, 0), rightArm=D((-0.4, -0.9, -0.15), (-0.45, -0.5, -0.75), -6)), hold_to=8))
+anim("sw_4", 11, cut(SWORD_STANCE, 4, 11,  # 왼쪽 아래 → 오른쪽 위 사선 올려베기
+    coil=dict(body=(-14, 32, 0), head=(-6, 16, 0), rightArm=D((-0.45, -0.85, -0.25), (-0.45, -0.3, 0.85), -30), leftArm=(-30, 10, -10, -90), **CROUCH),
+    mid=dict(body=(-6, 4, 0), head=(-6, 4, 0), rightArm=D((0.05, -0.45, -0.9), (-0.15, -0.9, 0.45), -10)),
+    hit=dict(body=(10, -24, 0), head=(-20, -12, 0), rightArm=D((0.45, 0.8, -0.4), (0.75, 0.6, 0.1)), leftArm=(-10, 20, -50, -30), **RISE),
+    follow=dict(body=(12, -28, 0), rightArm=D((0.42, 0.9, -0.15), (0.8, 0.55, 0.2))), hold_to=8))
+anim("sw_5", 18, cut(SWORD_STANCE, 5, 18,  # 마무리: 두 손으로 머리 위 → 크게 내딛으며 내리쳐 날려보냄
+    coil=dict(body=(14, -24, 0), head=(-16, -20, 0), rightArm=D((0.15, 0.95, 0.25), (0.05, -0.1, 1), -50),
+              leftArm=D((-0.1, 0.95, 0.25), (0.05, -0.1, 1), -50), **legs((14, 6, 30), (-14, 6, 22))),
+    coil2=dict(body=(16, -26, 0), rightArm=D((0.15, 0.95, 0.3), (0.05, -0.2, 1), -55), leftArm=D((-0.1, 0.95, 0.3), (0.05, -0.2, 1), -55)),
+    mid=dict(body=(-6, -8, 0), head=(-8, -8, 0), rightArm=D((0.1, 0.3, -0.95), (0, 0.95, 0.3), -10), leftArm=D((-0.05, 0.3, -0.95), (0, 0.95, 0.3), -10)),
+    hit=dict(body=(-32, 12, 0), head=(-12, 12, 0), rightArm=D((0.1, -0.8, -0.6), (0, -0.4, -0.95), -6), leftArm=D((-0.05, -0.8, -0.6), (0, -0.4, -0.95), -10),
+             **legs((32, 6, 10), (-50, 6, 48))),
+    follow=dict(body=(-34, 14, 0), rightArm=D((0.1, -0.88, -0.45), (0, -0.5, -0.9), -6)), hold_to=13))
+anim("sw_rise", 12, cut(SWORD_STANCE, 4, 12,  # 올려베기 (띄우기): 웅크렸다가 칼을 하늘로 쳐올림
+    coil=dict(body=(-18, 20, 0), head=(-6, 10, 0), rightArm=D((0.1, -0.95, 0.3), (0.05, -0.2, 1), -20), leftArm=(-40, 20, -10, -80), **CROUCH),
+    mid=dict(body=(-4, 6, 0), rightArm=D((0.1, -0.2, -0.98), (0, -0.98, 0.2), -6)),
+    hit=dict(body=(14, -10, 0), head=(-30, -10, 0), rightArm=D((0.1, 0.97, -0.2), (0.05, 0.2, 0.98)), leftArm=(-10, 0, -60, -30), **RISE),
+    follow=dict(body=(16, -12, 0), rightArm=D((0.1, 0.98, 0.05), (0.05, -0.05, 1))), hold_to=9))
+
+# 무기 다운 슬램 (ABA: 공중에서 무기를 머리 위로 세웠다가 그대로 아래로 쪼개듯 내리찍음)
+TUCK2 = legs((-40, 4, 70), (-30, 4, 70))
 def wslam(base):
-    return wswing(base, 4, 14,
-        coil=dict(rightArm=(-176, 8, 0, -45), leftArm=(-176, 20, 0, -45), body=(12, 0, 0), head=(-18, 0, 0)),
-        coil2=dict(rightArm=(-184, 8, 0, -50), leftArm=(-184, 20, 0, -50), body=(14, 0, 0)),
-        hit=dict(rightArm=(-18, 4, 0, -4), leftArm=(-22, 20, 0, -6), body=(-36, 0, 0), head=(18, 0, 0)),
-        follow=dict(rightArm=(-10, 4, 0, -4), leftArm=(-14, 20, 0, -6), body=(-40, 0, 0)), hold_to=10,
-        legs_coil=TUCK2, legs_hit=dict(rightLeg=(10, 0, 0, 40), leftLeg=(-10, 0, 0, 30)))
+    return cut(base, 4, 14,
+        coil=dict(body=(14, 0, 0), head=(-18, 0, 0), rightArm=D((0.12, 0.97, 0.15), (0.05, -0.15, 1), -45),
+                  leftArm=D((-0.12, 0.97, 0.15), (0.05, -0.15, 1), -45), **TUCK2),
+        coil2=dict(body=(16, 0, 0), rightArm=D((0.12, 0.96, 0.25), (0.05, -0.3, 1), -50), leftArm=D((-0.12, 0.96, 0.25), (0.05, -0.3, 1), -50)),
+        mid=dict(body=(-10, 0, 0), head=(-6, 0, 0), rightArm=D((0.1, 0.3, -0.95), (0, 0.95, 0.3), -10), leftArm=D((-0.1, 0.3, -0.95), (0, 0.95, 0.3), -10)),
+        hit=dict(body=(-40, 0, 0), head=(16, 0, 0), rightArm=D((0.1, -0.75, -0.65), (0, -0.55, -0.85), -4), leftArm=D((-0.1, -0.75, -0.65), (0, -0.55, -0.85), -6),
+                 **legs((10, 6, 40), (-10, 6, 30))),
+        follow=dict(body=(-44, 0, 0), rightArm=D((0.1, -0.85, -0.5), (0, -0.6, -0.8), -4)), hold_to=10)
 anim("sw_slam", 14, wslam(SWORD_STANCE))
 anim("sp_slam", 14, wslam(SPEAR_STANCE))
 anim("gs_slam", 14, wslam(GS_STANCE))
 
-# 창: 팔을 늘어뜨린 채(창끝이 앞) 첫 틱에 뒤로 당겨 두고 → 판정 틱에 두 팔을 앞으로 쭉 밀며 깊게 내딛음
-def thrust(t_hit, end, legs, hold_to, push=-9):
-    return wswing(SPEAR_STANCE, t_hit, end,
-        coil=dict(rightArm=(-4, 4, 6, -2, None, 5), leftArm=(-40, 26, -4, -20, None, 2), body=(4, -34, 0), head=(0, -30, 0)),
-        hit=dict(rightArm=(-22, 2, 0, 0, None, push), leftArm=(-58, 18, 0, -6, None, push - 2), body=(-16, -10, 0), head=(-10, -10, 0)),
-        follow=dict(rightArm=(-22, 2, 0, 0, None, push - 1), body=(-17, -10, 0)), hold_to=hold_to, legs_coil=SET, legs_hit=legs)
-anim("sp_1", 11, thrust(4, 11, LUNGE_L2, 8))
-anim("sp_2", 11, thrust(4, 11, LUNGE_L2, 8, push=-8))
-anim("sp_3", 11, thrust(4, 11, dict(leftLeg=(-38, 0, 0, 34), rightLeg=(26, 0, 0, 8)), 8))
-anim("sp_4", 17, thrust(5, 17, dict(leftLeg=(-46, 0, 0, 42), rightLeg=(30, 0, 0, 10)), 12, push=-11))
-anim("sp_thrust", 13, thrust(5, 13, dict(leftLeg=(-50, 0, 0, 46), rightLeg=(34, 0, 0, 10)), 10, push=-12))
+# ── 창 (판정 4틱): ABA 처럼 봉을 휘두르듯 비스듬히 쳐 내리고·올리고, 3타·4타는 깊게 찌름 ──
+def two(r_u, r_v, r_b=-10, l_u=None, l_v=None, l_b=-30):
+    """두 손으로 쥔 긴 무기: 왼손은 오른손 앞쪽 자루를 잡음 (왼팔이 오른팔과 비슷한 방향, 조금 더 앞)"""
+    return dict(rightArm=D(r_u, r_v, r_b), leftArm=D(l_u or (r_u[0] - 0.35, r_u[1], r_u[2] - 0.3), l_v or r_v, l_b))
+anim("sp_1", 11, cut(SPEAR_STANCE, 4, 11,  # 오른쪽 위 → 왼쪽 아래로 비스듬히 후려침
+    coil=dict(body=(4, -50, 0), head=(0, -30, 0), **two((0.7, 0.55, 0.3), (0.2, 0.3, 1), -40), **WIDE),
+    mid=dict(body=(-4, -14, 0), head=(-4, -14, 0), **two((0.5, 0.35, -0.8), (-0.3, 0.8, 0.5), -15)),
+    hit=dict(body=(-14, 36, 0), head=(-8, 14, 0), **two((-0.3, -0.6, -0.75), (-0.7, -0.4, -0.55), -10), **STEP_L),
+    follow=dict(body=(-14, 42, 0), **two((-0.4, -0.75, -0.5), (-0.75, -0.45, -0.45), -8)), hold_to=8))
+anim("sp_2", 11, cut(SPEAR_STANCE, 4, 11,  # 왼쪽 아래 → 오른쪽 위로 걷어 올림
+    coil=dict(body=(-10, 28, 0), head=(-4, 14, 0), **two((-0.4, -0.85, -0.3), (-0.5, -0.4, 0.75), -25), **CROUCH),
+    mid=dict(body=(-6, 0, 0), **two((0.05, -0.4, -0.92), (-0.1, -0.9, 0.4), -10)),
+    hit=dict(body=(8, -24, 0), head=(-16, -12, 0), **two((0.3, 0.5, -0.8), (0.9, 0.4, 0.1), -6), **RISE),
+    follow=dict(body=(10, -28, 0), **two((0.4, 0.6, -0.7), (0.9, 0.4, 0.2), -6)), hold_to=8))
+RP_BACK = D((0.5, -0.85, 0.15), (-0.3, 0, -0.95), -10, 3)      # 오른손: 창을 허리 뒤로 당김 (창끝은 앞)
+LP_BACK = D((-0.45, -0.6, -0.65), (0, 1, 0), -30)
+RP_OUT = lambda z: D((0.35, -0.2, -0.9), (-0.9, 0, -0.35), -4, z)   # 오른손: 앞으로 쭉 (몸을 옆으로 돌려 창끝이 정면)
+LP_OUT = D((-0.6, -0.1, -0.8), (0, 1, 0), -6)
+def thrust(t_hit, end, lg, hold_to, push=-3):
+    """찌르기 (ABA 창): 몸을 옆으로 돌려 창을 허리 뒤로 당겼다가 → 왼어깨를 앞에 두고 두 팔을 앞으로 쭉 뻗으며 깊게 내딛음"""
+    return cut(SPEAR_STANCE, t_hit, end,
+        coil=dict(body=(4, -58, 0), head=(0, -50, 0), rightArm=RP_BACK, leftArm=LP_BACK, **WIDE),
+        mid=dict(body=(-6, -52, 0), rightArm=D((0.5, -0.45, -0.3), (-0.6, -0.05, -0.8), -12, 0), leftArm=D((-0.55, -0.35, -0.75), (0, 1, 0), -15)),
+        hit=dict(body=(-16, -50, 0), head=(-10, -46, 0), rightArm=RP_OUT(push), leftArm=LP_OUT, **lg),
+        follow=dict(body=(-17, -50, 0), rightArm=RP_OUT(push - 1)), hold_to=hold_to)
+anim("sp_3", 11, thrust(4, 11, STEP_L, 8))
+anim("sp_4", 17, thrust(5, 17, legs((32, 6, 10), (-50, 6, 46)), 12, push=-4))
+anim("sp_thrust", 13, thrust(5, 13, legs((36, 6, 10), (-54, 6, 50)), 10, push=-5))
 anim("sp_rapid", 4,  # 연속 찌르기 (꾹 누르는 동안 4틱마다 반복 재생)
-    P(0, LIN, rightArm=(-4, 4, 6, -2, None, 4), leftArm=(-40, 26, -4, -20, None, 2), body=(0, -30, 0), head=(0, -26, 0))
-    + P(1, EX, rightArm=(-22, 2, 0, 0, None, -9), leftArm=(-58, 18, 0, -6, None, -11), body=(-14, -12, 0), head=(-10, -12, 0))
-    + P(4, IO, rightArm=(-4, 4, 6, -2, None, 4), leftArm=(-40, 26, -4, -20, None, 2), body=(0, -30, 0), head=(0, -26, 0)), stop=5)
-anim("sp_sweep", 15, wswing(SPEAR_STANCE, 5, 15,  # 창을 낮게 들고 크게 휩쓸기
-    coil=dict(rightArm=(-30, 70, 20, -5), leftArm=(-40, 60, 0, -20), body=(0, -55, 0), head=(0, -30, 0)),
-    hit=dict(rightArm=(-30, -60, -20, -5), leftArm=(-40, -40, 0, -20), body=(-10, 45, 0), head=(-6, 20, 0)),
-    follow=dict(rightArm=(-28, -75, -24, -5), body=(-10, 60, 0)), hold_to=11, legs_coil=SET, legs_hit=LUNGE_R2))
+    seq([(0, LIN, dict(body=(0, -56, 0), head=(0, -50, 0), rightArm=RP_BACK, leftArm=LP_BACK)),
+         (1, EX, dict(body=(-14, -50, 0), head=(-10, -46, 0), rightArm=RP_OUT(-4), leftArm=LP_OUT)),
+         (4, IO, dict(body=(0, -56, 0), head=(0, -50, 0), rightArm=RP_BACK, leftArm=LP_BACK))]), stop=5)
+anim("sp_sweep", 15, cut(SPEAR_STANCE, 5, 15,  # 창을 낮게 들고 몸 전체로 크게 휩쓸기
+    coil=dict(body=(0, -60, 0), head=(0, -32, 0), **two((0.85, -0.2, 0.45), (0.25, -0.1, 1), -20), **WIDE),
+    mid=dict(body=(-6, -16, 0), **two((0.6, -0.2, -0.75), (-0.6, -0.1, -0.8), -10)),
+    hit=dict(body=(-10, 48, 0), head=(-6, 20, 0), **two((-0.75, -0.25, -0.6), (-0.6, -0.1, 0.8), -6), **STEP_R),
+    follow=dict(body=(-10, 64, 0), **two((-0.9, -0.2, -0.35), (-0.35, -0.1, 0.93), -6)), hold_to=11))
 
-# 대검·도끼 (판정 7틱): 첫 틱에 날을 등 뒤로 넘겨 두고 6틱 동안 버티다 → 온몸으로 내리침 → 무게에 끌려 계속 숙여짐(관성)
-def heavy(t_hit, end, legs, hold_to, low=-15):
-    return wswing(GS_STANCE, t_hit, end,
-        coil=dict(rightArm=(-176, 6, 0, -45), leftArm=(-176, 20, 0, -45), body=(12, -24, 0), head=(-14, -24, 0)),
-        coil2=dict(rightArm=(-184, 6, 0, -50), leftArm=(-184, 20, 0, -50), body=(14, -26, 0)),
-        hit=dict(rightArm=(low, 4, 0, -5), leftArm=(low - 4, 22, 0, -8), body=(-26, 4, 0), head=(-14, 4, 0)),
-        follow=dict(rightArm=(low + 10, 4, 0, -4), leftArm=(low + 6, 22, 0, -6), body=(-34, 6, 0), head=(-10, 6, 0)),
-        hold_to=hold_to, legs_coil=SET, legs_hit=legs)
-anim("gs_1", 20, heavy(7, 20, LUNGE_L2, 15))
-anim("gs_2", 20, wswing(GS_STANCE, 7, 20,  # 옆으로 크게 후리기 → 관성으로 몸이 더 돌아감
-    coil=dict(rightArm=(-50, 80, 20, -50), leftArm=(-55, 70, 0, -50), body=(0, -60, 0), head=(0, -30, 0)),
-    hit=dict(rightArm=(-40, -60, -20, -5), leftArm=(-45, -45, 0, -10), body=(-10, 40, 0), head=(-6, 16, 0)),
-    follow=dict(rightArm=(-34, -85, -26, -5), leftArm=(-40, -70, 0, -10), body=(-12, 75, 0), head=(-6, 28, 0)), hold_to=15,
-    legs_coil=SET, legs_hit=LUNGE_R2))
-anim("gs_3", 24, heavy(8, 24, dict(rightLeg=(32, 0, 0, 10), leftLeg=(-48, 0, 0, 46)), 18, low=-5))
-anim("gs_cleave", 26, heavy(10, 26, dict(rightLeg=(36, 0, 0, 12), leftLeg=(-52, 0, 0, 52)), 20, low=0))
-anim("gs_whirl", 8,  # 휠윈드 (꾹 누르는 동안 반복): 대검을 옆으로 뻗고 몸 전체가 한 바퀴
-    P(0, LIN, body=(-6, 0, 0), rightArm=(-22, -10, 0, -4), leftArm=(-26, 20, 0, -6), head=(0, 0, 0),
-      rightLeg=(8, 0, 0, 16), leftLeg=(-12, 0, 0, 16))
-    + P(7, LIN, body=(-6, -360, 0)) + P(8, CONST, body=(-6, 0, 0)), loop=True, ret=0)
+# ── 대검·도끼 (판정 7틱): ABA 대검처럼 한 손으로 무거운 날을 크게 돌려 후림, 친 뒤 무게에 끌려 몸이 더 돎 ──
+anim("gs_1", 20, cut(GS_STANCE, 7, 20,  # 오른쪽 어깨 위로 들어 → 왼쪽 아래까지 사선으로 내려 후림
+    coil=dict(body=(10, -46, 0), head=(-6, -26, 0), rightArm=D((0.55, 0.8, 0.25), (0.2, -0.15, 1), -45), leftArm=(-70, 40, -10, -80), **WIDE),
+    coil2=dict(body=(12, -52, 0), rightArm=D((0.5, 0.82, 0.3), (0.15, -0.3, 1), -50)),
+    mid=dict(body=(-2, -14, 0), head=(-4, -10, 0), rightArm=D((0.45, 0.4, -0.8), (0.2, 0.85, 0.45), -10)),
+    hit=dict(body=(-22, 30, 0), head=(-10, 10, 0), rightArm=D((-0.4, -0.8, -0.45), (-0.55, -0.4, -0.75), -6), leftArm=L_BAL, **STEP_L),
+    follow=dict(body=(-30, 50, 0), head=(-10, 22, 0), rightArm=D((-0.55, -0.82, -0.15), (-0.6, -0.5, -0.6), -4)), hold_to=15))
+anim("gs_2", 20, cut(GS_STANCE, 7, 20,  # 왼쪽 아래에서 몸 전체로 가로 후리기 → 관성으로 더 돎
+    coil=dict(body=(0, 30, 0), head=(0, 16, 0), rightArm=D((-0.6, -0.45, -0.6), (-0.8, 0.2, 0.1), -35), leftArm=(-20, 10, -20, -60), **WIDE),
+    coil2=dict(body=(0, 34, 0), rightArm=D((-0.62, -0.42, -0.6), (-0.8, 0.2, 0.2), -40)),
+    mid=dict(body=(-6, 6, 0), rightArm=D((-0.6, -0.05, -0.8), (0.8, 0.05, -0.6), -8)),
+    hit=dict(body=(-12, -22, 0), head=(-6, -12, 0), rightArm=D((0.05, 0.05, -1), (1, 0.1, 0.05)), leftArm=(-30, 50, -40, -60), **STEP_R),
+    follow=dict(body=(-14, -58, 0), head=(-6, -28, 0), rightArm=D((0.7, 0.0, -0.7), (0.7, 0.1, 0.7))), hold_to=15))
+anim("gs_3", 24, cut(GS_STANCE, 8, 24,  # 마무리: 두 손으로 머리 위 → 크게 내딛으며 땅까지 내리찍음
+    coil=dict(body=(14, -24, 0), head=(-16, -20, 0), rightArm=D((0.15, 0.95, 0.25), (0.05, -0.1, 1), -50),
+              leftArm=D((-0.1, 0.95, 0.25), (0.05, -0.1, 1), -50), **legs((14, 6, 30), (-14, 6, 22))),
+    coil2=dict(body=(18, -26, 0), rightArm=D((0.15, 0.93, 0.35), (0.05, -0.3, 1), -55), leftArm=D((-0.1, 0.93, 0.35), (0.05, -0.3, 1), -55)),
+    mid=dict(body=(-8, -8, 0), head=(-8, -8, 0), rightArm=D((0.1, 0.3, -0.95), (0, 0.95, 0.3), -10), leftArm=D((-0.05, 0.3, -0.95), (0, 0.95, 0.3), -10)),
+    hit=dict(body=(-36, 8, 0), head=(-12, 8, 0), rightArm=D((0.1, -0.8, -0.6), (0, -0.45, -0.9), -4), leftArm=D((-0.05, -0.8, -0.6), (0, -0.45, -0.9), -8),
+             **legs((34, 6, 12), (-54, 6, 52))),
+    follow=dict(body=(-44, 10, 0), head=(-10, 10, 0), rightArm=D((0.1, -0.9, -0.4), (0, -0.65, -0.75), -4)), hold_to=18))
+anim("gs_cleave", 26, cut(GS_STANCE, 10, 26,  # 가르기 (가드 브레이크): 등 뒤까지 크게 젖혔다가 쪼갬
+    coil=dict(body=(20, -30, 0), head=(-20, -24, 0), rightArm=D((0.15, 0.9, 0.4), (0.05, -0.4, 1), -55),
+              leftArm=D((-0.1, 0.9, 0.4), (0.05, -0.4, 1), -55), **legs((16, 6, 34), (-16, 6, 26))),
+    coil2=dict(body=(24, -32, 0), rightArm=D((0.15, 0.85, 0.5), (0.05, -0.5, 0.9), -60), leftArm=D((-0.1, 0.85, 0.5), (0.05, -0.5, 0.9), -60)),
+    mid=dict(body=(-8, -8, 0), head=(-8, -8, 0), rightArm=D((0.1, 0.3, -0.95), (0, 0.95, 0.3), -10), leftArm=D((-0.05, 0.3, -0.95), (0, 0.95, 0.3), -10)),
+    hit=dict(body=(-40, 6, 0), head=(-12, 6, 0), rightArm=D((0.1, -0.8, -0.6), (0, -0.5, -0.87), -4), leftArm=D((-0.05, -0.8, -0.6), (0, -0.5, -0.87), -8),
+             **legs((36, 6, 12), (-58, 6, 56))),
+    follow=dict(body=(-46, 8, 0), rightArm=D((0.1, -0.9, -0.4), (0, -0.7, -0.7), -4)), hold_to=20))
+anim("gs_whirl", 8,  # 휠윈드 (꾹 누르는 동안 반복): 대검을 옆으로 쭉 뻗고 몸 전체가 한 바퀴
+    seq([(0, LIN, dict(body=(-8, 0, 0), head=(0, 0, 0), rightArm=D((0.95, 0.05, -0.2), (0.3, 0.1, -0.95)), leftArm=(-20, 0, -60, -30), **WIDE)),
+         (7, LIN, dict(body=(-8, -360, 0))), (8, CONST, dict(body=(-8, 0, 0)))]), loop=True, ret=0)
+
 
 # ── 연타 (각성기 ‘난무’): 2틱마다 좌우 번갈아 힘껏 지름. 몸이 크게 비틀리고 상체가 앞으로 쏠린 채 ──
 # 지르는 손은 1틱 만에 끝까지 뻗고(팔꿈치 완전히 폄), 반대 손은 그 틱에 허리까지 당김. 가끔 훅·어퍼를 섞어 '마구' 때리는 느낌

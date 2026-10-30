@@ -14,7 +14,9 @@ import net.minecraft.entity.decoration.Brightness;
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.AffineTransformation;
 import net.minecraft.util.math.Vec3d;
@@ -27,7 +29,7 @@ import org.joml.Vector3f;
  *  - 칼자국(스미어): 얇은 반투명 판(블록 디스플레이) 여러 장을 휘두른 호를 따라 차례로 띄웠다가 클라이언트 보간으로 얇아지며 사라짐
  *    (에픽파이트가 무기 끝을 따라 그리는 '트레일'과 같은 역할)
  *  - 충격파: 둥글게 놓은 판들이 보간으로 바깥으로 퍼지며 얇아짐
- *  - 타격 글자: 큰 글자(텍스트 디스플레이)가 툭 커졌다 줄어들며 사라짐 (쾅! 쿵!)
+ *  - 타격 글자: 코믹스 효과음(BAM! THUD!)을 만화 글꼴로, 검은 테두리 + 기울임으로 툭 튀어나오게
  *  - 화면 흔들림·번쩍임: 클라이언트에 보냄 (CombatHud, CameraMixin)
  *  - 히트스톱: 큰 타격 때 때린 쪽·맞은 쪽을 몇 틱 멈춤 (Combat.hitStop)
  */
@@ -40,25 +42,35 @@ public final class Fx {
 
     // ═════════ 칼자국 ═════════
 
+    /** vertical 이면 위→아래, 아니면 오른쪽→왼쪽 (reverse 면 반대) */
+    public static void slash(ServerWorld w, LivingEntity p, double radius, boolean vertical, boolean reverse, BlockState color) {
+        slash(w, p, radius, vertical ? 90 : 0, reverse, color);
+    }
+
     /**
-     * 내 앞쪽 반원 호를 따라 판을 깔아 칼자국을 그림. vertical 이면 위→아래, 아니면 오른쪽→왼쪽 (reverse 면 반대).
+     * 내 앞쪽 반원 호를 따라 판을 깔아 칼자국을 그림. tilt = 호가 기운 각 (0 = 가로 오른쪽→왼쪽, 90 = 세로 위→아래,
+     * 45 = 오른쪽 위 → 왼쪽 아래 사선). reverse 면 반대 방향으로 그어짐.
      * 판은 0.5틱 간격으로 순서대로 생겨서 휘두르는 방향이 보이고, 5틱 동안 얇아지며 사라진다.
      */
-    public static void slash(ServerWorld w, LivingEntity p, double radius, boolean vertical, boolean reverse, BlockState color) {
+    public static void slash(ServerWorld w, LivingEntity p, double radius, double tilt, boolean reverse, BlockState color) {
         Vec3d f = Combat.horizontal(p.getRotationVec(1f));
         Vec3d r = new Vec3d(-f.z, 0, f.x);
+        double t = Math.toRadians(tilt);
+        Vec3d side = r.multiply(Math.cos(t)).add(0, Math.sin(t), 0);   // 호가 시작하는 쪽
         Vec3d o = p.getPos().add(0, 1.15, 0);
-        int n = 9;
+        int n = 11;
         for (int i = 0; i < n; i++) {
             double u = (reverse ? n - 1 - i : i) / (double) (n - 1);
             double a = Math.PI * (u - 0.5) * 0.95;                      // -85° ~ +85°
-            Vec3d radial = vertical ? f.multiply(Math.cos(a)).add(0, -Math.sin(a), 0) : f.multiply(Math.cos(a)).add(r.multiply(-Math.sin(a)));
-            Vec3d tangent = vertical ? f.multiply(-Math.sin(a)).add(0, -Math.cos(a), 0) : f.multiply(-Math.sin(a)).add(r.multiply(-Math.cos(a)));
+            Vec3d radial = f.multiply(Math.cos(a)).add(side.multiply(-Math.sin(a)));
+            Vec3d tangent = f.multiply(-Math.sin(a)).add(side.multiply(-Math.cos(a)));
             Vec3d normal = radial.crossProduct(tangent).normalize();
+            // 가운데(정면)가 가장 넓고 양끝이 가늘게: 붓으로 그은 듯한 초승달
+            float width = (float) (0.2 + 0.45 * Math.cos(a));
             Vec3d at = o.add(radial.multiply(radius));
             double seg = Math.PI * radius / n * 1.15;
-            int delay = i / 2;
-            Tasks.later(delay, () -> plate(w, at, tangent, normal, radial, (float) seg, 0.05f, 0.42f, color, 5));
+            int delay = i / 3;
+            Tasks.later(delay, () -> plate(w, at, tangent, normal, radial, (float) seg, 0.05f, width, color, 5));
         }
     }
 
@@ -115,22 +127,51 @@ public final class Fx {
 
     // ═════════ 타격 글자 ═════════
 
-    /** 큰 글자가 툭 커졌다가 줄어들며 사라짐 */
-    public static void word(ServerWorld w, Vec3d pos, String s, Formatting color, float size) {
+    public static final Identifier COMIC_FONT = Identifier.of("bbc", "comic");
+    public static final int YELLOW = 0xFFE23B, ORANGE = 0xFF8A1E, RED_TXT = 0xFF3B30, WHITE_TXT = 0xFFFFFF, CYAN = 0x5CE1FF;
+    public static final String[] HIT_WORDS = {"BAM!", "POW!", "WHAM!", "SMASH!", "KRAK!"};
+    public static final String[] SLAM_WORDS = {"THUD!", "KRASH!", "BOOM!"};
+
+    /** 코믹스 효과음: pool 에서 하나 골라 word */
+    public static void comic(ServerWorld w, Vec3d pos, String[] pool, int color, float size) {
+        word(w, pos, pool[w.getRandom().nextInt(pool.length)], color, size);
+    }
+
+    /**
+     * 코믹스 효과음 글자 (영어, 만화 글꼴 Bangers). 검은 테두리 글자 위에 색 글자를 겹치고 ±14° 기울여 띄움.
+     * 툭 튀어나오듯 커졌다가(2틱) 살짝 줄고, 위로 떠오르며 사라짐.
+     */
+    public static void word(ServerWorld w, Vec3d pos, String s, int color, float size) {
+        float tilt = (float) Math.toRadians((w.getRandom().nextFloat() * 2 - 1) * 14);
+        Vec3d at = pos.add((w.getRandom().nextDouble() - 0.5) * 0.6, 0, (w.getRandom().nextDouble() - 0.5) * 0.6);
+        // 뒤: 검은 테두리 (조금 크고 오른쪽 아래로 밀림), 앞: 색 글자
+        text(w, at, s, 0x111111, size * 1.12f, tilt, new Vector3f(0.012f, -0.03f, -0.012f));
+        text(w, at, s, color, size, tilt, new Vector3f(0, 0, 0.012f));
+    }
+
+    private static void text(ServerWorld w, Vec3d pos, String s, int color, float size, float tilt, Vector3f off) {
         DisplayEntity.TextDisplayEntity d = EntityType.TEXT_DISPLAY.create(w);
         if (d == null) return;
         d.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0, 0);
         DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
-        ((TextDisplayAccessor) d).bbc$setText(Text.literal(s).formatted(color, Formatting.BOLD, Formatting.ITALIC));
-        ((TextDisplayAccessor) d).bbc$setBackground(0);
+        TextDisplayAccessor ta = (TextDisplayAccessor) d;
+        ta.bbc$setText(Text.literal(s).setStyle(Style.EMPTY.withFont(COMIC_FONT).withColor(color)));
+        ta.bbc$setBackground(0);
+        ta.bbc$setLineWidth(400);
+        ta.bbc$setDisplayFlags(DisplayEntity.TextDisplayEntity.SEE_THROUGH_FLAG);   // 벽·몸에 안 가려짐
         acc.bbc$setBillboardMode(DisplayEntity.BillboardMode.CENTER);
         acc.bbc$setBrightness(new Brightness(15, 15));
-        acc.bbc$setTransformation(scaleOnly(size * 0.4f));
+        acc.bbc$setTransformation(tilted(size * 0.3f, tilt, off, 0));
         w.spawnEntity(d);
-        Tasks.later(1, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(2); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(scaleOnly(size * 1.25f)); } });
-        Tasks.later(4, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(8); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(scaleOnly(size * 0.9f)); } });
-        Tasks.later(10, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(4); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(scaleOnly(0.01f)); } });
-        Tasks.later(15, d::discard);
+        Tasks.later(1, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(2); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(tilted(size * 1.35f, tilt, off, 0)); } });
+        Tasks.later(3, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(9); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(tilted(size * 1.1f, tilt * 1.2f, off, 0.25f)); } });
+        Tasks.later(12, () -> { if (!d.isRemoved()) { acc.bbc$setInterpolationDuration(4); acc.bbc$setStartInterpolation(0); acc.bbc$setTransformation(tilted(0.01f, tilt, off, 0.45f)); } });
+        Tasks.later(17, d::discard);
+    }
+
+    private static AffineTransformation tilted(float s, float tilt, Vector3f off, float rise) {
+        Vector3f t = new Vector3f(off).mul(s).add(0, rise, 0);
+        return new AffineTransformation(t, new Quaternionf().rotateZ(tilt), new Vector3f(s, s, s), new Quaternionf());
     }
 
     // ═════════ 화면 ═════════
