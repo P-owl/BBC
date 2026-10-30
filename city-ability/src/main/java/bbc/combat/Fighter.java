@@ -25,6 +25,8 @@ public final class Fighter {
     boolean knocked;      // 넉백으로 날아가는 중 (땅에 닿으면 다운)
     boolean slammed;      // 다운 슬램으로 꽂히는 중 (땅에 닿으면 튕김)
     long bounceUntil;     // 튕김 중: 기술이 들어가는 창
+    long tetherUntil;     // 띄운 직후 '정렬' 중: 가로 위치가 띄운 사람 앞에 묶임 (ABA 공중 콤보 초입 위치 보정)
+    LivingEntity tetherBy;
     int sentStun = -1;    // 클라이언트에 마지막으로 보낸 경직 (붉은 칠)
     boolean freshHit;     // 방금 맞음 → 클라이언트 움찔 다시 시작
     String dummyLast;

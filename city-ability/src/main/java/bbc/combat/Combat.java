@@ -428,6 +428,10 @@ public final class Combat {
         }
         setVel(t, vel);
 
+        // 띄우기 정렬: 크게 띄운 공격(올려치기·뛰어 띄우기·래더·튕김 띄우기)은 잠깐 상대를 내 앞에 묶음
+        if (h.kind() == Hit.Kind.AIR && h.lift() >= Tuning.TETHER_LIFT) { v.tetherUntil = now + Tuning.TETHER_TICKS; v.tetherBy = atk; }
+        else if (h.kind() == Hit.Kind.DOWN) v.tetherUntil = 0;   // 내리찍으면 풀림
+
         // 상태
         switch (h.kind()) {
             case HIT -> setState(v, Fighter.State.HITSTUN, stun);
@@ -497,6 +501,24 @@ public final class Combat {
         Weapon.Type t = Weapon.current(e);
         if (t == null) return "guard";
         return switch (t) { case SWORD -> "guard_sword"; case SPEAR -> "guard_spear"; case GREATSWORD -> "guard_gs"; };
+    }
+
+    /**
+     * 띄우기 정렬 한 틱: 상대 가로 속도를 '띄운 사람 앞 TETHER_DIST 칸' 쪽으로 덮어씀 (세로는 그대로 → 포물선은 유지).
+     * 그 사이 들어온 넉백의 가로 성분도 여기서 덮이므로, 넉백 기술이 띄운 직후에 맞으면 상대가 내 앞에 남는다.
+     * 띄운 사람이 점프 중이면 상대 높이 근처까지 따라 올라가게 위로 밀어 줌 (공중 콤보 진입)
+     */
+    private static void tether(LivingEntity e, Fighter f) {
+        LivingEntity by = f.tetherBy;
+        if (by == null || !by.isAlive() || by.getWorld() != e.getWorld() || by.squaredDistanceTo(e) > 100) { f.tetherUntil = 0; return; }
+        Vec3d want = by.getPos().add(horizontal(by.getRotationVec(1f)).multiply(Tuning.TETHER_DIST));
+        Vec3d d = want.subtract(e.getPos()).multiply(Tuning.TETHER_PULL);
+        Vec3d v = e.getVelocity();
+        setVel(e, new Vec3d(clamp(d.x, Tuning.TETHER_MAX), v.y, clamp(d.z, Tuning.TETHER_MAX)));
+        Vec3d bv = by.getVelocity();
+        double dh = e.getY() - 0.4 - by.getY();
+        if (!by.isOnGround() && bv.y > 0.15 && dh > 0.8) // 따라 점프: 남은 높이를 올라갈 만큼 (중력 0.08/틱)
+            setVel(by, new Vec3d(bv.x, Math.max(bv.y, Math.min(1.25, Math.sqrt(2 * 0.08 * dh) + 0.08)), bv.z));
     }
 
     /** 칼·창·도끼를 든 공격인지 (효과음을 ザン 계열로) */
@@ -721,6 +743,7 @@ public final class Combat {
                 f.guardGauge = Math.min(Tuning.GUARD_MAX, f.guardGauge + Tuning.GUARD_REGEN_PER_TICK);
 
             // 히트스톱: 멈춘 동안 제자리
+            if (now < f.tetherUntil) tether(e, f);
             if (now < f.freezeUntil) setVel(e, Vec3d.ZERO);
 
             // 대시

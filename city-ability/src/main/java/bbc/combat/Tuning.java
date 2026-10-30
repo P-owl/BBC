@@ -46,6 +46,13 @@ public final class Tuning {
     public static final double M1_REACH = 1.4, M1_RADIUS = 1.6;
     public static final int M1_MAX_TARGETS = 3;
 
+    // ── 띄우기 정렬 (ABA 레이카게 Lariat 연계의 원리) ──
+    /** 크게 띄운 직후 이 틱 동안 상대의 가로 위치를 내 앞 TETHER_DIST 칸에 묶는다 (높이는 그대로 날아감).
+     *  이 사이에 넉백 기술을 맞히면 가로 넉백이 묶임에 덮여서 상대가 멀리 안 날아가고 내 앞에 떨어진다 → 넉백 기술로 콤보를 이음.
+     *  내가 돌진기로 움직이면 상대도 같이 끌려옴. 묶인 동안 점프하면 상대 높이까지 따라 올라감 */
+    public static final int TETHER_TICKS = 12;
+    public static final double TETHER_DIST = 1.8, TETHER_PULL = 0.55, TETHER_MAX = 1.4, TETHER_LIFT = 0.45;
+
     // ── 대시 추격 ──
     /** 앞 대시: 최근 이만큼 안에 내가 날리거나 띄운 상대가 앞쪽 이 거리 안에 있으면 그쪽으로 붙는다 */
     public static final int CHASE_MEMORY = 40;
