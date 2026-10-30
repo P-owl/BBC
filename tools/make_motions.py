@@ -408,8 +408,24 @@ anim("barrage_end", 18, strike(4, 18,  # 마지막 일격: 몸을 끝까지 꼬�
     legs=dict(rightLeg=(34, 0, 0, 10), leftLeg=(-52, 0, 0, 46)), hold=8))
 
 # ── 방어·이동 ──
-GUARD = dict(body=(0, -10, 0), head=(0, -10, 0), rightArm=(-62, -28, 6, -110), leftArm=(-66, 28, -6, -112))  # 두 팔뚝을 얼굴 앞에 세움
-anim("guard", 20, P(0, OS, **GUARD) + P(20, LIN, **GUARD), loop=True, ret=1)
+# 가드: 몸을 조금 낮추고(무릎 굽혀 넓게) 턱을 당긴 채 막음. 무기별로 다른 자세, 숨 쉬듯 살짝 들썩임
+GUARD_LEGS = legs((8, 6, 20), (-12, 6, 20))
+GUARD = dict(body=(-8, -14, 0), head=(10, -14, 0), rightArm=(-78, -32, 8, -118), leftArm=(-88, 30, -6, -124), **GUARD_LEGS)  # 두 팔뚝을 얼굴 앞에 세운 하이 가드
+def guard_loop(name, pose, breathe):
+    anim(name, 20, seq([(0, OS, pose), (10, IO, breathe), (20, IO, pose)]), loop=True, ret=1)
+guard_loop("guard", GUARD, dict(body=(-9, -14, 0), rightArm=(-80, -32, 8, -120), leftArm=(-90, 30, -6, -126)))
+# 검: 칼을 가로로 눕혀 얼굴 앞에, 왼손으로 칼등을 받침
+SW_GUARD = dict(body=(-6, -22, 0), head=(6, -22, 0), rightArm=D((0.35, 0.15, -0.9), (-0.95, 0.2, -0.25), -35),
+                leftArm=D((-0.15, 0.25, -0.95), (0, 1, 0), -60), **GUARD_LEGS)
+guard_loop("guard_sword", SW_GUARD, dict(body=(-7, -22, 0), rightArm=D((0.35, 0.13, -0.9), (-0.95, 0.2, -0.25), -36)))
+# 대검: 넓은 날을 몸 앞에 세워 방패처럼, 왼손으로 날을 밀어 받침
+GS_GUARD = dict(body=(-4, -12, 0), head=(8, -12, 0), rightArm=D((0.25, -0.35, -0.9), (0, 0.95, -0.3), -20),
+                leftArm=D((-0.05, -0.1, -1), (0, 1, 0), -50), **legs((10, 8, 26), (-16, 8, 26)))
+guard_loop("guard_gs", GS_GUARD, dict(body=(-5, -12, 0), rightArm=D((0.25, -0.37, -0.9), (0, 0.95, -0.3), -21)))
+# 창: 두 손으로 자루를 가로로 들어 앞을 막음 (봉 막기)
+SP_GUARD = dict(body=(-6, -8, 0), head=(6, -8, 0), rightArm=D((0.45, -0.45, -0.75), (-0.95, 0.2, 0.1), -45),
+                leftArm=D((-0.45, -0.45, -0.75), (0, 1, 0), -45), **GUARD_LEGS)
+guard_loop("guard_spear", SP_GUARD, dict(body=(-7, -8, 0), rightArm=D((0.45, -0.47, -0.75), (-0.95, 0.2, 0.1), -46)))
 anim("parry", 8,
     P(0, LIN, **GUARD)
     + P(2, EX, rightArm=(-130, 30, 10), leftArm=(-70, 20, -8), body=(0, 14, 0), head=(0, 14, 0))

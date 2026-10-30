@@ -492,6 +492,13 @@ public final class Combat {
         }
     }
 
+    /** 가드 자세는 든 무기마다 다름 (맨손 = 하이 가드, 검 = 칼을 눕혀 막기, 대검 = 날을 세워 방패처럼, 창 = 자루를 가로로) */
+    static String guardMotion(LivingEntity e) {
+        Weapon.Type t = Weapon.current(e);
+        if (t == null) return "guard";
+        return switch (t) { case SWORD -> "guard_sword"; case SPEAR -> "guard_spear"; case GREATSWORD -> "guard_gs"; };
+    }
+
     /** 칼·창·도끼를 든 공격인지 (효과음을 ザン 계열로) */
     private static boolean bladed(LivingEntity e) {
         var it = e.getMainHandStack().getItem();
@@ -567,7 +574,7 @@ public final class Combat {
         }
         if (f.guardHeld) return;
         f.guardHeld = true;
-        if (!f.stunned()) Motion.play(p, "guard");
+        if (!f.stunned()) Motion.play(p, guardMotion(p));
         if (now >= f.parryLockUntil) {
             f.parryUntil = now + Tuning.PARRY_WINDOW;
             f.parryLockUntil = now + Tuning.PARRY_WINDOW + Tuning.PARRY_FAIL_LOCK;
@@ -696,7 +703,7 @@ public final class Combat {
                     Fighter.State was = f.state;
                     setState(f, Fighter.State.IDLE, 0);
                     if (was == Fighter.State.DOWN) { f.invulnUntil = now + Tuning.WAKEUP_INVULN; Motion.play(e, "getup"); }
-                    else if (f.guardHeld) Motion.play(e, "guard");
+                    else if (f.guardHeld) Motion.play(e, guardMotion(e));
                     if (was == Fighter.State.GUARD_BROKEN) f.guardGauge = Tuning.GUARD_MAX;
                 }
             }

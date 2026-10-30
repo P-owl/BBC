@@ -132,7 +132,7 @@ final class CombatHud {
         if (mo == null) return;
         if (STUN.containsKey(e.getId())) { MOB_MOTION.remove(e.getId()); return; }
         float a = clock - MOB_MOTION_AT.get(e.getId()) + delta;
-        if (mo.equals("guard")) { // 팔뚝을 얼굴 앞에 교차 (놓을 때까지)
+        if (mo.startsWith("guard")) { // 팔뚝을 얼굴 앞에 교차 (놓을 때까지)
             m.rightArm.pitch = -1.7f; m.rightArm.yaw = -0.7f; m.leftArm.pitch = -1.75f; m.leftArm.yaw = 0.7f;
             m.body.yaw = 0; return;
         }

@@ -104,21 +104,44 @@ def render(text, style, first, seed):
     return out
 
 
+TILE_W, TILE_H = 240, 120   # 마인크래프트 글꼴 그림 한 칸은 256×256 안에 들어가야 함 (넘으면 빈 네모로 나옴) → 단어를 240px 조각으로 나눔
+NEG = "\uf801"               # 조각 사이 1칸 간격을 지우는 뒤로 가기 공백 (그림 글자 폭 + 1 이 다음 글자 위치라서)
+JAVA = os.path.join(HERE, "..", "city-ability", "src", "main", "java", "bbc", "combat", "SfxGlyphs.java")
+
+
 def build():
-    os.makedirs(os.path.join(OUT, "textures", "font", "sfx"), exist_ok=True)
-    providers = [{"type": "space", "advances": {" ": 4}}]
+    d = os.path.join(OUT, "textures", "font", "sfx")
+    os.makedirs(d, exist_ok=True)
+    for fn in os.listdir(d):
+        if fn.endswith(".png"): os.remove(os.path.join(d, fn))
+    providers = [{"type": "space", "advances": {" ": 4, NEG: -1}}]
+    code = 0xE000
+    strings = []
     for i, (name, text, style, first) in enumerate(WORDS):
         img = render(text, style, first, 100 + i)
-        # bitmap 글꼴은 높이를 같은 비율로 줄이므로 모든 그림 높이를 맞춤 (가로는 비율대로)
-        h = 160
-        img = img.resize((max(1, int(img.width * h / img.height)), h), Image.LANCZOS)
+        img = img.resize((max(1, int(img.width * TILE_H / img.height)), TILE_H), Image.LANCZOS)
+        n = (img.width + TILE_W - 1) // TILE_W
+        sheet = Image.new("RGBA", (TILE_W * n, TILE_H), (0, 0, 0, 0))
+        sheet.alpha_composite(img, (0, 0))
+        for k in range(n - 1):   # 가운데 조각은 오른쪽 끝까지 폭으로 쳐지게 거의 투명한 점 하나
+            x = TILE_W * (k + 1) - 1
+            if sheet.getpixel((x, 0))[3] == 0: sheet.putpixel((x, 0), (0, 0, 0, 2))
         fn = name.lower() + ".png"
-        img.save(os.path.join(OUT, "textures", "font", "sfx", fn))
-        providers.append({"type": "bitmap", "file": "bbc:font/sfx/" + fn, "height": 18, "ascent": 15,
-                          "chars": [chr(0xE000 + i)]})
+        sheet.save(os.path.join(d, fn))
+        chars = "".join(chr(code + k) for k in range(n))
+        code += n
+        providers.append({"type": "bitmap", "file": "bbc:font/sfx/" + fn, "height": 18, "ascent": 15, "chars": [chars]})
+        strings.append(NEG.join(chars))
     with open(os.path.join(OUT, "font", "sfx_jp.json"), "w") as f:
         json.dump({"providers": providers}, f, indent=1)
-    print(len(WORDS), "sfx ->", [w[0] for w in WORDS])
+    esc = lambda s: "".join("\\u%04x" % ord(c) for c in s)
+    with open(JAVA, "w", encoding="utf-8") as f:
+        f.write("package bbc.combat;\n\n/** tools/make_sfx_font.py 가 만든 파일 (손으로 고치지 말 것). 효과음 단어 = 그림 글꼴 bbc:sfx_jp 의 조각 글자들 */\n")
+        f.write("final class SfxGlyphs {\n    private SfxGlyphs() {}\n    static final String[] WORDS = {\n")
+        for (name, text, _, _), st in zip(WORDS, strings):
+            f.write('        "%s", // %s %s\n' % (esc(st), name, text))
+        f.write("    };\n}\n")
+    print(len(WORDS), "sfx,", code - 0xE000, "tiles")
 
 
 def preview(path):

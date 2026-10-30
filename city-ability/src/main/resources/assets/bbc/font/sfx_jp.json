@@ -3,7 +3,8 @@
   {
    "type": "space",
    "advances": {
-    " ": 4
+    " ": 4,
+    "\uf801": -1
    }
   },
   {
@@ -21,7 +22,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue001"
+    "\ue001\ue002"
    ]
   },
   {
@@ -30,7 +31,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue002"
+    "\ue003\ue004"
    ]
   },
   {
@@ -39,7 +40,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue003"
+    "\ue005"
    ]
   },
   {
@@ -48,7 +49,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue004"
+    "\ue006\ue007"
    ]
   },
   {
@@ -57,7 +58,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue005"
+    "\ue008\ue009"
    ]
   },
   {
@@ -66,7 +67,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue006"
+    "\ue00a\ue00b"
    ]
   },
   {
@@ -75,7 +76,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue007"
+    "\ue00c\ue00d"
    ]
   },
   {
@@ -84,7 +85,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue008"
+    "\ue00e\ue00f"
    ]
   },
   {
@@ -93,7 +94,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue009"
+    "\ue010\ue011"
    ]
   },
   {
@@ -102,7 +103,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue00a"
+    "\ue012\ue013"
    ]
   },
   {
@@ -111,7 +112,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue00b"
+    "\ue014\ue015"
    ]
   },
   {
@@ -120,7 +121,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue00c"
+    "\ue016\ue017"
    ]
   },
   {
@@ -129,7 +130,7 @@
    "height": 18,
    "ascent": 15,
    "chars": [
-    "\ue00d"
+    "\ue018\ue019\ue01a"
    ]
   }
  ]
