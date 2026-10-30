@@ -19,6 +19,8 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     // 모션 라이브러리. 없어도 모드는 돌고 모션만 안 나온다 (클라이언트에 깔면 모션 재생)
     modImplementation "dev.kosmx.player-anim:player-animation-lib-fabric:${project.player_anim_version}"
+    // 팔꿈치·무릎 굽힘. MIT 라이선스라 모드 안에 같이 넣는다 (따로 설치할 필요 없음)
+    include(modImplementation("io.github.kosmx.bendy-lib:bendy-lib-fabric:${project.bendy_lib_version}"))
 }
 
 processResources {

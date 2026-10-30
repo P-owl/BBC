@@ -38,9 +38,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
-     "pitch": -58,
-     "yaw": -16,
-     "roll": 6
+     "pitch": -38,
+     "yaw": -18,
+     "roll": 8,
+     "bend": -100
     }
    },
    {
@@ -48,9 +49,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -68,
-     "yaw": 12,
-     "roll": -4
+     "pitch": -50,
+     "yaw": 14,
+     "roll": -6,
+     "bend": -88
     }
    },
    {
@@ -58,9 +60,10 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": -94,
-     "yaw": 4,
-     "roll": 0
+     "pitch": -92,
+     "yaw": 6,
+     "roll": 0,
+     "bend": -4
     }
    },
    {
@@ -88,9 +91,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -94,
-     "yaw": 4,
-     "roll": 0
+     "pitch": -92,
+     "yaw": 6,
+     "roll": 0,
+     "bend": -4
     }
    },
    {
@@ -138,9 +142,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
-     "pitch": -58,
-     "yaw": -16,
-     "roll": 6
+     "pitch": -38,
+     "yaw": -18,
+     "roll": 8,
+     "bend": -100
     }
    },
    {
@@ -148,9 +153,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": -68,
-     "yaw": 12,
-     "roll": -4
+     "pitch": -50,
+     "yaw": 14,
+     "roll": -6,
+     "bend": -88
     }
    },
    {
@@ -158,9 +164,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightLeg": {
-     "pitch": -34,
+     "pitch": -50,
      "yaw": 0,
-     "roll": 4
+     "roll": 4,
+     "bend": 70
     }
    },
    {
@@ -168,9 +175,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftLeg": {
-     "pitch": -12,
+     "pitch": -20,
      "yaw": 0,
-     "roll": -4
+     "roll": -4,
+     "bend": 50
     }
    },
    {
@@ -178,9 +186,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightLeg": {
-     "pitch": -34,
+     "pitch": -50,
      "yaw": 0,
-     "roll": 4
+     "roll": 4,
+     "bend": 70
     }
    },
    {
@@ -188,9 +197,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftLeg": {
-     "pitch": -12,
+     "pitch": -20,
      "yaw": 0,
-     "roll": -4
+     "roll": -4,
+     "bend": 50
     }
    }
   ]

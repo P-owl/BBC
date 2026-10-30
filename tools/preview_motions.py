@@ -26,6 +26,7 @@ def ease(name, f):
     return f
 
 PARTS = ["head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg", "torso"]
+AXES = ("pitch", "yaw", "roll", "bend", "axis")
 
 def tracks(anim):
     """part -> axis -> sorted list of (tick, value, ease)"""
@@ -60,7 +61,7 @@ def pose(anim, t):
     e = anim["emote"]
     out = {}
     for p in PARTS:
-        out[p] = {ax: value(tr.get(p, {}).get(ax, []), t, e["endTick"], e["stopTick"]) for ax in ("pitch", "yaw", "roll")}
+        out[p] = {ax: value(tr.get(p, {}).get(ax, []), t, e["endTick"], e["stopTick"]) for ax in AXES}
     return out
 
 def Rx(a): c, s = math.cos(a), math.sin(a); return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
@@ -88,17 +89,28 @@ def boxes(ps):
         r = ps[part]
         R = Rz(r["roll"] * math.pi / 180) @ Ry(r["yaw"] * math.pi / 180) @ Rx(r["pitch"] * math.pi / 180)
         if name == "head": col = col
-        corners = []
-        for i in range(8):
-            v = np.array([o[0] + sz[0] * (i in (1, 2, 5, 6)), o[1] + sz[1] * (i in (2, 3, 6, 7)), o[2] + sz[2] * (i >= 4)], float)
-            v = R @ v + np.array(piv, float)
-            w = np.array([-v[0], -v[1], v[2]]) / 16 + np.array([0, 1.501, 0])   # scale(-1,-1,1), translate
-            w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0])        # 몸 전체 회전
-            corners.append(w)
-        for fi, f in enumerate(FACES):
-            c = col
-            if name == "head" and fi == 0: c = (250, 220, 120)   # 얼굴(앞면) 표시
-            polys.append(([corners[i] for i in f], c))
+        # 팔다리 굽힘 (bendy-lib): 아래 절반(손·발 쪽)을 가운데를 축으로 (cos a, 0, sin a) 둘레로 bend 만큼 돌림
+        limb = name in ("rightArm", "leftArm", "rightLeg", "leftLeg")
+        bend = math.radians(r.get("bend", 0)) if limb else 0
+        a = math.radians(r.get("axis", 0))
+        mid = np.array([o[0] + sz[0] / 2, o[1] + sz[1] / 2, o[2] + sz[2] / 2])
+        ax = np.array([math.cos(a), 0, math.sin(a)])
+        K = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+        RB = np.eye(3) + math.sin(bend) * K + (1 - math.cos(bend)) * K @ K
+        halves = [(o[1], o[1] + sz[1] / 2, False), (o[1] + sz[1] / 2, o[1] + sz[1], True)] if limb else [(o[1], o[1] + sz[1], False)]
+        for y0, y1, lower in halves:
+            corners = []
+            for i in range(8):
+                v = np.array([o[0] + sz[0] * (i in (1, 2, 5, 6)), y0 + (y1 - y0) * (i in (2, 3, 6, 7)), o[2] + sz[2] * (i >= 4)], float)
+                if lower: v = RB @ (v - mid) + mid
+                v = R @ v + np.array(piv, float)
+                w = np.array([-v[0], -v[1], v[2]]) / 16 + np.array([0, 1.501, 0])   # scale(-1,-1,1), translate
+                w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0])        # 몸 전체 회전
+                corners.append(w)
+            for fi, f in enumerate(FACES):
+                c = col if not lower else tuple(int(x * 0.85) for x in col)
+                if name == "head" and fi == 0: c = (250, 220, 120)   # 얼굴(앞면) 표시
+                polys.append(([corners[i] for i in f], c))
     return polys
 
 def render(ps, view, size=200):

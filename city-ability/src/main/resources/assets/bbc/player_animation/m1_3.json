@@ -38,9 +38,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
-     "pitch": -58,
-     "yaw": -16,
-     "roll": 6
+     "pitch": -38,
+     "yaw": -18,
+     "roll": 8,
+     "bend": -100
     }
    },
    {
@@ -48,9 +49,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -68,
-     "yaw": 12,
-     "roll": -4
+     "pitch": -50,
+     "yaw": 14,
+     "roll": -6,
+     "bend": -88
     }
    },
    {
@@ -58,9 +60,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": -80,
-     "yaw": -28,
-     "roll": -18
+     "pitch": -75,
+     "yaw": -32,
+     "roll": -20,
+     "bend": -55
     }
    },
    {
@@ -68,9 +71,10 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": -86,
-     "yaw": 26,
-     "roll": -6
+     "pitch": -88,
+     "yaw": 34,
+     "roll": -6,
+     "bend": -62
     }
    },
    {
@@ -79,7 +83,7 @@
     "turn": 0,
     "body": {
      "pitch": 0,
-     "yaw": -2,
+     "yaw": 2,
      "roll": 0
     }
    },
@@ -89,7 +93,7 @@
     "turn": 0,
     "head": {
      "pitch": 0,
-     "yaw": -2,
+     "yaw": 2,
      "roll": 0
     }
    },
@@ -98,9 +102,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -86,
-     "yaw": 26,
-     "roll": -6
+     "pitch": -88,
+     "yaw": 34,
+     "roll": -6,
+     "bend": -62
     }
    },
    {
@@ -109,7 +114,7 @@
     "turn": 0,
     "body": {
      "pitch": 0,
-     "yaw": -2,
+     "yaw": 2,
      "roll": 0
     }
    },
@@ -119,7 +124,7 @@
     "turn": 0,
     "head": {
      "pitch": 0,
-     "yaw": -2,
+     "yaw": 2,
      "roll": 0
     }
    },
@@ -148,9 +153,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
-     "pitch": -58,
-     "yaw": -16,
-     "roll": 6
+     "pitch": -38,
+     "yaw": -18,
+     "roll": 8,
+     "bend": -100
     }
    },
    {
@@ -158,9 +164,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": -68,
-     "yaw": 12,
-     "roll": -4
+     "pitch": -50,
+     "yaw": 14,
+     "roll": -6,
+     "bend": -88
     }
    }
   ]
