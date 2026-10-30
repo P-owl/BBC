@@ -15,8 +15,8 @@
     "tick": 1,
     "easing": "EASEOUTEXPO",
     "turn": 0,
-    "head": {
-     "pitch": -28,
+    "torso": {
+     "pitch": -24,
      "yaw": 0,
      "roll": 0
     }
@@ -25,7 +25,7 @@
     "tick": 1,
     "easing": "EASEOUTEXPO",
     "turn": 0,
-    "torso": {
+    "head": {
      "pitch": -26,
      "yaw": 0,
      "roll": 0
@@ -36,9 +36,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightArm": {
-     "pitch": -35,
+     "pitch": -30,
      "yaw": 0,
-     "roll": 55
+     "roll": 38
     }
    },
    {
@@ -46,9 +46,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": -35,
+     "pitch": -30,
      "yaw": 0,
-     "roll": -55
+     "roll": -38
     }
    },
    {
@@ -56,9 +56,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightLeg": {
-     "pitch": 30,
+     "pitch": 26,
      "yaw": 0,
-     "roll": 8
+     "roll": 6
     }
    },
    {
@@ -66,19 +66,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftLeg": {
-     "pitch": -18,
+     "pitch": -14,
      "yaw": 0,
-     "roll": -8
-    }
-   },
-   {
-    "tick": 14,
-    "easing": "LINEAR",
-    "turn": 0,
-    "head": {
-     "pitch": -22,
-     "yaw": 0,
-     "roll": 0
+     "roll": -6
     }
    },
    {
@@ -95,10 +85,20 @@
     "tick": 14,
     "easing": "LINEAR",
     "turn": 0,
-    "rightArm": {
-     "pitch": -30,
+    "head": {
+     "pitch": -22,
      "yaw": 0,
-     "roll": 48
+     "roll": 0
+    }
+   },
+   {
+    "tick": 14,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -26,
+     "yaw": 0,
+     "roll": 34
     }
    },
    {
@@ -106,9 +106,9 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -30,
+     "pitch": -26,
      "yaw": 0,
-     "roll": -48
+     "roll": -34
     }
    },
    {
@@ -116,9 +116,9 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightLeg": {
-     "pitch": 25,
+     "pitch": 22,
      "yaw": 0,
-     "roll": 8
+     "roll": 6
     }
    },
    {
@@ -126,9 +126,9 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftLeg": {
-     "pitch": -15,
+     "pitch": -12,
      "yaw": 0,
-     "roll": -8
+     "roll": -6
     }
    }
   ]

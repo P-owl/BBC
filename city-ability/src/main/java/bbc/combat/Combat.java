@@ -25,6 +25,7 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtFloat;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.DustParticleEffect;
 import org.joml.Vector3f;
 import net.minecraft.entity.mob.ZombieEntity;
@@ -198,7 +199,11 @@ public final class Combat {
             });
         } else if (air) {
             swing(p, a, "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
-                hitArea(p, Tuning.SLAM, false);
+                if (hitArea(p, Tuning.SLAM, false) > 0) { // 내리꽂는 줄기
+                    ServerWorld w = p.getServerWorld();
+                    Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.6));
+                    for (int i = 0; i < 10; i++) w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y + 1.5 - i * 0.3, c.z, 0, 0, -1, 0, 0.6);
+                }
                 a.airComboUntil = 0;
                 setVel(p, new Vec3d(0, -0.6, 0));
             });
@@ -591,8 +596,14 @@ public final class Combat {
                     f.bounceUntil = now + Tuning.BOUNCE_WINDOW;
                     setVel(e, new Vec3d(e.getVelocity().x * 0.2, Tuning.BOUNCE_VY, e.getVelocity().z * 0.2));
                     ServerWorld w = (ServerWorld) e.getWorld();
-                    ring(w, e.getPos().add(0, 0.15, 0), 2.4, 28);
+                    Vec3d at = e.getPos().add(0, 0.15, 0);
+                    ring(w, at, 1.4, 20);
+                    ring(w, at, 2.8, 32);
+                    Tasks.later(2, () -> ring(w, at, 4.0, 40));
+                    var ground = w.getBlockState(e.getBlockPos().down());
+                    if (!ground.isAir()) w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, ground), e.getX(), e.getY() + 0.1, e.getZ(), 40, 1.0, 0.1, 1.0, 0.25);
                     w.spawnParticles(ParticleTypes.EXPLOSION, e.getX(), e.getY(), e.getZ(), 1, 0, 0, 0, 0);
+                    sound(e, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), 0.5f, 1.4f);
                     sound(e, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
                 }
                 if (now >= f.stateUntil) {

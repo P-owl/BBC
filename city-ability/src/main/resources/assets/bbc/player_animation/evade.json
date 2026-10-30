@@ -28,6 +28,14 @@
     }
    },
    {
+    "tick": 9,
+    "easing": "CONSTANT",
+    "turn": 0,
+    "body": {
+     "pitch": 0
+    }
+   },
+   {
     "tick": 2,
     "easing": "EASEOUTQUAD",
     "turn": 0,
