@@ -2,6 +2,7 @@ package bbc.client;
 
 import bbc.net.AwakenPayload;
 import bbc.net.ComboPayload;
+import bbc.net.FxPayload;
 import bbc.net.StunPayload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -44,8 +45,10 @@ final class CombatHud {
     private static float comboDamage;
     private static long comboAt = -1000;
     private static long clock;
-    private static int awGauge, awLeft;
+    private static int awGauge, awLeft, stam, stamMax;
     private static boolean awUlt;
+    private static float shakeStr, flashStr;
+    private static long shakeAt = -100, flashAt = -100;
 
     static void init() {
         ClientPlayNetworking.registerGlobalReceiver(StunPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
@@ -61,7 +64,14 @@ final class CombatHud {
             comboAt = clock;
         }));
         ClientPlayNetworking.registerGlobalReceiver(AwakenPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
-            awGauge = p.gauge(); awLeft = p.left(); awUlt = p.ultReady();
+            awGauge = p.gauge(); awLeft = p.left(); awUlt = p.ultReady(); stam = p.stamina(); stamMax = p.staminaMax();
+        }));
+        ClientPlayNetworking.registerGlobalReceiver(FxPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
+            if (p.kind() == FxPayload.SHAKE) {
+                float left = shakeStr * Math.max(0f, 1f - (clock - shakeAt) / 8f);
+                shakeStr = Math.min(2.5f, Math.max(left, p.strength()) + (left > 0 ? p.strength() * 0.3f : 0));
+                shakeAt = clock;
+            } else { flashStr = p.strength(); flashAt = clock; }
         }));
         ClientTickEvents.END_CLIENT_TICK.register(CombatHud::tick);
         HudRenderCallback.EVENT.register((ctx, counter) -> render(ctx));
@@ -173,6 +183,23 @@ final class CombatHud {
 
     private static float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
+    /** 체력 위 작은 스태미나 막대 (예전 보스바는 각성 막대와 겹쳐서 옮김) */
+    private static void staminaBar(DrawContext ctx, MinecraftClient c) {
+        if (stamMax <= 0 || c.player == null || c.player.isCreative() || c.player.isSpectator()) return;
+        int w = 81, x = ctx.getScaledWindowWidth() / 2 - 91;
+        int y = ctx.getScaledWindowHeight() - 39 - 10 - (c.player.getArmor() > 0 ? 10 : 0) + 4;  // 하트(갑옷) 바로 위
+        float r = Math.max(0f, Math.min(1f, stam / (float) stamMax));
+        ctx.fill(x - 1, y - 1, x + w + 1, y + 4, 0xFF000000);
+        ctx.fill(x, y, x + w, y + 3, 0xFF3A3410);
+        ctx.fill(x, y, x + (int) (w * r), y + 3, r < 0.25f ? 0xFFE04030 : 0xFFF0C830);
+        var m = ctx.getMatrices();
+        m.push();
+        m.translate(x + w + 3, y - 1, 0);
+        m.scale(0.6f, 0.6f, 1f);
+        ctx.drawTextWithShadow(c.textRenderer, Text.literal("⚡" + stam), 0, 0, 0xFFF0D860);
+        m.pop();
+    }
+
     /** 화면 위 가운데 각성 막대 (ABA의 PRESS G 막대처럼). 각성 중엔 남은 시간 */
     private static void awakenBar(DrawContext ctx, MinecraftClient c) {
         TextRenderer tr = c.textRenderer;
@@ -196,10 +223,21 @@ final class CombatHud {
         ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), x + w / 2, y + 1, text);
     }
 
+    /** 화면 흔들림: 8틱 동안 줄어드는 떨림 (세기 1 ≈ 2.5°) */
+    static float[] shake(float delta) {
+        float age = clock - shakeAt + delta;
+        if (age > 8 || shakeStr <= 0) return null;
+        float amp = shakeStr * 2.5f * (1f - age / 8f);
+        return new float[]{ (float) Math.sin(age * 9.1) * amp, (float) Math.cos(age * 7.3) * amp * 0.8f };
+    }
+
     private static void render(DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.options.hudHidden) return;
-        if (BbcClient.combat) awakenBar(ctx, c);
+        // 번쩍임: 화면 전체를 하얗게, 6틱에 걸쳐 사라짐
+        float fa = flashStr * Math.max(0f, 1f - (clock - flashAt) / 6f);
+        if (fa > 0.01f) ctx.fill(0, 0, ctx.getScaledWindowWidth(), ctx.getScaledWindowHeight(), ((int) (fa * 200) << 24) | 0xFFFFFF);
+        if (BbcClient.combat) { awakenBar(ctx, c); staminaBar(ctx, c); }
         if (comboHits <= 0) return;
         long age = clock - comboAt;
         if (age > 30) return;

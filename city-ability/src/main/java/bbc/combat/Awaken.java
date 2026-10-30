@@ -75,8 +75,10 @@ public final class Awaken {
             Vec3d d = Combat.horizontal(en.getPos().subtract(e.getPos()));
             Combat.move((LivingEntity) en, new Vec3d(d.x * 1.1, 0.45, d.z * 1.1));
         }
-        Combat.ring(w, e.getPos().add(0, 0.2, 0), 2.0, 28);
-        Combat.ring(w, e.getPos().add(0, 1.0, 0), 3.2, 36);
+        Fx.wave(w, e.getPos().add(0, 0.1, 0), 0.5, 5.0, Fx.GOLD, 9);
+        Fx.wave(w, e.getPos().add(0, 1.0, 0), 0.5, 3.5, Fx.GOLD, 7);
+        Fx.flash(e, 0.55f);
+        Fx.shakeAround(w, e.getPos(), 10, 0.7f);
         w.spawnParticles(ParticleTypes.FLASH, e.getX(), e.getY() + 1, e.getZ(), 1, 0, 0, 0, 0);
         w.spawnParticles(ParticleTypes.END_ROD, e.getX(), e.getY() + 1, e.getZ(), 40, 0.4, 0.8, 0.4, 0.25);
         w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ITEM_TOTEM_USE, SoundCategory.PLAYERS, 0.8f, 1.2f);
@@ -139,7 +141,8 @@ public final class Awaken {
                     }
                     w.spawnParticles(ParticleTypes.CRIT, to.x, to.y, to.z, 10, 0.3, 0.3, 0.3, 0.4);
                     w.spawnParticles(ParticleTypes.SWEEP_ATTACK, to.x, to.y, to.z, 1, 0.2, 0.2, 0.2, 0);
-                    if (n % 2 == 1) Combat.ring(w, to, 0.8, 10);
+                    if (n % 2 == 1) Fx.wave(w, to, 0.2, 1.1, Fx.WHITE, 3);
+                    Fx.shake(e, 0.15f);
                 }
                 w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 0.9f, 0.8f + e.getRandom().nextFloat() * 0.6f);
             });
@@ -151,12 +154,15 @@ public final class Awaken {
                 if (Combat.hit(e, t, FLURRY_END) != Combat.Result.HIT) continue;
                 Vec3d c = t.getBoundingBox().getCenter();
                 w.spawnParticles(ParticleTypes.SONIC_BOOM, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+                Combat.hitStop(f, Combat.of(t), 4);
+                Fx.wave(w, c, 0.4, 3.0, Fx.WHITE, 7);
+                Fx.word(w, c.add(0, 1.3, 0), "쾅!!", Formatting.RED, 2.0f);
+                Fx.shake(t, 1.1f);
                 w.spawnParticles(ParticleTypes.EXPLOSION, c.x, c.y, c.z, 3, 0.4, 0.4, 0.4, 0);
                 w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, 30, 0.2, 0.2, 0.2, 0.35);
-                Combat.ring(w, c, 1.6, 22);
-                Combat.ring(w, t.getPos().add(0, 0.1, 0), 3.0, 34);
             }
             w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.8f, 1.2f);
+            Fx.shake(e, 0.9f); Fx.flash(e, 0.35f);
             w.playSound(null, e.getX(), e.getY(), e.getZ(), SoundEvents.ENTITY_WARDEN_SONIC_BOOM, SoundCategory.PLAYERS, 0.5f, 1.6f);
         });
         return true;
@@ -193,11 +199,12 @@ public final class Awaken {
     }
 
     private static void sendHud(ServerPlayerEntity p, long now) {
-        if (!CombatMode.active(p) || now % 4 != 0) return;
+        if (!CombatMode.active(p) || now % 2 != 0) return;
         if (!ServerPlayNetworking.canSend(p, AwakenPayload.ID)) return;
         Fighter f = Combat.peek(p);
         int g = f == null ? 0 : (int) f.awakenGauge;
         int left = f == null || now >= f.awakenUntil ? 0 : (int) (f.awakenUntil - now);
-        ServerPlayNetworking.send(p, new AwakenPayload(g, left, f != null && left > 0 && !f.ultUsed));
+        ServerPlayNetworking.send(p, new AwakenPayload(g, left, f != null && left > 0 && !f.ultUsed,
+                (int) bbc.job.Stamina.get(p), (int) bbc.job.Stamina.max(p)));
     }
 }

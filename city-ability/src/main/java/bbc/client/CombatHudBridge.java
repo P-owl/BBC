@@ -7,4 +7,5 @@ import net.minecraft.entity.LivingEntity;
 public final class CombatHudBridge {
     private CombatHudBridge() {}
     public static void pose(LivingEntity e, BipedEntityModel<?> m, float delta) { CombatHud.pose(e, m, delta); }
+    public static float[] shake(float delta) { return CombatHud.shake(delta); }
 }

@@ -7,8 +7,8 @@
   "isLoop": false,
   "returnTick": 0,
   "beginTick": 0,
-  "endTick": 14,
-  "stopTick": 15,
+  "endTick": 15,
+  "stopTick": 16,
   "degrees": true,
   "easeBeforeKeyframe": true,
   "nsfw": false,
@@ -58,8 +58,50 @@
     }
    },
    {
+    "tick": 1,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -30,
+     "yaw": 70,
+     "roll": 20,
+     "bend": -5
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -40,
+     "yaw": 60,
+     "roll": 0,
+     "bend": -20
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": -55,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": -30,
+     "roll": 0
+    }
+   },
+   {
     "tick": 4,
-    "easing": "EASEINOUTSINE",
+    "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
      "pitch": -30,
@@ -70,7 +112,7 @@
    },
    {
     "tick": 4,
-    "easing": "EASEINOUTSINE",
+    "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
      "pitch": -40,
@@ -81,7 +123,7 @@
    },
    {
     "tick": 4,
-    "easing": "EASEINOUTSINE",
+    "easing": "LINEAR",
     "turn": 0,
     "body": {
      "pitch": 0,
@@ -91,7 +133,7 @@
    },
    {
     "tick": 4,
-    "easing": "EASEINOUTSINE",
+    "easing": "LINEAR",
     "turn": 0,
     "head": {
      "pitch": 0,
@@ -142,7 +184,7 @@
     }
    },
    {
-    "tick": 9,
+    "tick": 11,
     "easing": "EASEOUTSINE",
     "turn": 0,
     "rightArm": {
@@ -153,17 +195,17 @@
     }
    },
    {
-    "tick": 9,
+    "tick": 11,
     "easing": "EASEOUTSINE",
     "turn": 0,
     "body": {
      "pitch": -10,
-     "yaw": 55,
+     "yaw": 60,
      "roll": 0
     }
    },
    {
-    "tick": 14,
+    "tick": 15,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "body": {
@@ -173,7 +215,7 @@
     }
    },
    {
-    "tick": 14,
+    "tick": 15,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "head": {
@@ -183,7 +225,7 @@
     }
    },
    {
-    "tick": 14,
+    "tick": 15,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
@@ -195,7 +237,7 @@
     }
    },
    {
-    "tick": 14,
+    "tick": 15,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
@@ -229,14 +271,58 @@
     }
    },
    {
+    "tick": 1,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 8,
+     "yaw": 0,
+     "roll": 0,
+     "bend": 16
+    }
+   },
+   {
+    "tick": 1,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -12,
+     "yaw": 0,
+     "roll": 0,
+     "bend": 16
+    }
+   },
+   {
+    "tick": 4,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 8,
+     "yaw": 0,
+     "roll": 0,
+     "bend": 16
+    }
+   },
+   {
+    "tick": 4,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -12,
+     "yaw": 0,
+     "roll": 0,
+     "bend": 16
+    }
+   },
+   {
     "tick": 5,
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightLeg": {
-     "pitch": -34,
+     "pitch": -30,
      "yaw": 0,
      "roll": 0,
-     "bend": 30
+     "bend": 26
     }
    },
    {
@@ -244,36 +330,36 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftLeg": {
-     "pitch": 24,
+     "pitch": 20,
      "yaw": 0,
      "roll": 0,
      "bend": 8
     }
    },
    {
-    "tick": 9,
-    "easing": "LINEAR",
+    "tick": 11,
+    "easing": "EASEOUTSINE",
     "turn": 0,
     "rightLeg": {
-     "pitch": -34,
+     "pitch": -30,
      "yaw": 0,
      "roll": 0,
-     "bend": 30
+     "bend": 26
     }
    },
    {
-    "tick": 9,
-    "easing": "LINEAR",
+    "tick": 11,
+    "easing": "EASEOUTSINE",
     "turn": 0,
     "leftLeg": {
-     "pitch": 24,
+     "pitch": 20,
      "yaw": 0,
      "roll": 0,
      "bend": 8
     }
    },
    {
-    "tick": 14,
+    "tick": 15,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightLeg": {
@@ -284,7 +370,7 @@
     }
    },
    {
-    "tick": 14,
+    "tick": 15,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftLeg": {

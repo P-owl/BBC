@@ -33,6 +33,7 @@ public class BbcClient implements ClientModInitializer {
     /** playerAnimator 가 깔려 있나 (없으면 모션 없이 돈다) */
     static final boolean ANIM = hasAnimator();
     private static boolean guardSent = false;
+    private static final boolean[] skillDown = new boolean[5];
     private static long lastM1 = 0;
 
     private static KeyBinding toggle, awaken, eye, implant, relic;
@@ -78,7 +79,12 @@ public class BbcClient implements ClientModInitializer {
             boolean g = o.swapHandsKey.isPressed();
             if (g != guardSent) { send(g ? KeyPayload.GUARD_DOWN : KeyPayload.GUARD_UP); guardSent = g; }
             while (o.dropKey.wasPressed()) send(KeyPayload.DASH_BASE + dashDir(client));
-            for (int i = 0; i < 5; i++) while (o.hotbarKeys[i].wasPressed()) send(KeyPayload.SKILL_BASE + i);
+            for (int i = 0; i < 5; i++) {
+                while (o.hotbarKeys[i].wasPressed()) send(KeyPayload.SKILL_BASE + i);
+                boolean down = o.hotbarKeys[i].isPressed();
+                if (skillDown[i] && !down) send(KeyPayload.SKILL_UP_BASE + i);   // 뗌 → 꾹 누르는 기술 끝
+                skillDown[i] = down;
+            }
             while (o.inventoryKey.wasPressed()) send(KeyPayload.SLOT_BASE); // E = 스위치 (전투 모드 동안 인벤토리 대신)
         });
 

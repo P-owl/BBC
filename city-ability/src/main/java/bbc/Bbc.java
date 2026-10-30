@@ -29,6 +29,7 @@ public class Bbc implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(bbc.net.StunPayload.ID, bbc.net.StunPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.ComboPayload.ID, bbc.net.ComboPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.AwakenPayload.ID, bbc.net.AwakenPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.FxPayload.ID, bbc.net.FxPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(KeyPayload.ID,
                 (payload, ctx) -> ctx.server().execute(() -> CombatMode.onKey(ctx.player(), payload.action())));
 
@@ -39,6 +40,7 @@ public class Bbc implements ModInitializer {
         Combat.register();
         bbc.combat.MobAI.register();
         bbc.combat.Awaken.register();
+        bbc.combat.Channel.register();
         CombatMode.register();
         Commands.register();
         LOG.info("BBC 도시 능력자 로드됨");

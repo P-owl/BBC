@@ -19,7 +19,7 @@ import bbc.combat.CombatMode;
  * 스태미나 (기술·대시·가드 공용 자원).
  *   최대치   = 150 + 직업 등급×30   (파워·민첩 스탯 반영은 3단계에서)
  *   초당 회복 = 5 + 등급×1.2        (전투 모드 밖에서는 2배)
- * 전투 모드 중에는 화면 위 보스바로 표시.
+ * 전투 모드 중에는 체력 위 작은 막대로 표시 (CombatHud).
  */
 public final class Stamina {
     private Stamina() {}
@@ -80,26 +80,13 @@ public final class Stamina {
         }
     }
 
-    // ───────── 보스바 ─────────
+    // ───────── 표시 ─────────
+    // 예전엔 화면 위 보스바였는데 각성 막대와 겹쳐서, 체력 위 작은 막대로 옮김 (클라이언트 CombatHud 가 그림).
+    // 값은 Awaken 의 HUD 패킷에 같이 실려 간다.
 
-    public static void showBar(ServerPlayerEntity p) {
-        ServerBossBar bar = BARS.computeIfAbsent(p.getUuid(),
-                k -> new ServerBossBar(Text.literal("스태미나"), BossBar.Color.YELLOW, BossBar.Style.NOTCHED_10));
-        bar.addPlayer(p);
-        updateBar(p);
-    }
+    public static void showBar(ServerPlayerEntity p) {}
 
-    public static void hideBar(ServerPlayerEntity p) {
-        ServerBossBar bar = BARS.remove(p.getUuid());
-        if (bar != null) bar.clearPlayers();
-    }
+    public static void hideBar(ServerPlayerEntity p) { BARS.remove(p.getUuid()); }
 
-    private static void updateBar(ServerPlayerEntity p) {
-        ServerBossBar bar = BARS.get(p.getUuid());
-        if (bar == null) return;
-        double m = max(p), cur = get(p);
-        bar.setPercent((float) Math.max(0, Math.min(1, cur / m)));
-        bar.setName(Text.literal("⚡ 스태미나 " + (int) cur + " / " + (int) m + "   (초당 +" + String.format("%.1f", regenPerSecond(p)) + ")"));
-        bar.setColor(cur < m * 0.25 ? BossBar.Color.RED : BossBar.Color.YELLOW);
-    }
+    private static void updateBar(ServerPlayerEntity p) {}
 }

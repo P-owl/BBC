@@ -91,6 +91,8 @@ public final class Combat {
 
     public static Fighter peek(LivingEntity e) { return FIGHTERS.get(e.getUuid()); }
 
+    public static boolean channeling(LivingEntity e) { Fighter f = peek(e); return f != null && f.channel != null; }
+
     static void forEachFighter(java.util.function.Consumer<Fighter> c) { FIGHTERS.values().forEach(c); }
 
     /** 기술·평타를 쓸 수 있는 상태인가 (경직·다운·가드 깨짐이 아님) */
@@ -149,7 +151,7 @@ public final class Combat {
     /** 평타 입력. up = 스페이스를 누른 채 (띄우기·래더) */
     public static void m1(LivingEntity p, boolean up) { // 플레이어 입력과 몬스터 AI 가 같이 쓴다
         Fighter a = of(p);
-        if (a.stunned() || a.guardHeld || a.dashTicks > 0) return;
+        if (a.stunned() || a.guardHeld || a.dashTicks > 0 || a.channel != null) return;
         if (now < a.m1ReadyAt) {
             if (a.m1ReadyAt - now <= Tuning.INPUT_BUFFER) { a.buffered = up ? 2 : 1; a.bufferedAt = now; }
             return;
@@ -203,7 +205,7 @@ public final class Combat {
                 }
             });
         } else if (air) {
-            swing(p, a, "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
+            swing(p, a, weapon ? pr.motion() + "slam" : "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
                 if (hitArea(p, Tuning.SLAM, false) > 0) { // 내리꽂는 줄기
                     ServerWorld w = ((ServerWorld) p.getWorld());
                     Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.6));
@@ -436,6 +438,7 @@ public final class Combat {
                 a.airComboUntil = Math.max(a.airComboUntil, now + 40);
             }
         }
+        impact(atk, t, a, v, h);
         Motion.play(t, switch (h.kind()) { case HIT -> v.comboHits % 2 == 0 ? "hit_2" : "hit"; case AIR -> "hit_air"; default -> "knock"; });
 
         // 연출
@@ -462,6 +465,33 @@ public final class Combat {
         OURS.set(true);
         try { return t.damage(src, dmg); }
         finally { OURS.set(false); }
+    }
+
+    /**
+     * 큰 타격 연출 (파티클 말고): 히트스톱·화면 흔들림·충격파·타격 글자.
+     *  넉백(마무리) = 3틱 멈춤 + 쾅! / 다운 = 2틱 멈춤 / 띄우기 = 살짝 흔들림 / 평타 = 맞은 플레이어만 아주 약하게
+     */
+    private static void impact(LivingEntity atk, LivingEntity t, Fighter a, Fighter v, Hit h) {
+        ServerWorld w = (ServerWorld) t.getWorld();
+        Vec3d c = t.getBoundingBox().getCenter();
+        switch (h.kind()) {
+            case KNOCK -> {
+                hitStop(a, v, 3);
+                Fx.shake(atk, 0.45f); Fx.shake(t, 0.8f);
+                Fx.wave(w, c, 0.4, 2.2, Fx.WHITE, 6);
+                Fx.word(w, c.add(0, 1.2, 0), "쾅!", Formatting.GOLD, 1.4f);
+            }
+            case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); }
+            case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); } else Fx.shake(t, 0.12f); }
+            case HIT -> Fx.shake(t, h.damage() >= 2f ? 0.35f : 0.12f);
+        }
+    }
+
+    /** 히트스톱: 둘 다 ticks 동안 멈춤. 그만큼 후딜·경직을 늘려서 손해 보는 쪽이 없게 */
+    static void hitStop(Fighter a, Fighter v, int ticks) {
+        a.freezeUntil = now + ticks; v.freezeUntil = now + ticks;
+        a.m1ReadyAt += ticks; a.recoveryUntil += ticks;
+        if (v.stunned()) v.stateUntil += ticks;
     }
 
     /** 패링 불가는 공격마다 따로 붙인다 (Hit.noParry, 보스 패턴 등) */
@@ -641,6 +671,9 @@ public final class Combat {
                     w.spawnParticles(ParticleTypes.EXPLOSION, e.getX(), e.getY(), e.getZ(), 1, 0, 0, 0, 0);
                     sound(e, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), 0.5f, 1.4f);
                     sound(e, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
+                    Fx.wave(w, e.getPos().add(0, 0.05, 0), 0.6, 4.6, Fx.WHITE, 8);
+                    Fx.word(w, e.getPos().add(0, 2.2, 0), "쿵!", Formatting.WHITE, 1.6f);
+                    Fx.shakeAround(w, e.getPos(), 10, 0.9f);
                 }
                 if (now >= f.stateUntil) {
                     Fighter.State was = f.state;
@@ -658,6 +691,9 @@ public final class Combat {
             // 가드 게이지 회복
             if (!f.guardHeld && f.guardGauge < Tuning.GUARD_MAX && now - f.guardUsedAt > Tuning.GUARD_REGEN_DELAY)
                 f.guardGauge = Math.min(Tuning.GUARD_MAX, f.guardGauge + Tuning.GUARD_REGEN_PER_TICK);
+
+            // 히트스톱: 멈춘 동안 제자리
+            if (now < f.freezeUntil) setVel(e, Vec3d.ZERO);
 
             // 대시
             if (f.dashTicks > 0) {
@@ -744,7 +780,7 @@ public final class Combat {
     private static void applyAttrs(Fighter f) {
         LivingEntity e = f.e;
         boolean locked = f.stunned();
-        double speed = locked ? -1.0 : (f.guardHeld ? Tuning.GUARD_SPEED : 0);
+        double speed = locked ? -1.0 : f.channel != null ? f.channel.speed : (f.guardHeld ? Tuning.GUARD_SPEED : 0);
         double jump = locked ? -1.0 : 0;
         boolean floating = (f.state == Fighter.State.AIR || (now < f.airComboUntil && !e.isOnGround())) && e.getVelocity().y < 0.1;
         double grav = floating ? Tuning.AIR_GRAVITY - 1.0 : 0;

@@ -43,9 +43,9 @@ public final class Weapon {
         SWORD("검", new M1Profile(5, 4, 2, 1.2f, 0.2, "sw_", 5),
                 new WSkill("올려베기", "올려", 15, 5), new WSkill("질풍베기", "질풍", 15, 4)),
         SPEAR("창", new M1Profile(4, 4, 3, 1.15f, 1.0, "sp_", 5),
-                new WSkill("꿰뚫기", "꿰뚫", 15, 5), new WSkill("휩쓸기", "휩쓸", 20, 7)),
+                new WSkill("꿰뚫기", "꿰뚫", 15, 5), new WSkill("연속 찌르기 (꾹)", "연찌", 8, 5)),
         GREATSWORD("대검", new M1Profile(3, 7, 4, 2.0f, 0.4, "gs_", 8),
-                new WSkill("가르기", "가르", 25, 8), new WSkill("회전베기", "회전", 20, 6));
+                new WSkill("가르기", "가르", 25, 8), new WSkill("휠윈드 (꾹)", "휠윈", 8, 6));
 
         public final String name;
         public final M1Profile m1;
@@ -138,11 +138,11 @@ public final class Weapon {
             }
             case SPEAR -> {
                 if (idx == 0) { Combat.move(p, new Vec3d(look.x * 0.5, 0, look.z * 0.5)); Combat.special(p, "sp_thrust", 5, 6, PIERCE, 5.2); }
-                else Combat.special(p, "sp_sweep", 5, 8, SWEEP, 3.6);
+                else return Channel.start(p, Channel.Kind.RAPID, idx, key);   // 꾹 누르는 동안 (재사용은 끝난 뒤부터)
             }
             case GREATSWORD -> {
                 if (idx == 0) Combat.special(p, "gs_cleave", 10, 8, CLEAVE, 3.6);
-                else Combat.special(p, "spin", 5, 7, WHIRL, 3.4);
+                else return Channel.start(p, Channel.Kind.WHIRL, idx, key);  // 꾹 누르는 동안 (재사용은 끝난 뒤부터)
             }
         }
         f.weaponCd.put(key, now + t.skills[idx].cooldown() * 20L);
@@ -151,31 +151,34 @@ public final class Weapon {
 
     // ═════════ 연출: 칼자국 ═════════
 
-    /** 무기 휘두를 때 판정 순간의 궤적. 검·대검 = 앞쪽 호(가로 또는 세로), 창 = 앞으로 뻗는 줄기 */
+    /**
+     * 무기 휘두를 때 판정 순간의 궤적. 파티클 대신 반투명 판으로 칼자국을 그린다 (Fx.slash, 에픽파이트의 트레일 역할).
+     *  검·대검 = 휘두른 방향대로 호 (가로/세로, 왼쪽·오른쪽·위·아래), 창 = 앞으로 뻗는 찌르기 줄기
+     */
     public static void trail(LivingEntity p, String motion) {
         if (!(motion.startsWith("sw_") || motion.startsWith("sp_") || motion.startsWith("gs_"))) return;
         ServerWorld w = (ServerWorld) p.getWorld();
         Vec3d f = Combat.horizontal(p.getRotationVec(1f));
         Vec3d r = new Vec3d(-f.z, 0, f.x);
-        Vec3d o = p.getPos().add(0, 1.2, 0);
-        net.minecraft.particle.DustParticleEffect white = new net.minecraft.particle.DustParticleEffect(new org.joml.Vector3f(1f, 1f, 1f), 1.2f);
-        if (motion.startsWith("sp_")) { // 찌르기: 앞으로 곧게
+        Vec3d o = p.getPos().add(0, 1.15, 0);
+        if (motion.startsWith("sp_") && !motion.equals("sp_slam")) { // 찌르기: 앞으로 곧게
             double len = motion.equals("sp_thrust") ? 5.0 : 3.8;
-            for (double d = 0.8; d < len; d += 0.25) w.spawnParticles(white, o.x + f.x * d, o.y - 0.1, o.z + f.z * d, 1, 0, 0, 0, 0);
+            Fx.plate(w, o.add(f.multiply(len / 2 + 0.5)), f, new Vec3d(0, 1, 0), r, (float) len, 0.05f, 0.16f, Fx.WHITE, 4);
             w.spawnParticles(ParticleTypes.CRIT, o.x + f.x * len, o.y - 0.1, o.z + f.z * len, 6, 0.1, 0.1, 0.1, 0.2);
-            if (motion.equals("sp_sweep")) arc(w, o, f, r, 2.6, false, white);
             return;
         }
         boolean vertical = motion.equals("sw_3") || motion.equals("sw_4") || motion.equals("sw_5") || motion.equals("sw_rise")
-                || motion.equals("gs_1") || motion.equals("gs_3") || motion.equals("gs_cleave");
-        double rad = motion.startsWith("gs_") ? 2.6 : 2.1;
-        arc(w, o, f, r, rad, vertical, white);
+                || motion.equals("gs_1") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
+        boolean reverse = motion.equals("sw_2") || motion.equals("sw_4") || motion.equals("sw_rise");   // 왼→오 / 아래→위
+        boolean heavy = motion.startsWith("gs_");
+        Fx.slash(w, p, heavy ? 2.6 : 2.1, vertical, reverse, Fx.WHITE);
         w.spawnParticles(ParticleTypes.SWEEP_ATTACK, o.x + f.x * 1.6, o.y, o.z + f.z * 1.6, 1, 0, 0, 0, 0);
-        if (motion.startsWith("gs_") && vertical) { // 대검 내리치기: 땅이 갈라짐
+        if (heavy && vertical) { // 대검 내리치기: 땅이 갈라짐
             Vec3d g = p.getPos().add(f.multiply(2.2));
             var ground = w.getBlockState(net.minecraft.util.math.BlockPos.ofFloored(g).down());
             if (!ground.isAir()) w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK, ground), g.x, g.y + 0.1, g.z, 25, 0.6, 0.05, 0.6, 0.2);
-            Combat.ring(w, g.add(0, 0.1, 0), 1.2, 16);
+            Fx.wave(w, g.add(0, 0.05, 0), 0.3, 2.0, Fx.WHITE, 6);
+            Fx.shakeAround(w, g, 6, 0.35f);
             w.playSound(null, g.x, g.y, g.z, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.3f, 1.6f);
         }
     }

@@ -39,7 +39,17 @@ public final class Fighter {
     long switchReadyAt;
     int switchCancels;
     long switchCancelResetAt;
-    final java.util.Map<String, Long> weaponCd = new java.util.HashMap<>();  // 무기 기술 재사용 (무기종류+번호 → 끝나는 틱)     // 허수아비: 최근 콤보 기록
+    final java.util.Map<String, Long> weaponCd = new java.util.HashMap<>();
+
+    // ── 꾹 누르는 기술 ──
+    Channel.Kind channel;
+    int channelKey;
+    String channelCdKey;
+    long channelStart, channelNext;
+    final java.util.Map<java.util.UUID, Integer> channelHits = new java.util.HashMap<>();
+
+    // ── 히트스톱 ──
+    long freezeUntil;  // 무기 기술 재사용 (무기종류+번호 → 끝나는 틱)     // 허수아비: 최근 콤보 기록
 
     // ── 때리는 쪽 ──
     int m1Index;          // 0~4 (다음에 나갈 평타, 땅·공중 합쳐서)

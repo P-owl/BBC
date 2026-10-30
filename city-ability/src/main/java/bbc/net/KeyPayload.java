@@ -20,6 +20,8 @@ public record KeyPayload(int action) implements CustomPayload {
     public static final int IMPLANT = 40, RELIC = 41, EYE = 42;
     /** + 0 앞 1 뒤 2 왼쪽 3 오른쪽 (경직 중이면 회피기) */
     public static final int DASH_BASE = 50;
+    /** + 0~4 = 숫자 칸을 뗌 (꾹 누르는 기술 끝내기) */
+    public static final int SKILL_UP_BASE = 60;
 
     public static final CustomPayload.Id<KeyPayload> ID = new CustomPayload.Id<>(Identifier.of(Bbc.MOD_ID, "key"));
     public static final PacketCodec<RegistryByteBuf, KeyPayload> CODEC =

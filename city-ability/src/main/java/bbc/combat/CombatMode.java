@@ -67,8 +67,9 @@ public final class CombatMode {
             default -> {}
         }
         if (action >= KeyPayload.DASH_BASE && action < KeyPayload.DASH_BASE + 4) { Combat.dash(p, action - KeyPayload.DASH_BASE); return; }
+        if (action >= KeyPayload.SKILL_UP_BASE && action < KeyPayload.SKILL_UP_BASE + JobSkills.SLOTS) { Channel.release(p, action - KeyPayload.SKILL_UP_BASE); return; }
         if (action >= KeyPayload.SKILL_BASE && action < KeyPayload.SKILL_BASE + JobSkills.SLOTS) {
-            if (!Combat.canAct(p)) return; // 경직·다운 중엔 기술 못 씀
+            if (!Combat.canAct(p) || Combat.channeling(p)) return; // 경직·다운·꾹 누르는 기술 중엔 기술 못 씀
             int k = action - KeyPayload.SKILL_BASE;
             if (Weapon.current(p) != null) { if (Weapon.useSkill(p, k)) Combat.afterSkill(p, 6); return; } // 무기 칸: 1·2 = 무기 기술
             if (JobSkills.useSlot(p, k)) Combat.afterSkill(p, 6);
