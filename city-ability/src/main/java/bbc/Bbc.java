@@ -1,5 +1,6 @@
 package bbc;
 
+import bbc.combat.Combat;
 import bbc.combat.CombatMode;
 import bbc.core.Commands;
 import bbc.core.Tasks;
@@ -30,6 +31,7 @@ public class Bbc implements ModInitializer {
 
         Tasks.register();
         Stamina.register();
+        Combat.register();
         CombatMode.register();
         Commands.register();
         LOG.info("BBC 도시 능력자 로드됨");

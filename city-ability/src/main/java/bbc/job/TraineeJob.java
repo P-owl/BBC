@@ -1,5 +1,7 @@
 package bbc.job;
 
+import bbc.combat.Combat;
+import bbc.combat.Hit;
 import bbc.core.PlayerData;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -37,8 +39,8 @@ public final class TraineeJob implements JobType {
 
     private static final JobSkills.Skill[] SKILLS = {
             new JobSkills.Skill("돌진", "돌진", 1, 15, 3, "바라보는 방향으로 짧게 돌진"),
-            new JobSkills.Skill("올려치기", "올려", 1, 20, 5, "앞 3칸 대상 하나를 띄움"),
-            new JobSkills.Skill("밀쳐내기", "밀침", 1, 25, 8, "주위 4칸을 밀어냄"),
+            new JobSkills.Skill("올려치기", "올려", 1, 20, 5, "앞 3칸 대상을 띄움 (공중 경직, 평타로 이어짐)"),
+            new JobSkills.Skill("밀쳐내기", "밀침", 1, 25, 8, "주위 4칸을 날려보내 다운"),
             new JobSkills.Skill("숨 고르기", "회복", 1, 30, 15, "체력 6 회복"),
             new JobSkills.Skill("도약", "도약", 1, 15, 4, "높이 뛰어오름"),
             new JobSkills.Skill("집중", "집중", 2, 40, 30, "10초 동안 신속 II (숙련 수련생부터)"),
@@ -56,16 +58,13 @@ public final class TraineeJob implements JobType {
                 case 1 -> {
                     LivingEntity t = front(p, 3);
                     if (t == null) { JobSkills.bar(p, "앞에 대상이 없습니다", Formatting.GRAY); return false; }
-                    t.damage(p.getDamageSources().playerAttack(p), 4f);
-                    t.setVelocity(t.getVelocity().x, 0.9, t.getVelocity().z);
-                    t.velocityModified = true;
+                    // 평타 콤보에 끼워 넣는 시작기: 띄우고 공중 경직 24틱
+                    Combat.hit(p, t, new Hit(3f, Hit.Kind.AIR, 24, 0.05, 0.85, 25, false, false));
                 }
                 case 2 -> {
-                    for (Entity en : w.getOtherEntities(p, p.getBoundingBox().expand(4), x -> x instanceof LivingEntity && x.isAlive())) {
-                        Vec3d d = en.getPos().subtract(p.getPos()).normalize().multiply(1.2);
-                        en.setVelocity(d.x, 0.4, d.z);
-                        en.velocityModified = true;
-                    }
+                    // 주위를 날려보내고 다운 (가드는 깨지지 않음)
+                    for (Entity en : w.getOtherEntities(p, p.getBoundingBox().expand(4), x -> x instanceof LivingEntity && x.isAlive()))
+                        Combat.hit(p, (LivingEntity) en, new Hit(2f, Hit.Kind.KNOCK, 12, 1.0, 0.4, 25, false, false));
                     w.spawnParticles(ParticleTypes.SWEEP_ATTACK, p.getX(), p.getY() + 1, p.getZ(), 6, 1.5, 0.2, 1.5, 0);
                 }
                 case 3 -> p.heal(6f);

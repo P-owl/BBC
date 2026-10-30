@@ -21,7 +21,7 @@ import java.util.UUID;
 
 /**
  * 전투 모드. 켜져 있는 동안 Z~B 키가 기술이 되고, 스태미나 보스바와 기술 액션바가 보인다.
- * 경직·가드·대시·평타 콤보 같은 실제 전투 엔진은 1~2단계에서 이 위에 얹는다.
+ * 평타·가드·대시는 Combat(전투 엔진)으로 넘긴다. 각성·스위치는 2단계.
  */
 public final class CombatMode {
     private CombatMode() {}
@@ -46,6 +46,7 @@ public final class CombatMode {
             JobSkills.bar(p, "⚔ 전투 모드", Formatting.GOLD);
         } else {
             ACTIVE.remove(p.getUuid());
+            Combat.releaseInputs(p);
             Stamina.hideBar(p);
             p.sendMessage(Text.empty(), true);
         }
@@ -56,11 +57,20 @@ public final class CombatMode {
     public static void onKey(ServerPlayerEntity p, int action) {
         if (action == KeyPayload.TOGGLE) { toggle(p); return; }
         if (!active(p)) return;
+        switch (action) {
+            case KeyPayload.M1 -> { Combat.m1(p, false); return; }
+            case KeyPayload.M1_UP -> { Combat.m1(p, true); return; }
+            case KeyPayload.GUARD_DOWN -> { Combat.guard(p, true); return; }
+            case KeyPayload.GUARD_UP -> { Combat.guard(p, false); return; }
+            default -> {}
+        }
+        if (action >= KeyPayload.DASH_BASE && action < KeyPayload.DASH_BASE + 4) { Combat.dash(p, action - KeyPayload.DASH_BASE); return; }
         if (action >= KeyPayload.SKILL_BASE && action < KeyPayload.SKILL_BASE + JobSkills.SLOTS) {
+            if (!Combat.canAct(p)) return; // 경직·다운 중엔 기술 못 씀
             JobSkills.useSlot(p, action - KeyPayload.SKILL_BASE);
             return;
         }
-        // 가드·대시·각성·스위치·임플란트·유물·마안은 1단계 이후에 연결
+        // 각성·스위치·임플란트·유물·마안은 2단계 이후에 연결
     }
 
     public static void register() {
@@ -73,7 +83,8 @@ public final class CombatMode {
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
             if (!active(p)) continue;
             if (!Jobs.hasCombat(Jobs.entry(p))) { set(p, false); continue; } // 직업을 잃음
-            p.sendMessage(JobSkills.hud(p, Jobs.entry(p)), true);
+            if (Combat.showingCombo(p)) continue;
+            p.sendMessage(Combat.hudPrefix(p).append(JobSkills.hud(p, Jobs.entry(p))), true);
         }
     }
 }

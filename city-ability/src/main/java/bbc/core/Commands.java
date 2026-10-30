@@ -23,6 +23,7 @@ import net.minecraft.util.Formatting;
  * /bbc admin job <플레이어> <직업>  직업 주기 (관리자)
  * /bbc admin quit <플레이어>        직업 없애기 (관리자)
  * /bbc admin rank <플레이어> <등급> 등급 바꾸기 (관리자)
+ * /bbc admin dummy               콤보 연습용 허수아비 소환 (관리자)
  */
 public final class Commands {
     private Commands() {}
@@ -44,6 +45,7 @@ public final class Commands {
                         .then(CommandManager.literal("quit")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .executes(c -> { ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player"); CombatMode.set(p, false); Jobs.quit(p); ok(c, p.getName().getString() + " 직업 없앰"); return 1; })))
+                        .then(CommandManager.literal("dummy").executes(c -> { bbc.combat.Combat.spawnDummy(c.getSource().getPlayerOrThrow()); return 1; }))
                         .then(CommandManager.literal("rank")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .then(CommandManager.argument("rank", IntegerArgumentType.integer(1, 99))
