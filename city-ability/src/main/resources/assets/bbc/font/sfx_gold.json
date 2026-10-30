@@ -1,0 +1,22 @@
+{
+ "providers": [
+  {
+   "type": "space",
+   "advances": {
+    " ": 4
+   }
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx_gold.png",
+   "height": 14,
+   "ascent": 11,
+   "chars": [
+    "ABCDEFGH",
+    "IJKLMNOP",
+    "QRSTUVWX",
+    "YZ!?-~.'"
+   ]
+  }
+ ]
+}

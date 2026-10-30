@@ -29,7 +29,7 @@ import org.joml.Vector3f;
  *  - 칼자국(스미어): 얇은 반투명 판(블록 디스플레이) 여러 장을 휘두른 호를 따라 차례로 띄웠다가 클라이언트 보간으로 얇아지며 사라짐
  *    (에픽파이트가 무기 끝을 따라 그리는 '트레일'과 같은 역할)
  *  - 충격파: 둥글게 놓은 판들이 보간으로 바깥으로 퍼지며 얇아짐
- *  - 타격 글자: 코믹스 효과음(BAM! THUD!)을 만화 글꼴로, 검은 테두리 + 기울임으로 툭 튀어나오게
+ *  - 타격 글자: 코믹스 효과음(BAM! THUD!)을 그림 글꼴(붓글씨 + 그라데이션 + 테두리)로, 기울여 툭 튀어나오게
  *  - 화면 흔들림·번쩍임: 클라이언트에 보냄 (CombatHud, CameraMixin)
  *  - 히트스톱: 큰 타격 때 때린 쪽·맞은 쪽을 몇 틱 멈춤 (Combat.hitStop)
  */
@@ -127,35 +127,31 @@ public final class Fx {
 
     // ═════════ 타격 글자 ═════════
 
-    public static final Identifier COMIC_FONT = Identifier.of("bbc", "comic");
-    public static final int YELLOW = 0xFFE23B, ORANGE = 0xFF8A1E, RED_TXT = 0xFF3B30, WHITE_TXT = 0xFFFFFF, CYAN = 0x5CE1FF;
+    /** 코믹스 효과음 글꼴 (tools/make_sfx_font.py 로 만든 그림 글꼴: 그라데이션 + 흰 테두리 + 검은 테두리 + 그림자) */
+    public static final String FIRE = "sfx_fire", BLOOD = "sfx_blood", ICE = "sfx_ice", TOXIC = "sfx_toxic", GOLD_SFX = "sfx_gold";
     public static final String[] HIT_WORDS = {"BAM!", "POW!", "WHAM!", "SMASH!", "KRAK!"};
+    public static final String[] HIT_STYLES = {FIRE, BLOOD, ICE};
     public static final String[] SLAM_WORDS = {"THUD!", "KRASH!", "BOOM!"};
 
-    /** 코믹스 효과음: pool 에서 하나 골라 word */
-    public static void comic(ServerWorld w, Vec3d pos, String[] pool, int color, float size) {
-        word(w, pos, pool[w.getRandom().nextInt(pool.length)], color, size);
+    /** 코믹스 효과음: 단어·색 조합을 골라 word */
+    public static void comic(ServerWorld w, Vec3d pos, String[] pool, String[] styles, float size) {
+        word(w, pos, pool[w.getRandom().nextInt(pool.length)], styles[w.getRandom().nextInt(styles.length)], size);
     }
 
-    /**
-     * 코믹스 효과음 글자 (영어, 만화 글꼴 Bangers). 검은 테두리 글자 위에 색 글자를 겹치고 ±14° 기울여 띄움.
-     * 툭 튀어나오듯 커졌다가(2틱) 살짝 줄고, 위로 떠오르며 사라짐.
-     */
-    public static void word(ServerWorld w, Vec3d pos, String s, int color, float size) {
+    /** 코믹스 효과음 글자. ±14° 기울어져 툭 튀어나오듯 커졌다가(2틱) 살짝 줄고, 위로 떠오르며 사라짐 */
+    public static void word(ServerWorld w, Vec3d pos, String s, String style, float size) {
         float tilt = (float) Math.toRadians((w.getRandom().nextFloat() * 2 - 1) * 14);
         Vec3d at = pos.add((w.getRandom().nextDouble() - 0.5) * 0.6, 0, (w.getRandom().nextDouble() - 0.5) * 0.6);
-        // 뒤: 검은 테두리 (조금 크고 오른쪽 아래로 밀림), 앞: 색 글자
-        text(w, at, s, 0x111111, size * 1.12f, tilt, new Vector3f(0.012f, -0.03f, -0.012f));
-        text(w, at, s, color, size, tilt, new Vector3f(0, 0, 0.012f));
+        text(w, at, s, Identifier.of("bbc", style), size, tilt, new Vector3f());
     }
 
-    private static void text(ServerWorld w, Vec3d pos, String s, int color, float size, float tilt, Vector3f off) {
+    private static void text(ServerWorld w, Vec3d pos, String s, Identifier font, float size, float tilt, Vector3f off) {
         DisplayEntity.TextDisplayEntity d = EntityType.TEXT_DISPLAY.create(w);
         if (d == null) return;
         d.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0, 0);
         DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
         TextDisplayAccessor ta = (TextDisplayAccessor) d;
-        ta.bbc$setText(Text.literal(s).setStyle(Style.EMPTY.withFont(COMIC_FONT).withColor(color)));
+        ta.bbc$setText(Text.literal(s).setStyle(Style.EMPTY.withFont(font).withColor(0xFFFFFF)));
         ta.bbc$setBackground(0);
         ta.bbc$setLineWidth(400);
         ta.bbc$setDisplayFlags(DisplayEntity.TextDisplayEntity.SEE_THROUGH_FLAG);   // 벽·몸에 안 가려짐

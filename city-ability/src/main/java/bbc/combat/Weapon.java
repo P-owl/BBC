@@ -161,7 +161,7 @@ public final class Weapon {
         Vec3d f = Combat.horizontal(p.getRotationVec(1f));
         Vec3d r = new Vec3d(-f.z, 0, f.x);
         Vec3d o = p.getPos().add(0, 1.15, 0);
-        if (motion.startsWith("sp_") && !motion.equals("sp_slam")) { // 찌르기: 앞으로 곧게
+        if (motion.equals("sp_thrust")) { // 찌르기: 앞으로 곧게
             double len = motion.equals("sp_thrust") ? 5.0 : 3.8;
             Fx.plate(w, o.add(f.multiply(len / 2 + 0.5)), f, new Vec3d(0, 1, 0), r, (float) len, 0.05f, 0.16f, Fx.WHITE, 4);
             w.spawnParticles(ParticleTypes.CRIT, o.x + f.x * len, o.y - 0.1, o.z + f.z * len, 6, 0.1, 0.1, 0.1, 0.2);
@@ -175,9 +175,9 @@ public final class Weapon {
         };
         boolean reverse = switch (motion) { case "sw_2", "sw_4", "sw_rise", "sp_2", "gs_2" -> true; default -> false; };
         boolean heavy = motion.startsWith("gs_");
-        boolean finisher = motion.equals("sw_5") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
+        boolean finisher = motion.equals("sw_5") || motion.equals("sp_4") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
         boolean vertical = tilt >= 90;
-        Fx.slash(w, p, heavy ? 2.6 : 2.1, tilt, reverse, finisher ? Fx.GOLD : Fx.WHITE);
+        Fx.slash(w, p, heavy || motion.startsWith("sp_") ? 2.7 : 2.1, tilt, reverse, finisher ? Fx.GOLD : Fx.WHITE);
         w.spawnParticles(ParticleTypes.SWEEP_ATTACK, o.x + f.x * 1.6, o.y, o.z + f.z * 1.6, 1, 0, 0, 0, 0);
         if (heavy && vertical) { // 대검 내리치기: 땅이 갈라짐
             Vec3d g = p.getPos().add(f.multiply(2.2));

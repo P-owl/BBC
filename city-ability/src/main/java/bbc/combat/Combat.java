@@ -480,7 +480,7 @@ public final class Combat {
                 hitStop(a, v, 3);
                 Fx.shake(atk, 0.45f); Fx.shake(t, 0.8f);
                 Fx.wave(w, c, 0.4, 2.2, Fx.WHITE, 6);
-                Fx.comic(w, c.add(0, 1.3, 0), Fx.HIT_WORDS, Fx.YELLOW, 1.7f);
+                Fx.comic(w, c.add(0, 1.3, 0), Fx.HIT_WORDS, Fx.HIT_STYLES, 1.7f);
             }
             case DOWN -> { hitStop(a, v, 2); Fx.shake(atk, 0.35f); Fx.shake(t, 0.6f); }
             case AIR -> { if (h.lift() >= 0.7) { Fx.shake(atk, 0.25f); Fx.shake(t, 0.4f); } else Fx.shake(t, 0.12f); }
@@ -673,7 +673,7 @@ public final class Combat {
                     sound(e, SoundEvents.ENTITY_GENERIC_EXPLODE.value(), 0.5f, 1.4f);
                     sound(e, SoundEvents.BLOCK_ANVIL_LAND, 0.35f, 1.6f);
                     Fx.wave(w, e.getPos().add(0, 0.05, 0), 0.6, 4.6, Fx.WHITE, 8);
-                    Fx.comic(w, e.getPos().add(0, 2.0, 0), Fx.SLAM_WORDS, Fx.ORANGE, 1.9f);
+                    Fx.comic(w, e.getPos().add(0, 2.0, 0), Fx.SLAM_WORDS, new String[]{Fx.GOLD_SFX}, 1.9f);
                     Fx.shakeAround(w, e.getPos(), 10, 0.9f);
                 }
                 if (now >= f.stateUntil) {
