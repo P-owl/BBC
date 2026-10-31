@@ -27,7 +27,9 @@ public final class Fighter {
     long bounceUntil;     // 튕김 중: 기술이 들어가는 창
     long tetherUntil;     // 띄운 직후 '정렬' 중: 가로 위치가 띄운 사람 앞에 묶임 (ABA 공중 콤보 초입 위치 보정)
     LivingEntity tetherBy;
-    long straightUntil;   // 드롭킥 맞고 수평으로 날아가는 중 (중력 무시)
+    long straightUntil;
+    boolean fallLock;     // 다운 슬램을 맞힌 뒤 땅에 닿을 때까지 아무것도 못 함 (ABA 위키)
+    long lastDashAt = -100;   // 드롭킥 맞고 수평으로 날아가는 중 (중력 무시)
     net.minecraft.util.math.Vec3d resumeVel; // 히트스톱 풀릴 때 돌려줄 속도
     int sentStun = -1;    // 클라이언트에 마지막으로 보낸 경직 (붉은 칠)
     boolean freshHit;     // 방금 맞음 → 클라이언트 움찔 다시 시작

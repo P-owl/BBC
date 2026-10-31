@@ -99,7 +99,7 @@ public final class Combat {
     /** 기술·평타를 쓸 수 있는 상태인가 (경직·다운·가드 깨짐이 아님) */
     public static boolean canAct(LivingEntity e) {
         Fighter f = peek(e);
-        return f == null || !f.stunned();
+        return f == null || (!f.stunned() && !f.fallLock);
     }
 
     /** 직업 HUD 앞에 붙는 전투 상태 (가드 게이지·회피기) */
@@ -152,7 +152,7 @@ public final class Combat {
     /** 평타 입력. up = 스페이스를 누른 채 (띄우기·래더) */
     public static void m1(LivingEntity p, boolean up) { // 플레이어 입력과 몬스터 AI 가 같이 쓴다
         Fighter a = of(p);
-        if (a.stunned() || a.guardHeld || a.dashTicks > 0 || a.channel != null) return;
+        if (a.stunned() || a.guardHeld || a.dashTicks > 0 || a.channel != null || a.fallLock) return;
         if (now < a.m1ReadyAt) {
             if (a.m1ReadyAt - now <= Tuning.INPUT_BUFFER) { a.buffered = up ? 2 : 1; a.bufferedAt = now; }
             return;
@@ -168,9 +168,11 @@ public final class Combat {
     private static void doM1(LivingEntity p, Fighter a, boolean up) {
         a.buffered = 0;
         if (now > a.m1ChainUntil) a.m1Index = 0;
-        boolean air = !p.isOnGround() && now < a.airComboUntil;
         int idx = a.m1Index;
         Weapon.M1Profile pr = Weapon.profile(p);   // 맨손·검·창·대검마다 사슬 길이·속도가 다름
+        // 막타는 내가 공중이면 (띄운 콤보든 그냥 점프든) 공중 막타: 스페이스 뗌 = 다운 슬램, 누름 = 에어킥.
+        // ABA 테크 "4타 → 기다림 → 점프 → 막타" 로 땅에 선 상대에게도 슬램·에어킥이 들어감
+        boolean air = !p.isOnGround() && (now < a.airComboUntil || idx >= pr.hits() - 1);
         boolean weapon = pr != Weapon.FIST;
         if (idx < pr.hits() - 1) {
             a.m1Index++;
@@ -189,8 +191,9 @@ public final class Combat {
                 });
             } else {
                 track(p);
+                Hit m1h = idx == pr.hits() - 2 ? Tuning.M1.withStun(Tuning.M1.stun() + Tuning.PRE_FINISH_STUN_BONUS) : Tuning.M1;
                 swing(p, a, pr.motion() + (idx + 1), pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP,
-                        () -> hitArea(p, Tuning.M1, false));
+                        () -> hitArea(p, m1h, false));
             }
             return;
         }
@@ -205,6 +208,7 @@ public final class Combat {
                 Vec3d lunge = new Vec3d(fw.x * Tuning.DROPKICK_LUNGE, 0.08, fw.z * Tuning.DROPKICK_LUNGE);
                 setVel(p, lunge);
                 if (n > 0 && now < a.freezeUntil) a.resumeVel = lunge;
+                if (n > 0) { a.straightUntil = now + 3 + 5; Fx.kickStreak((ServerWorld) p.getWorld(), p.getPos().add(fw.multiply(1.8)).add(0, 1.0, 0), fw); }
             });
         } else if (air) {
             swing(p, a, weapon ? pr.motion() + "slam" : "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
@@ -219,6 +223,7 @@ public final class Combat {
                     setVel(p, new Vec3d(0, Tuning.SLAM_HANG_VY, 0));
                     if (now < a.freezeUntil) a.resumeVel = new Vec3d(0, Tuning.SLAM_HANG_VY, 0);   // 히트스톱 뒤에 이 속도로
                     a.m1ReadyAt = Math.max(a.m1ReadyAt, now + Tuning.SLAM_M1_LOCK);
+                    a.fallLock = true;   // 땅에 닿을 때까지 기술·대시도 못 씀
                 } else setVel(p, new Vec3d(0, -0.6, 0));
             });
         } else if (up) {
@@ -288,7 +293,9 @@ public final class Combat {
         if (pr.dmgMul() != 1f) h = h.withDamage(h.damage() * pr.dmgMul());
         FROM_M1.set(true);
         try {
-            for (LivingEntity t : sphere(p, Tuning.M1_REACH + pr.reachAdd(), Tuning.M1_RADIUS, Tuning.M1_MAX_TARGETS)) {
+            Fighter af = peek(p);
+            double dashReach = af != null && now - af.lastDashAt <= Tuning.DASH_M1_WINDOW ? Tuning.DASH_M1_REACH : 0;
+            for (LivingEntity t : sphere(p, Tuning.M1_REACH + pr.reachAdd() + dashReach, Tuning.M1_RADIUS, Tuning.M1_MAX_TARGETS)) {
                 if (ladder) {
                     Fighter v = peek(t);
                     if (v == null || v.ladderUsed || v.state != Fighter.State.AIR) continue;
@@ -359,8 +366,8 @@ public final class Combat {
         if (now < v.invulnUntil) return Result.MISS;
         // 쓰러진 상대: 슬램 착지 뒤 튕김 창 안이면 기술(익스텐더)만 들어가 다시 띄움.
         // 평타로 일으켜 세우는 건 막음 — 평타만으로 슬램 → 평타 → 띄우기 → 공중 → 슬램 이 무한히 돌았음 (ABA 도 슬램 뒤엔 기술로만 이음)
-        boolean downOpen = v.state == Fighter.State.DOWN && now < v.bounceUntil && !FROM_M1.get();
-        boolean bounce = downOpen;
+        boolean downOpen = v.state == Fighter.State.DOWN && now < v.bounceUntil;
+        boolean bounce = downOpen && !FROM_M1.get();   // 기술은 다시 띄움, 평타는 일반 경직 (슬램한 본인은 평타 막힘 24틱이라 못 넣음)
         if (v.state == Fighter.State.DOWN && !h.downHit() && !downOpen) return Result.MISS;
 
         // 가드·패링 (앞에서 온 공격만, 평상 상태이고 후딜이 아닐 때)
@@ -390,7 +397,7 @@ public final class Combat {
         // 튕김 중인 상대에게 들어간 기술은 다시 띄움 (익스텐더)
         if (bounce && (h.kind() == Hit.Kind.HIT || h.kind() == Hit.Kind.DOWN))
             h = new Hit(h.damage(), Hit.Kind.AIR, Math.max(h.stun(), 16), h.push() * 0.5, Math.max(h.lift(), 0.45), h.guardDmg(), h.guardBreak(), h.downHit());
-        if (downOpen) v.bounceUntil = 0;
+        if (bounce) v.bounceUntil = 0;
 
         // 콤보 보정
         Fighter a = of(atk);
@@ -625,7 +632,7 @@ public final class Combat {
     public static void dash(LivingEntity p, int dir) {
         Fighter f = of(p);
         if (f.state == Fighter.State.HITSTUN || f.state == Fighter.State.AIR || f.state == Fighter.State.GUARD_BROKEN) { evade(p, f); return; }
-        if (f.state == Fighter.State.DOWN) return;
+        if (f.state == Fighter.State.DOWN || f.fallLock) return;
         if (now < f.dashCdUntil) return;
         boolean cancel = now < f.recoveryUntil;
         double cost = cancel ? Tuning.DASH_CANCEL_COST : Tuning.DASH_COST;
@@ -639,6 +646,7 @@ public final class Combat {
         f.dashVel = d.multiply(Tuning.DASH_SPEED);
         f.dashChase = false;
         f.dashTicks = Tuning.DASH_TICKS;
+        f.lastDashAt = now;
         f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
         f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
         Motion.play(p, switch (dir) { case 1 -> "dash_b"; case 2 -> "dash_l"; case 3 -> "dash_r"; default -> "dash_f"; });
@@ -661,6 +669,7 @@ public final class Combat {
         f.dashVel = dest.subtract(p.getPos()).multiply(1.0 / Tuning.DASH_TICKS);
         f.dashChase = true;
         f.dashTicks = Tuning.DASH_TICKS;
+        f.lastDashAt = now;
         f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
         f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
         if (v.state == Fighter.State.AIR) f.airComboUntil = Math.max(f.airComboUntil, now + Tuning.DASH_TICKS + 24);
@@ -759,6 +768,7 @@ public final class Combat {
                 f.guardGauge = Math.min(Tuning.GUARD_MAX, f.guardGauge + Tuning.GUARD_REGEN_PER_TICK);
 
             // 히트스톱: 멈춘 동안 제자리
+            if (f.fallLock && (e.isOnGround() || e.isTouchingWater() || f.stunned() || !e.isAlive())) f.fallLock = false;
             if (now < f.tetherUntil) tether(e, f);
             if (now < f.straightUntil && now >= f.freezeUntil && !e.isOnGround()) { Vec3d sv = e.getVelocity(); setVel(e, new Vec3d(sv.x, Math.max(sv.y, 0.0), sv.z)); }
             if (now < f.freezeUntil) setVel(e, Vec3d.ZERO);

@@ -148,15 +148,15 @@ anim("slam", 14,
     + P(9, LIN, body=(-50, 0, 0), head=(-28, 0, 0), rightArm=(-48, -6, 4, -8), leftArm=(-48, 6, -4, -8))
     + P(14, IO, **STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
 
-# 드롭킥 (ABA): 공중에서 무릎을 가슴까지 당겼다가 → 몸을 거의 눕히며 두 발을 앞으로 쭉 뻗어 참. 팔은 머리 뒤로 젖힘
+# 드롭킥 (ABA): 몸을 살짝 옆으로 틀며 무릎을 가슴까지 당겼다가 → 몸을 완전히 눕혀(수평) 두 발을 앞으로 쭉 뻗고 상대를 따라 날아감. 팔은 머리 뒤로
 anim("dropkick", 14,
     P(0, LIN, **STANCE, rightLeg=(-30, 0, 0, 60), leftLeg=(-30, 0, 0, 60))
-    + P(1, EX, body=(24, 0, 0), head=(8, 0, 0), rightArm=(-150, 0, 22, -40), leftArm=(-150, 0, -22, -40),
-        rightLeg=(-95, 0, 4, 115), leftLeg=(-95, 0, -4, 115))
-    + P(3, LIN, body=(28, 0, 0), rightLeg=(-100, 0, 4, 120), leftLeg=(-100, 0, -4, 120))
-    + P(4, EX, body=(66, 0, 0), head=(48, 0, 0), rightArm=(-170, 0, 32, -6), leftArm=(-170, 0, -32, -6),
-        rightLeg=(-28, 0, 5, 0), leftLeg=(-24, 0, -5, 0))
-    + P(9, LIN, body=(62, 0, 0), head=(44, 0, 0), rightLeg=(-30, 0, 5, 4), leftLeg=(-26, 0, -5, 4))
+    + P(1, EX, body=(26, 0, 10), head=(10, 0, 0), rightArm=(-150, 0, 22, -40), leftArm=(-150, 0, -22, -40),
+        rightLeg=(-100, 0, 4, 120), leftLeg=(-100, 0, -4, 120))
+    + P(3, LIN, body=(32, 0, 14), rightLeg=(-105, 0, 4, 125), leftLeg=(-105, 0, -4, 125))
+    + P(4, EX, body=(84, 0, 18), head=(62, 0, -10), rightArm=(-175, 0, 26, -4), leftArm=(-165, 0, -36, -8),
+        rightLeg=(-14, 0, 4, 0), leftLeg=(-8, 0, -4, 0))
+    + P(10, LIN, body=(80, 0, 16), head=(58, 0, -10), rightLeg=(-16, 0, 4, 4), leftLeg=(-10, 0, -4, 4))
     + P(14, IO, **STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
 
 # 각성: 웅크렸다가 두 팔을 벌리며 가슴을 펴고 하늘을 봄 (밀어내기와 같이)

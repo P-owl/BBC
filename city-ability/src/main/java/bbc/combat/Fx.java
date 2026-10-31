@@ -281,6 +281,24 @@ public final class Fx {
         }
     }
 
+    /**
+     * 드롭킥 (ABA): 맞은 자리에서 뒤쪽(차는 쪽)으로 길게 뻗는 흰 원뿔 줄기 + 날아가는 방향에 수직인 고리
+     */
+    public static void kickStreak(ServerWorld w, Vec3d at, Vec3d dir) {
+        Vec3d d = dir.normalize();
+        Vec3d side = d.crossProduct(new Vec3d(0, 1, 0)).normalize();
+        Vec3d up = d.crossProduct(side).normalize();
+        var rnd = w.getRandom();
+        for (int i = 0; i < 9; i++) {
+            float len = 2.5f + rnd.nextFloat() * 3.0f;
+            double spread = 0.15 + 0.5 * (i / 9.0);
+            Vec3d off = side.multiply((rnd.nextDouble() - 0.5) * spread * 2).add(up.multiply((rnd.nextDouble() - 0.5) * spread * 1.6));
+            Vec3d c = at.add(off).subtract(d.multiply(len * 0.5));
+            plate(w, c, d, up, side, len, 0.03f, 0.08f + rnd.nextFloat() * 0.08f, PAPER, 4 + rnd.nextInt(3));
+        }
+        Tasks.later(2, () -> ring3d(w, at.add(d.multiply(0.6)), d, 0.4, 2.4, 0.25f, 6, PAPER));
+    }
+
     /** 집중선 (화면 가장자리에서 가운데로 몰리는 검은 선) */
     public static void lines(LivingEntity e, float strength) {
         if (e instanceof ServerPlayerEntity p && ServerPlayNetworking.canSend(p, FxPayload.ID))

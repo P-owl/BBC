@@ -30,19 +30,19 @@ public final class Tuning {
     public static final int SLAM_STARTUP = 4, SLAM_RECOVERY = 6;
     public static final Hit SLAM = new Hit(2.0f, Hit.Kind.DOWN, 20, 0.1, -1.6, 20, false, false);
     /** ABA 규칙: 다운 슬램을 맞힌 쪽은 평타가 잠깐 막힘 → 바로 이으려면 기술(익스텐더)을 써야 함. 평타는 막힘이 풀린 뒤에야 들어감 */
-    public static final int SLAM_M1_LOCK = 12;
+    public static final int SLAM_M1_LOCK = 24;   // 쓰러진 상대가 일어나기(착지 후 20틱)보다 길게 → 평타만으로는 못 이음
     /** 슬램 맞힌 뒤 내 몸: 살짝 떠올랐다가 상대보다 늦게 착지 */
     public static final double SLAM_HANG_VY = 0.18;
     /** 튕김: 꽂힌 상대가 이만큼 튀어 오르고, 이 틱 동안은 기술(익스텐더)만 들어가 다시 띄움.
      *  평타는 안 들어감 (평타만으로 슬램 → 평타 → 띄우기 → 슬램 무한 콤보가 됐었음) → 평타 콤보는 슬램에서 끝, 기술 쿨타임이 콤보 길이를 정함 */
     public static final double BOUNCE_VY = 0.32;
-    public static final int BOUNCE_WINDOW = 22;
+    public static final int BOUNCE_WINDOW = 20;   // ABA 위키: 슬램 맞으면 1초 경직
     /** 공중 래더: 공중에서 스페이스를 누른 채 5타째 → 둘 다 다시 띄우고 사슬 처음부터 (상대당 콤보 1번) */
     /** 드롭킥 (ABA): 공중에서 스페이스를 누른 채 5타째 → 두 발로 차서 상대를 거의 수평으로 멀리 날림 (날아가는 동안 중력 무시 STRAIGHT 틱).
      *  나도 앞으로 조금 날아감. 대시로 쫓아가 이을 수 있음 */
-    public static final Hit DROPKICK = new Hit(2.0f, Hit.Kind.KNOCK, 16, 1.35, 0.12, 25, false, false);
+    public static final Hit DROPKICK = new Hit(1.5f, Hit.Kind.KNOCK, 16, 1.35, 0.12, 25, false, false);   // ABA: 평타 4.1 → 드롭킥 6
     public static final int DROPKICK_STARTUP = 4, DROPKICK_RECOVERY = 8, DROPKICK_STRAIGHT = 8;
-    public static final double DROPKICK_LUNGE = 0.55;
+    public static final double DROPKICK_LUNGE = 0.9;   // ABA: 차는 쪽도 몸을 눕힌 채 상대를 따라 쭉 날아감
     /** (예전 래더, 지금은 안 씀) */
     public static final Hit LADDER = new Hit(1.0f, Hit.Kind.AIR, 24, 0.05, 0.7, 12, false, false);
     public static final double LADDER_VY = 0.62;
@@ -51,7 +51,12 @@ public final class Tuning {
     /** 지상 익스텐더: 땅에서 기술로 맞힌 경직의 최소값. 기술 후딜(6) + 평타 선딜(4) + 여유 → 기술 뒤 평타가 이어짐 */
     public static final int SKILL_MIN_STUN = 16;
     /** 평타 사슬이 끊기는 시간 (마지막 평타 후). 박자를 일부러 늦춰도 이어지게 넉넉히 */
-    public static final int CHAIN_RESET = 14;
+    public static final int CHAIN_RESET = 24;   // ABA 고급 평타 테크: 4타 뒤 0.5~1초 기다렸다 점프 + 막타 (땅에서 슬램·에어킥)
+    /** 막타 직전 타(4타째) 경직 보너스: 기다렸다 점프해서 막타를 넣는 테크가 들어가게 */
+    public static final int PRE_FINISH_STUN_BONUS = 8;
+    /** 대시 중이나 직후(이 틱 안) 평타는 판정이 더 멀리 닿음 (ABA M1 가이드) */
+    public static final int DASH_M1_WINDOW = 8;
+    public static final double DASH_M1_REACH = 1.0;
     /** 입력 버퍼: 다음 평타가 가능해지기 이 틱 전부터 누른 건 기억했다가 바로 나감 */
     public static final int INPUT_BUFFER = 4;
     /** 평타 판정: 내 앞 REACH 칸에 중심을 둔 구 (반지름 RADIUS). 직업마다 바꿀 수 있게 나중에 직업 쪽으로 옮긴다 */
@@ -88,7 +93,7 @@ public final class Tuning {
     public static final int GUARD_REGEN_DELAY = 40;                         // 2초 안 막으면 회복
     public static final float GUARD_DAMAGE_TAKEN = 0.2f;                    // 피해 80% 감소
     public static final double GUARD_SPEED = -0.6;                          // 가드 중 이동 -60%
-    public static final int GUARD_BROKEN_STUN = 30;
+    public static final int GUARD_BROKEN_STUN = 20;   // ABA 위키: 가드 브레이크 = 1초 경직
     public static final double VANILLA_GUARD_DMG = 12;                      // 몬스터 공격을 막을 때
     /**
      * 패링: 누르는 순간 3틱(0.15초)만 패링 창. 헛치면 1.5초, 성공해도 2.5초 동안 다시 패링 못 함 (막기만 됨).
