@@ -96,7 +96,6 @@ public final class CombatMode {
             if (ServerPlayNetworking.canSend(p, bbc.net.SkillHudPayload.ID)) {
                 var job = Jobs.type(Jobs.entry(p));
                 ServerPlayNetworking.send(p, w != null ? Weapon.hudPayload(p, w) : JobSkills.hudPayload(p, Jobs.entry(p), job == null ? "" : job.name()));
-                if (clock % 20 == 0) p.sendMessage(Combat.hudPrefix(p), true);
             } else if (clock % 12 == 0)
                 p.sendMessage(Combat.hudPrefix(p).append(w != null ? Weapon.hud(p, w) : JobSkills.hud(p, Jobs.entry(p))), true);
         }

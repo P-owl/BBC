@@ -218,5 +218,8 @@ public final class Awaken {
         int left = f == null || now >= f.awakenUntil ? 0 : (int) (f.awakenUntil - now);
         ServerPlayNetworking.send(p, new AwakenPayload(g, left, f != null && left > 0 && !f.ultUsed,
                 (int) bbc.job.Stamina.get(p), (int) bbc.job.Stamina.max(p)));
+        if (f != null && ServerPlayNetworking.canSend(p, bbc.net.StatusPayload.ID))
+            ServerPlayNetworking.send(p, new bbc.net.StatusPayload((int) f.guardGauge + (f.guardHeld ? 1000 : 0),
+                    (int) Math.max(0, f.evadeCdUntil - now), (int) Math.max(0, f.parryLockUntil - now)));
     }
 }

@@ -27,6 +27,7 @@ public class Bbc implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(CombatStatePayload.ID, CombatStatePayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.SkillHudPayload.ID, bbc.net.SkillHudPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.TargetPayload.ID, bbc.net.TargetPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.StatusPayload.ID, bbc.net.StatusPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(MotionPayload.ID, MotionPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.StunPayload.ID, bbc.net.StunPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.ComboPayload.ID, bbc.net.ComboPayload.CODEC);

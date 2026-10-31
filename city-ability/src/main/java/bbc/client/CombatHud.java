@@ -88,6 +88,9 @@ final class CombatHud {
         ClientPlayNetworking.registerGlobalReceiver(bbc.net.SkillHudPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             skTitle = p.title(); skNames = p.names(); skState = p.state(); skLeft = p.left(); skMax = p.max(); skAt = clock;
         }));
+        ClientPlayNetworking.registerGlobalReceiver(bbc.net.StatusPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
+            guardHeldHud = p.guard() >= 1000; guard = p.guard() % 1000; evadeLeft = p.evadeLeft(); parryLeft = p.parryLeft();
+        }));
         ClientPlayNetworking.registerGlobalReceiver(bbc.net.TargetPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             if (p.entityId() != targetId) targetShownHp = -1;
             targetId = p.entityId(); targetAt = clock;
@@ -219,27 +222,50 @@ final class CombatHud {
         m.pop();
     }
 
-    /** 화면 위 가운데 각성 막대 (ABA의 PRESS G 막대처럼). 각성 중엔 남은 시간 */
+    /**
+     * HUD 크기: 마인크래프트 'GUI 크기'가 커도 우리 HUD 는 GUI 크기 2 일 때 크기로 고정 (화면을 덜 가림).
+     * 그리는 동안 이 배율로 줄이고, 좌표는 줄인 화면 기준(가상 W·H)으로 계산
+     */
+    static float hudScale(MinecraftClient c) {
+        double g = c.getWindow().getScaleFactor();
+        return (float) Math.min(1.0, 2.0 / Math.max(1.0, g));
+    }
+
+    /** 색의 투명도만 f 배 */
+    static int fade(int argb, float f) {
+        int a = (argb >>> 24) & 0xFF;
+        return ((int) (a * f) << 24) | (argb & 0xFFFFFF);
+    }
+
+    /** 화면 위 가운데 얇은 각성 막대 (ABA PRESS G). 각성 중엔 남은 시간 */
     private static void awakenBar(DrawContext ctx, MinecraftClient c) {
         TextRenderer tr = c.textRenderer;
-        int w = 182, h = 9, x = (ctx.getScaledWindowWidth() - w) / 2, y = 6;
-        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF000000);
-        ctx.fill(x, y, x + w, y + h, 0xFF3A0A0A);
+        float k = hudScale(c);
+        var m = ctx.getMatrices();
+        m.push();
+        m.scale(k, k, 1);
+        int Wv = (int) (ctx.getScaledWindowWidth() / k);
+        int w = 140, h = 6, x = (Wv - w) / 2, y = 4;
+        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xCC000000);
+        ctx.fill(x, y, x + w, y + h, 0xAA3A0A0A);
         String label;
         int text = 0xFFFFFFFF;
         if (awLeft > 0) {
-            int fw = (int) (w * Math.min(1.0, awLeft / 900.0));
-            ctx.fill(x, y, x + fw, y + h, 0xFFE0A020);
-            label = "각성 " + (awLeft / 20 + 1) + "초" + (awUlt ? "  ·  G 각성기" : "");
+            ctx.fill(x, y, x + (int) (w * Math.min(1.0, awLeft / 900.0)), y + h, 0xFFE0A020);
+            label = "각성 " + (awLeft / 20 + 1) + "초" + (awUlt ? " · G 각성기" : "");
         } else {
-            int fw = (int) (w * awGauge / 100.0);
             boolean full = awGauge >= 100;
             int col = full ? ((clock / 5) % 2 == 0 ? 0xFFFF3030 : 0xFFC01818) : 0xFFC01818;
-            ctx.fill(x, y, x + fw, y + h, col);
+            ctx.fill(x, y, x + (int) (w * awGauge / 100.0), y + h, col);
             label = full ? "PRESS G" : "각성 " + awGauge + "%";
             if (!full) text = 0xFFDDDDDD;
         }
-        ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), x + w / 2, y + 1, text);
+        m.push();
+        m.translate(x + w / 2f, y + 0.5f, 0);
+        m.scale(0.6f, 0.6f, 1);
+        ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), 0, 0, text);
+        m.pop();
+        m.pop();
     }
 
     /** 화면 흔들림: 8틱 동안 줄어드는 떨림 (세기 1 ≈ 2.5°) */
@@ -277,65 +303,102 @@ final class CombatHud {
         ctx.draw();
     }
 
+    private static int guard = 100, evadeLeft, parryLeft;
+    private static boolean guardHeldHud;
+
     /**
-     * 기술 카드 (ABA): 핫바 위에 빨간 카드가 칸마다 하나. 왼쪽 위 숫자키, 가운데 기술 이름.
-     * 재사용 중이면 위에서부터 어둡게 덮이고 남은 초, 못 쓰면(등급·자원) 회색
+     * 기술 카드 (ABA): 핫바 오른쪽 옆에 작은 빨간 카드 5장 (숫자키·기술 이름). 핫바·화면 가운데를 가리지 않음.
+     * 재사용 중이면 위에서부터 어둡게 덮이고 남은 초, 못 쓰면 회색. 한동안 싸우지 않고 전부 준비돼 있으면 반투명.
+     * 카드 위 한 줄: 칸 이름 · 회피 · 패링 · 가드 게이지 (예전 액션바 글자)
      */
     private static void skillCards(DrawContext ctx, MinecraftClient c) {
         if (clock - skAt > 40 || skNames.isEmpty()) return;
         TextRenderer tr = c.textRenderer;
-        int n = skNames.size(), cw = 46, ch = 28, gap = 3;
-        int W = ctx.getScaledWindowWidth(), H = ctx.getScaledWindowHeight();
+        float k = hudScale(c);
+        var m = ctx.getMatrices();
+        m.push();
+        m.scale(k, k, 1);
+        float Wr = ctx.getScaledWindowWidth(), Hr = ctx.getScaledWindowHeight();
+        int Wv = (int) (Wr / k), Hv = (int) (Hr / k);
+        int n = skNames.size(), cw = 34, ch = 20, gap = 2;
         int total = n * cw + (n - 1) * gap;
-        int x0 = W / 2 - total / 2, y0 = H - 22 - 12 - 9 - ch - 4;
-        if (!skTitle.isEmpty()) ctx.drawTextWithShadow(tr, skTitle, x0, y0 - 10, 0xFFFFD27A);
+        int x0 = (int) ((Wr / 2 + 91) / k) + 6, y0 = Hv - ch - 3;
+        if (x0 + total > Wv - 3) { x0 = Wv - 3 - total; y0 = (int) ((Hr - 22) / k) - ch - 14; }   // 자리가 모자라면 핫바 위 오른쪽
+        boolean anyCd = skState.contains(1);
+        boolean idle = !anyCd && clock - comboAt > 100 && clock - targetAt > 100 && !guardHeldHud;
+        float f = idle ? 0.45f : 1f;
+        // 윗줄 상태
+        StringBuilder sb = new StringBuilder(skTitle);
+        sb.append(sb.length() > 0 ? "  " : "").append(evadeLeft > 0 ? "회피 " + (evadeLeft / 20 + 1) + "s" : "회피 ✔");
+        if (parryLeft > 0) sb.append("  패링 ").append(parryLeft / 20 + 1).append("s");
+        if (guardHeldHud || guard < 100) sb.append("  가드 ").append(guard);
+        m.push();
+        m.translate(x0, y0 - 7, 0);
+        m.scale(0.6f, 0.6f, 1);
+        ctx.drawTextWithShadow(tr, sb.toString(), 0, 0, fade(guard < 30 ? 0xFFFF7060 : 0xFFFFD27A, f));
+        m.pop();
         for (int i = 0; i < n; i++) {
             int x = x0 + i * (cw + gap), y = y0;
             String name = skNames.get(i);
             int st = skState.get(i);
             boolean empty = name.isEmpty();
-            int bg = empty ? 0x66303030 : st == 2 ? 0xCC4A4A4A : 0xDDB3141E;
-            ctx.fill(x - 1, y - 1, x + cw + 1, y + ch + 1, empty ? 0x66000000 : 0xFF3A0508);
-            ctx.fill(x, y, x + cw, y + ch, bg);
-            if (!empty && st != 2) ctx.fill(x, y, x + cw, y + ch / 2, 0x22FFFFFF);   // 위쪽 밝은 띠
-            ctx.drawTextWithShadow(tr, String.valueOf(i + 1), x + 2, y + 2, 0xFFFFFFFF);
-            if (empty) continue;
-            // 이름: 카드 폭에 맞게 줄임
-            var m = ctx.getMatrices();
-            float sc = Math.min(0.8f, (cw - 4) / (float) Math.max(1, tr.getWidth(name)));
+            int bg = empty ? 0x55303030 : st == 2 ? 0xCC4A4A4A : 0xDDB3141E;
+            ctx.fill(x - 1, y - 1, x + cw + 1, y + ch + 1, fade(empty ? 0x55000000 : 0xFF3A0508, f));
+            ctx.fill(x, y, x + cw, y + ch, fade(bg, f));
+            if (!empty && st != 2) ctx.fill(x, y, x + cw, y + ch / 2, fade(0x22FFFFFF, f));
             m.push();
-            m.translate(x + cw / 2f, y + ch / 2f + 1, 0);
+            m.translate(x + 1.5f, y + 1.5f, 0);
+            m.scale(0.6f, 0.6f, 1);
+            ctx.drawTextWithShadow(tr, String.valueOf(i + 1), 0, 0, fade(0xFFFFFFFF, f));
+            m.pop();
+            if (empty) continue;
+            float sc = Math.min(0.6f, (cw - 3) / (float) Math.max(1, tr.getWidth(name)));
+            m.push();
+            m.translate(x + cw / 2f, y + ch / 2f + 2, 0);
             m.scale(sc, sc, 1);
-            ctx.drawCenteredTextWithShadow(tr, name, 0, -4, st == 2 ? 0xFFAAAAAA : 0xFFFFFFFF);
+            ctx.drawCenteredTextWithShadow(tr, name, 0, -4, fade(st == 2 ? 0xFFAAAAAA : 0xFFFFFFFF, f));
             m.pop();
             if (st == 1) {
                 int left = skLeft.get(i), max = Math.max(1, skMax.get(i));
                 int hgt = Math.min(ch, Math.round(ch * Math.min(1f, left / (float) max)));
                 ctx.fill(x, y, x + cw, y + hgt, 0xB0000000);
                 String sec = left >= 100 ? String.valueOf((left + 9) / 10) : String.format("%.1f", left / 10f);
-                ctx.drawCenteredTextWithShadow(tr, sec, x + cw / 2, y + ch - 10, 0xFFFFE070);
+                m.push();
+                m.translate(x + cw / 2f, y + ch - 6, 0);
+                m.scale(0.6f, 0.6f, 1);
+                ctx.drawCenteredTextWithShadow(tr, sec, 0, 0, 0xFFFFE070);
+                m.pop();
             }
         }
+        m.pop();
     }
 
-    /** 때린 상대: 화면 위 각성 막대 아래에 이름·체력(빨강, 깎인 만큼 흰색이 천천히 따라옴)·경직 표시 (6초 안 때리면 사라짐) */
+    /** 때린 상대: 각성 막대 바로 아래 얇은 막대 (이름·체력·경직). 6초 안 때리면 사라짐 */
     private static void targetBar(DrawContext ctx, MinecraftClient c) {
         if (targetId < 0 || clock - targetAt > 120 || c.world == null) return;
         if (!(c.world.getEntityById(targetId) instanceof net.minecraft.entity.LivingEntity t) || !t.isAlive()) { targetId = -1; return; }
         TextRenderer tr = c.textRenderer;
-        int W = ctx.getScaledWindowWidth(), w = 160, h = 7;
-        int x = W / 2 - w / 2, y = 34;
+        float k = hudScale(c);
+        var m = ctx.getMatrices();
+        m.push();
+        m.scale(k, k, 1);
+        int Wv = (int) (ctx.getScaledWindowWidth() / k), w = 110, h = 4;
+        int x = Wv / 2 - w / 2, y = 15;
         float hp = Math.max(0, t.getHealth()), max = Math.max(1, t.getMaxHealth());
         if (targetShownHp < 0 || targetShownHp < hp) targetShownHp = hp;
         else targetShownHp = Math.max(hp, targetShownHp - max * 0.01f);
         boolean stunned = STUN.containsKey(targetId) && STUN.get(targetId) > clock;
-        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF101010);
-        ctx.fill(x, y, x + w, y + h, 0xFF3A3A3A);
+        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xCC101010);
+        ctx.fill(x, y, x + w, y + h, 0xAA3A3A3A);
         ctx.fill(x, y, x + Math.round(w * targetShownHp / max), y + h, 0xFFF0F0F0);
         ctx.fill(x, y, x + Math.round(w * hp / max), y + h, stunned ? 0xFFE0281E : 0xFF35C83A);
-        for (int k = 1; k < 10; k++) ctx.fill(x + w * k / 10, y, x + w * k / 10 + 1, y + h, 0x55000000);   // 칸 나눔
-        String label = t.getDisplayName().getString() + (stunned ? "  경직" : "");
-        ctx.drawCenteredTextWithShadow(tr, label, W / 2, y + h + 2, stunned ? 0xFFFF6A5A : 0xFFE0E0E0);
+        for (int q = 1; q < 10; q++) ctx.fill(x + w * q / 10, y, x + w * q / 10 + 1, y + h, 0x55000000);
+        m.push();
+        m.translate(Wv / 2f, y + h + 1.5f, 0);
+        m.scale(0.55f, 0.55f, 1);
+        ctx.drawCenteredTextWithShadow(tr, t.getDisplayName().getString() + (stunned ? "  경직" : ""), 0, 0, stunned ? 0xFFFF6A5A : 0xFFE0E0E0);
+        m.pop();
+        m.pop();
     }
 
     private static void render(DrawContext ctx) {
@@ -350,19 +413,23 @@ final class CombatHud {
         long age = clock - comboAt;
         if (age > 30) return;
         TextRenderer tr = c.textRenderer;
-        int y = ctx.getScaledWindowHeight() / 2 - 40;
+        float kk = hudScale(c);
+        ctx.getMatrices().push();
+        ctx.getMatrices().scale(kk, kk, 1);
+        int y = (int) (ctx.getScaledWindowHeight() / kk) / 2 - 40;
         float pop = age < 3 ? 1.25f - age * 0.08f : 1f; // 늘어날 때 살짝 튐
         var m = ctx.getMatrices();
         m.push();
         m.translate(24, y, 0);
-        m.scale(4f * pop, 4f * pop, 1f);
+        m.scale(3f * pop, 3f * pop, 1f);
         ctx.drawTextWithShadow(tr, Text.literal(String.valueOf(comboHits)).formatted(Formatting.BOLD), 0, 0, 0xFFE02020);
         m.pop();
         m.push();
-        m.translate(24, y + 38, 0);
+        m.translate(24, y + 30, 0);
         m.scale(1.6f, 1.6f, 1f);
         ctx.drawTextWithShadow(tr, Text.literal("COMBO").formatted(Formatting.BOLD), 0, 0, 0xFFB01010);
         m.pop();
-        ctx.drawTextWithShadow(tr, Text.literal(String.format("피해 %.1f", comboDamage)), 24, y + 56, 0xFFFFD040);
+        ctx.drawTextWithShadow(tr, Text.literal(String.format("피해 %.1f", comboDamage)), 24, y + 46, 0xFFFFD040);
+        ctx.getMatrices().pop();
     }
 }
