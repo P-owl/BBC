@@ -83,13 +83,23 @@ public final class AutomailSkill {
                 }
             });
         });
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> BUFF.remove(handler.getPlayer().getUuid()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> { BUFF.remove(handler.getPlayer().getUuid()); FORGED.remove(handler.getPlayer().getUuid()); });
         ServerTickEvents.END_SERVER_TICK.register(AutomailSkill::tick);
     }
 
     static BodyPayload payload(ServerPlayerEntity p) {
         AlchemyData.Entry e = Alch.entry(p);
-        return new BodyPayload(p.getUuid(), e.toll, e.automail, BUFF.getOrDefault(p.getUuid(), 0));
+        int buff = BUFF.getOrDefault(p.getUuid(), 0) | (FORGED.contains(p.getUuid()) ? FORGED_BIT : 0);
+        return new BodyPayload(p.getUuid(), e.toll, e.automail, buff);
+    }
+
+    /** 무기 연성(공중) 칼날: 오토메일 의수(없으면 장갑 낀 팔) 바깥에 칼날을 그림. buff 의 8 비트 */
+    public static final int FORGED_BIT = 8;
+    private static final java.util.Set<UUID> FORGED = new java.util.HashSet<>();
+
+    public static void setForgedBlade(ServerPlayerEntity p, boolean on) {
+        boolean changed = on ? FORGED.add(p.getUuid()) : FORGED.remove(p.getUuid());
+        if (changed) broadcast(p);
     }
 
     /** 이 플레이어의 몸 상태를 접속한 모두에게 */

@@ -36,12 +36,19 @@ public final class Cutscene {
 
     private static final Map<String, Shot> SHOTS = new HashMap<>();
     static {
-        // 연금술사 각성 (ABA: 오른 어깨 너머 오토메일 팔 클로즈업 → 앞에서 코트가 찢겨 날아감)
-        SHOTS.put("al_awaken", new Shot(40, 9, true, "손뼉 연성", "연금술사 · 각성", 15,
-                cut(0, -0.85, 1.75, 0.8, 0.9, 1.3, 0.35),
-                k(13, -0.6, 1.6, 0.95, 0.9, 1.25, 0.3),
-                cut(14, 2.3, 1.35, 0.7, 0, 1.15, 0),
-                k(31, 3.4, 1.7, -0.5, 0, 1.2, 0)));
+        // 연금술사 각성 (참고: 다른 게임의 에드워드 연출) 먼지 낀 발 앞에서 시작해 얼굴까지 훑어 올라감 → 얼굴 클로즈업, 합장 손뼉 →
+        //   높은 앞에서 땅을 내리치는 모습(연성진) → 멀리서 가시 숲이 솟는 장면 → 가시 숲 속에서 일어나 손바닥을 내미는 모습으로 다가감
+        SHOTS.put("al_awaken", new Shot(60, 8, true, "손뼉 연성", "연금술사 · 각성", 44,
+                cut(0, 1.3, 0.18, 0.35, 0, 0.25, 0),
+                k(9, 1.5, 0.95, 0.3, 0, 1.0, 0),
+                k(13, 1.25, 1.62, 0.12, 0, 1.6, 0),
+                k(20, 1.1, 1.62, 0.06, 0, 1.6, 0),
+                cut(21, 3.6, 3.4, 1.3, 0, 0.4, 0),
+                k(27, 4.0, 3.9, 1.5, 0, 0.4, 0),
+                cut(28, 6.5, 1.1, 3.2, 0, 1.4, 0),
+                k(38, 7.4, 1.5, 0.9, 0, 1.2, 0),
+                cut(39, 2.9, 1.45, 0.45, 0, 1.4, 0),
+                k(52, 1.75, 1.5, 0.2, 0, 1.45, 0)));
         // 연금술사 각성기 '대지의 심판' (아래에서 손을 드는 모습 → 높이 올라가 대상 위로 바위 손이 덮치는 장면)
         SHOTS.put("al_ult", new Shot(44, 10, true, "대지의 심판", "연금술사 · 각성기", 3,
                 cut(0, 2.2, 0.7, 0.9, 0, 1.7, 0),
@@ -58,7 +65,7 @@ public final class Cutscene {
     private static int actorId, targetId;
     private static double clock;   // 클라이언트 틱
     private static double start;
-    private static float baseYaw;
+    private static float baseYaw, basePitch;
     private static Vec3d lastActor, lastTarget;
 
     public static void init() {
@@ -66,6 +73,11 @@ public final class Cutscene {
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             clock++;
             if (shot != null && clock - start > shot.len()) shot = null;
+            // 시전자 본인이면 컷신 동안 시선을 고정 (마우스로 돌려도 몸이 카메라 대본에서 벗어나지 않게)
+            if (shot != null && shot.lock() && c.player != null && c.player.getId() == actorId) {
+                c.player.setYaw(baseYaw);
+                c.player.setPitch(basePitch);
+            }
         });
         ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> shot = null);
         HudRenderCallback.EVENT.register((ctx, counter) -> hud(ctx, counter.getTickDelta(false)));
@@ -81,6 +93,7 @@ public final class Cutscene {
         targetId = p.target();
         start = clock;
         baseYaw = a.getYaw();
+        basePitch = a.getPitch();
         lastActor = a.getPos();
         Entity t = targetId >= 0 ? c.world.getEntityById(targetId) : null;
         lastTarget = t != null ? t.getPos() : null;

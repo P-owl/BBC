@@ -140,6 +140,18 @@ public final class Combat {
         if (!p.isOnGround() && now < f.airComboUntil + 10) f.airComboUntil = Math.max(f.airComboUntil, now + 30);
     }
 
+    /** 반격 기술(연성 방벽 등): ticks 동안 맞으면 패링 */
+    public static void parryWindow(LivingEntity e, int ticks) {
+        Fighter f = of(e);
+        f.parryUntil = Math.max(f.parryUntil, now + ticks);
+    }
+
+    /** 마지막 패링 성공으로 걸린 잠금이 끝나는 틱 (패링이 났는지 알아볼 때) */
+    public static long parryLock(LivingEntity e) {
+        Fighter f = peek(e);
+        return f == null ? 0 : f.parryLockUntil;
+    }
+
     /** 컷신 등: ticks 동안 무적 */
     public static void invuln(LivingEntity e, int ticks) {
         Fighter f = of(e);

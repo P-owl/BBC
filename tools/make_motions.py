@@ -585,7 +585,16 @@ anim("al_rise", 12, al(4, 12, [
     (4, EX, dict(rightArm=(-174, -10, 8, -8), leftArm=(-24, 18, -30, -50), body=(10, 16, 0), head=(-24, 16, 0),
                  rightLeg=(14, 0, 8, 6), leftLeg=(-22, 0, -8, 12))),
 ], hold=4))
-anim("al_slam", 14, [dict(m) for m in A["slam"]["emote"]["moves"]])
+# 다운 슬램 (연금술사): 공중에서 머리 위로 손뼉 → 몸을 앞으로 숙이며 두 손바닥을 아래로 내리꽂음 (상대 위로 바위 기둥이 떨어짐)
+AL_AIR = dict(rightLeg=(-40, 0, 6, 70), leftLeg=(-20, 0, -6, 50))
+anim("al_slam", 14, P(0, LIN, **AL_ARMS, **AL_AIR)
+     + P(2, OQ, rightArm=(-168, -16, -4, -24), leftArm=(-168, 16, 4, -24), body=(8, -6, 0), head=(-20, -6, 0),
+         rightLeg=(-20, 0, 6, 90), leftLeg=(-10, 0, -6, 80))
+     + P(3, LIN, rightArm=(-160, -16, -4, -24), leftArm=(-160, 16, 4, -24))
+     + P(4, EX, rightArm=(-34, -10, 6, -6), leftArm=(-34, 10, -6, -6), body=(-44, -6, 0), head=(-26, -6, 0),
+         rightLeg=(26, 0, 6, 60), leftLeg=(14, 0, -6, 50))
+     + P(9, LIN, rightArm=(-32, -10, 6, -6), leftArm=(-32, 10, -6, -6), body=(-42, -6, 0))
+     + P(14, IO, **AL_STANCE))
 
 # ── 연금술사 기술 ──
 # 손뼉 연성: 가슴 앞 손뼉 → 몸을 숙여 두 손바닥으로 땅을 짚음 (판정 6틱) → 일어남
@@ -621,16 +630,19 @@ anim("al_punch", 24, al(8, 24, [
     (8, EX, dict(rightArm=(-96, 38, 0, 0), leftArm=(-14, 30, -18, -120), body=(-24, 38, 0), head=(-18, 36, 0),
                  rightLeg=(36, 0, 8, 8), leftLeg=(-58, 0, -8, 52))),
 ], hold=8))
-# 각성 (컷신): 오른 주먹(오토메일)을 얼굴 앞으로 들어 쥐었다 → 코트가 찢겨 날아가는 순간 두 팔을 벌리며 가슴을 폄 → 주먹을 앞으로 겨눔
-anim("al_awaken", 40, al(16, 40, [
-    (6, IO, dict(rightArm=(-100, -30, 0, -110), leftArm=(-20, 0, -14, -30), body=(-6, -20, 0), head=(14, -40, 0), **AL_LEGS)),
-    (14, LIN, dict(rightArm=(-104, -30, 0, -116), body=(-10, -20, 0), head=(18, -40, 0),
-                   leftLeg=(-12, 0, -10, 30), rightLeg=(12, 0, 10, 30))),
-    (16, EX, dict(rightArm=(-30, 0, 70, -20), leftArm=(-30, 0, -70, -20), body=(12, 0, 0), head=(-22, 0, 0),
-                  leftLeg=(-8, 0, -12, 4), rightLeg=(8, 0, 12, 4))),
-    (26, LIN, dict(rightArm=(-34, 0, 66, -22), leftArm=(-34, 0, -66, -22), body=(10, 0, 0), head=(-18, 0, 0))),
-    (32, IO, dict(rightArm=(-90, 30, 0, -40), leftArm=(-40, 20, -20, -100), body=(-6, 30, 0), head=(-6, 30, 0), **DEEP_L)),
-], hold=0))
+# 각성 (컷신 60틱, 참고: 다른 게임의 에드워드 연출) 가만히 서 있다가 → 얼굴 앞에서 합장하듯 손뼉 → 웅크려 두 손바닥으로 땅을 내리침(거대한 연성진,
+#   사방에서 가시 숲이 솟음) → 가시 숲 속에서 일어나 → 오토메일 손바닥을 앞(카메라)으로 쭉 내밂
+STAND = dict(body=(0, 0, 0), head=(0, 0, 0), rightArm=(0, 0, 5, -6), leftArm=(0, 0, -5, -6), rightLeg=(0, 0, 2, 0), leftLeg=(0, 0, -2, 0))
+PRAY = dict(rightArm=(-104, -30, -2, -84), leftArm=(-104, 30, 2, -84), head=(8, 0, 0), body=(0, 0, 0))
+anim("al_awaken", 60, P(0, LIN, **STAND) + P(8, LIN, **STAND)
+     + P(11, EX, **PRAY) + P(19, LIN, rightArm=(-106, -30, -2, -86), leftArm=(-106, 30, 2, -86), head=(10, 0, 0))
+     + P(21, IQ, rightArm=(-130, -20, 0, -40), leftArm=(-130, 20, 0, -40), body=(-10, 0, 0))
+     + P(23, EX, **AL_PLANT2) + P(38, LIN, **dict(AL_PLANT2, body=(-46, -6, 0)))
+     + P(43, IO, **STAND)
+     + P(48, EX, rightArm=(-92, -14, 0, 0), leftArm=(-12, 0, -12, -24), body=(0, 22, 0), head=(0, 22, 0),
+         rightLeg=(14, 0, 4, 10), leftLeg=(-16, 0, -4, 14))
+     + P(56, LIN, rightArm=(-92, -14, 0, -2), body=(0, 22, 0), head=(0, 22, 0))
+     + P(60, IO, **AL_STANCE))
 # 각성기 '대지의 심판' (컷신): 두 팔을 머리 위로 → 크게 손뼉 → 두 손바닥으로 땅을 내리침 → 버팀 → 일어섬
 anim("al_ult", 44, al(12, 44, [
     (6, IO, dict(rightArm=(-176, 0, 30, -10), leftArm=(-176, 0, -30, -10), body=(10, -6, 0), head=(-24, -6, 0),
@@ -641,25 +653,73 @@ anim("al_ult", 44, al(12, 44, [
     (30, LIN, dict(AL_PLANT2, body=(-46, -6, 0))),
 ], hold=0))
 
+# 백덤블링 (기둥 벽 · 창조의 기둥, 참고: ABA 에드워드 Spike·Pillars of Creation): 무릎을 굽혔다가 뒤로 한 바퀴(몸 pitch 0 → 360)
+#   공중에서 손뼉 → 착지하며 한 손으로 땅을 짚음 (판정 10틱: 그 순간 앞으로 기둥들이 솟음)
+TUCK = dict(rightLeg=(-80, 0, 6, 110), leftLeg=(-80, 0, -6, 110))
+anim("al_backflip", 20, P(0, LIN, **AL_STANCE)
+     + P(2, IO, body=(-8, -10, 0), head=(-6, -10, 0), rightArm=(30, 0, 20, -20), leftArm=(30, 0, -20, -20),
+         rightLeg=(14, 0, 6, 50), leftLeg=(-14, 0, -6, 50))
+     + P(4, OQ, body=(90, 0, 0), head=(-20, 0, 0), rightArm=(-160, 0, 20, -30), leftArm=(-160, 0, -20, -30), **TUCK)
+     + P(6, LIN, body=(200, 0, 0), rightArm=(-90, -30, 0, -70), leftArm=(-90, 30, 0, -70))
+     + P(8, LIN, body=(300, 0, 0), rightArm=(-84, -32, -4, -60), leftArm=(-84, 32, 4, -60))
+     + P(9, OQ, body=(360, 0, 0)) + P(10, CONST, body=(0, 0, 0))
+     + P(10, EX, body=(-40, -16, 0), head=(-26, -16, 0), rightArm=(-34, -18, 6, -4), leftArm=(-50, 16, -24, -70),
+         leftLeg=(-70, 0, -12, 104), rightLeg=(18, 0, 10, 96))
+     + P(15, LIN, body=(-38, -16, 0))
+     + P(20, IO, **AL_STANCE))
+
+# ── 오토메일 칼날 평타 (무기 연성을 공중에서: 오른 아래팔 바깥에서 칼날이 솟음, 맨팔이면 장갑에) ──
+# 칼날이 아래팔을 따라 주먹 너머로 뻗으니 손날로 베듯 아래팔 전체를 휘두름
+anim("ab_1", 9, al(3, 9, [   # 오른 어깨 위 → 왼무릎 앞 사선 베기
+    (1, IO, dict(rightArm=(-166, 18, 26, -20), body=(4, -50, 0), head=(0, -42, 0))),
+    (2, IQ, dict(rightArm=(-120, 0, 10, -6), body=(-4, -20, 0), head=(-2, -14, 0))),
+    (3, EX, dict(rightArm=(-36, -12, -6, 0), leftArm=(-36, 30, -16, -96), body=(-18, 26, 0), head=(-10, 22, 0), **DEEP_L)),
+]))
+anim("ab_2", 9, al(3, 9, [   # 왼쪽 아래 → 오른쪽 위로 걷어 올려 베기 (손등 방향)
+    (1, IO, dict(rightArm=(-30, -56, -20, -30), body=(-8, 30, 0), head=(-6, 26, 0))),
+    (3, EX, dict(rightArm=(-150, 34, 30, 0), leftArm=(-40, 20, -20, -90), body=(6, -40, 0), head=(0, -36, 0), **DEEP_R)),
+]))
+anim("ab_3", 9, al(3, 9, [   # 가슴 높이 오른쪽 → 왼쪽 크게 휩쓸기
+    (1, IO, dict(rightArm=(-90, 70, 24, -10), body=(0, -56, 0), head=(0, -46, 0))),
+    (3, EX, dict(rightArm=(-92, -44, 0, 0), leftArm=(-30, 30, -20, -100), body=(-10, 44, 0), head=(-8, 40, 0), **DEEP_L)),
+], hold=2))
+anim("ab_4", 15, al(5, 15, [   # 마무리: 칼날을 끝까지 당겼다가 깊게 내딛으며 찌르기
+    (3, IO, dict(rightArm=(22, 6, 20, -124), leftArm=(-84, -40, -6, -28), body=(6, -60, 0), head=(0, -50, 0),
+                 rightLeg=(16, 0, 8, 30), leftLeg=(-14, 0, -8, 26))),
+    (5, EX, dict(rightArm=(-92, 34, 0, 0), leftArm=(-20, 30, -16, -110), body=(-20, 36, 0), head=(-14, 34, 0),
+                 rightLeg=(36, 0, 8, 8), leftLeg=(-56, 0, -8, 50))),
+], hold=5))
+anim("ab_rise", 10, al(3, 10, [   # 띄우기: 낮게 웅크렸다가 아래에서 위로 올려 베기
+    (1, IO, dict(rightArm=(-10, -10, 10, -10), body=(-30, -20, 0), head=(-16, -20, 0))),
+    (3, EX, dict(rightArm=(-176, -10, 8, 0), leftArm=(-24, 18, -30, -50), body=(10, 16, 0), head=(-24, 16, 0),
+                 rightLeg=(14, 0, 8, 6), leftLeg=(-22, 0, -8, 12))),
+], hold=3))
+anim("ab_slam", 14, [dict(m) for m in A["al_slam"]["emote"]["moves"]])
+# 칼날 연성 (공중): 손뼉 → 오른 아래팔을 얼굴 앞에 세움 (칼날이 솟음)
+anim("al_bladeforge", 12, al(6, 12, [
+    (3, EX, CLAP),
+    (6, EX, dict(rightArm=(-100, -20, 0, -110), leftArm=(-30, 10, -20, -60), body=(0, -30, 0), head=(0, -30, 0), **AL_AIR)),
+], hold=3))
+# 기둥 낙하 (칼날 상태에서 무기 연성 한 번 더): 웅크림 → 발밑 기둥에 튕겨 솟구침 → 공중에서 칼날을 머리 위로 → 몸을 숙여 칼날을 아래로 꽂으며 낙하
+anim("ab_plunge", 30, P(0, LIN, **AL_STANCE)
+     + P(3, IO, body=(-16, -20, 0), head=(-8, -20, 0), rightArm=(10, 0, 14, -30), leftArm=(10, 0, -14, -30),
+         rightLeg=(16, 0, 6, 60), leftLeg=(-20, 0, -6, 64))
+     + P(5, OQ, body=(6, 0, 0), head=(-14, 0, 0), rightArm=(-170, 0, 14, -10), leftArm=(-40, 0, -30, -30),
+         rightLeg=(0, 0, 4, 10), leftLeg=(-30, 0, -4, 40))
+     + P(9, IO, body=(-20, 0, 0), head=(-20, 0, 0), rightArm=(-178, -10, 10, -40), leftArm=(-60, 20, -40, -40), **TUCK)
+     + P(11, EX, body=(-62, 0, 0), head=(-34, 0, 0), rightArm=(-30, -6, 4, 0), leftArm=(30, 0, -30, -20),
+         rightLeg=(30, 0, 6, 50), leftLeg=(10, 0, -6, 70))
+     + P(24, LIN, body=(-60, 0, 0), rightArm=(-30, -6, 4, 0))
+     + P(30, IO, **AL_STANCE))
+
 # ── 달리기 (전투 모드 중 달릴 때 자세 층에 깔림) ──
-# 몸을 앞으로 숙이고, 팔꿈치를 굽힌 두 팔을 다리와 엇갈려 크게 흔듦. 10틱에 두 걸음
-def run_keys(arms=True, weapon=False):
-    lean = dict(body=(-16, 0, 0), head=(-12, 0, 0))
-    a = dict(rightLeg=(-48, 0, 2, 30), leftLeg=(36, 0, -2, 70))           # 오른발 앞
-    b = dict(rightLeg=(36, 0, 2, 70), leftLeg=(-48, 0, -2, 30))           # 왼발 앞
-    ma = dict(rightLeg=(-6, 0, 2, 90), leftLeg=(4, 0, -2, 20))            # 중간 (뒷다리를 접어 당김)
-    mb = dict(rightLeg=(4, 0, 2, 20), leftLeg=(-6, 0, -2, 90))
-    if arms:
-        a.update(leftArm=(-62, 0, -6, -90)); b.update(leftArm=(40, 0, -6, -70))
-        ma.update(leftArm=(-10, 0, -6, -80)); mb.update(leftArm=(-10, 0, -6, -80))
-        if weapon:   # 오른손 무기: 허리 뒤로 낮게 들고 흔들지 않음
-            for k in (a, b, ma, mb): k.update(rightArm=(34, 0, 14, -20))
-        else:
-            a.update(rightArm=(40, 0, 6, -70)); b.update(rightArm=(-62, 0, 6, -90))
-            ma.update(rightArm=(-10, 0, 6, -80)); mb.update(rightArm=(-10, 0, 6, -80))
-    return (P(0, LIN, **lean, **a) + P(2, OS, **ma) + P(5, IO, **b) + P(7, OS, **mb) + P(10, IO, **a))
-anim("run", 10, run_keys(), loop=True, ret=0)
-anim("run_w", 10, run_keys(weapon=True), loop=True, ret=0)
+# 다리·팔 흔들기는 바닐라(걸음 속도에 맞춰 흔들림)를 그대로 두고, 몸만 앞으로 숙이고 팔꿈치를 굽혀 달리는 모양만 잡음
+# (예전엔 10틱 고정 주기로 다리를 따로 움직여서 실제 속도와 안 맞아 미끄러지듯 어색했음)
+RUN = dict(body=(-12, None, None), rightArm=(None, None, 7, -78), leftArm=(None, None, -7, -78),
+           rightLeg=(None, None, None, 18), leftLeg=(None, None, None, 18))
+anim("run", 20, P(0, LIN, **RUN) + P(10, IO, body=(-13, None, None)) + P(20, IO, **RUN), loop=True, ret=0)
+RUN_W = dict(RUN, rightArm=(28, 4, 16, -24))   # 오른손 무기는 허리 뒤로 낮게
+anim("run_w", 20, P(0, LIN, **RUN_W) + P(10, IO, body=(-13, None, None)) + P(20, IO, **RUN_W), loop=True, ret=0)
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)

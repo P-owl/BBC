@@ -85,6 +85,15 @@ final class Anim {
     /** 다리까지 잡은 대기 자세 → 걸을 땐 팔만 잡은 '_walk' 판으로 */
     private static final java.util.Set<String> WALK_VARIANT = java.util.Set.of("stance_al");
 
+    /** 지금 이 플레이어 모션의 굽힘 {축, 각도} (playerAnimator HeldItemMixin 과 같은 값) */
+    static float[] bend(AbstractClientPlayerEntity player, String part) {
+        if (!(player instanceof dev.kosmx.playerAnim.impl.IAnimatedPlayer ap)) return null;
+        var a = ap.playerAnimator_getAnimation();
+        if (a == null || !a.isActive()) return null;
+        var v = a.get3DTransform(part, dev.kosmx.playerAnim.api.TransformType.BEND, new dev.kosmx.playerAnim.core.util.Vec3f(0f, 0f, 0f));
+        return new float[]{v.getX(), v.getY()};
+    }
+
     static void play(AbstractClientPlayerEntity player, String motion) {
         if (motion.startsWith("#stance")) {
             ModifierLayer<IAnimation> st = layer(player, STANCE);

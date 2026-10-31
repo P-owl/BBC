@@ -33,6 +33,9 @@ public class AutomailRender extends FeatureRenderer<AbstractClientPlayerEntity, 
         public boolean legGone() { return "leg".equals(toll); }
         public boolean armMetal() { return armGone() && "arm".equals(automail); }
         public boolean legMetal() { return legGone() && "leg".equals(automail); }
+        /** 오토메일 연성(의수 칼날) 또는 무기 연성(공중) 칼날 */
+        public boolean armBlade() { return (buff & 7) == 1 || (buff & 8) != 0; }
+        public boolean legBlade() { return (buff & 7) == 2; }
     }
 
     public static final Map<UUID, Body> BODIES = new HashMap<>();
@@ -49,11 +52,13 @@ public class AutomailRender extends FeatureRenderer<AbstractClientPlayerEntity, 
     private static final int[] L = {0, 0}, D = {32, 0}, P = {0, 16}, B = {32, 16};
 
     // ── 오토메일 의수 (오른팔 좌표: x -3~1, y -2~10, z -2~2) ──
+    // 팔꿈치(굽힘)를 따라가게 위팔(METAL_ARM)·아래팔(METAL_ARM_LO) 로 나눔. 굽힘 축 = 팔 피벗에서 4픽셀 아래
     static final ModelPart METAL_ARM = part(
             box(D, -2.6f, -1.5f, -1.6f, 3.2f, 5.5f, 3.2f),          // 위팔 뼈대
             box(L, -3.9f, -2.8f, -2.8f, 5.6f, 3.4f, 5.6f),          // 어깨 장갑
             box(P, -4.0f, 0.4f, -2.9f, 5.8f, 0.7f, 5.8f),           // 어깨 테두리
-            box(L, -3.2f, 1.2f, -2.2f, 4.4f, 2.4f, 4.4f),           // 위팔 판
+            box(L, -3.2f, 1.2f, -2.2f, 4.4f, 2.4f, 4.4f));          // 위팔 판
+    static final ModelPart METAL_ARM_LO = part(
             box(D, -3.3f, 3.6f, -2.3f, 4.6f, 1.8f, 4.6f),           // 팔꿈치 관절
             box(B, -3.7f, 4.1f, -0.5f, 0.5f, 0.9f, 1.0f),           // 관절 볼트(바깥)
             box(B, 0.9f, 4.1f, -0.5f, 0.5f, 0.9f, 1.0f),            // 관절 볼트(안쪽)
@@ -68,9 +73,11 @@ public class AutomailRender extends FeatureRenderer<AbstractClientPlayerEntity, 
             box(P, -0.4f, 9.7f, -2.3f, 1.0f, 1.9f, 0.7f));          // 엄지
 
     // ── 오토메일 의족 (왼다리 좌표: x -2~2, y 0~12, z -2~2) ──
+    // 무릎 굽힘을 따라가게 허벅지(METAL_LEG)·정강이(METAL_LEG_LO). 굽힘 축 = 6픽셀 아래
     static final ModelPart METAL_LEG = part(
             box(D, -2.6f, 0, -2.6f, 5.2f, 1.0f, 5.2f),              // 허벅지 고정 링
-            box(L, -2.35f, 1.0f, -2.35f, 4.7f, 3.5f, 4.7f),         // 허벅지 판
+            box(L, -2.35f, 1.0f, -2.35f, 4.7f, 3.5f, 4.7f));        // 허벅지 판
+    static final ModelPart METAL_LEG_LO = part(
             box(D, -2.25f, 4.5f, -2.25f, 4.5f, 1.6f, 4.5f),         // 무릎 관절
             box(P, -1.6f, 4.1f, -2.9f, 3.2f, 2.4f, 0.8f),           // 무릎 덮개
             box(B, -2.6f, 4.9f, -0.5f, 0.4f, 0.8f, 1.0f),           // 무릎 볼트
@@ -88,7 +95,8 @@ public class AutomailRender extends FeatureRenderer<AbstractClientPlayerEntity, 
             box(W, -2.3f, 0, -2.3f, 4.6f, 3.6f, 4.6f),              // 허벅지 받침
             box(T, -2.45f, 0.6f, -2.45f, 4.9f, 0.7f, 4.9f),         // 가죽끈 1
             box(T, -2.45f, 2.3f, -2.45f, 4.9f, 0.7f, 4.9f),         // 가죽끈 2
-            box(W, -1.3f, 3.6f, -1.3f, 2.6f, 2.0f, 2.6f),           // 이음목
+            box(W, -1.3f, 3.6f, -1.3f, 2.6f, 2.0f, 2.6f));          // 이음목
+    static final ModelPart PEG_LEG_LO = part(
             box(W, -0.95f, 5.6f, -0.95f, 1.9f, 3.4f, 1.9f),         // 막대 위
             box(W, -0.75f, 9.0f, -0.75f, 1.5f, 2.4f, 1.5f),         // 막대 아래 (가늘어짐)
             box(I, -1.0f, 11.3f, -1.0f, 2.0f, 0.7f, 2.0f));         // 쇠 마개
@@ -129,26 +137,51 @@ public class AutomailRender extends FeatureRenderer<AbstractClientPlayerEntity, 
         Body b = body(player.getUuid());
         if (b == null || player.isInvisible()) return;
         PlayerEntityModel<AbstractClientPlayerEntity> m = getContextModel();
+        // 모션(playerAnimator)의 팔꿈치·무릎 굽힘: 진짜 팔다리는 bendy-lib 가 꺾는데 덧그린 강철 팔다리는 안 꺾여서 따로 맞춤
+        float[] armBend = bbc.client.BbcClient.bend(player, "rightArm");
+        float[] legBend = bbc.client.BbcClient.bend(player, "leftLeg");
         if (b.armMetal()) {
             draw(METAL_ARM, m.rightArm, METAL, matrices, vcp, light);
-            if (b.buff() == 1) draw(ARM_BLADE, m.rightArm, BLADE, matrices, vcp, light);
+            drawLower(METAL_ARM_LO, m.rightArm, armBend, 4f, METAL, matrices, vcp, light);
         }
+        if (b.armBlade()) drawLower(ARM_BLADE, m.rightArm, armBend, 4f, BLADE, matrices, vcp, light);   // 맨팔이면 장갑 낀 팔에
         if (b.legGone()) {
-            draw(b.legMetal() ? METAL_LEG : PEG_LEG, m.leftLeg, b.legMetal() ? METAL : WOOD, matrices, vcp, light);
-            if (b.legMetal() && b.buff() == 2) draw(LEG_BLADE, m.leftLeg, BLADE, matrices, vcp, light);
+            Identifier tex = b.legMetal() ? METAL : WOOD;
+            draw(b.legMetal() ? METAL_LEG : PEG_LEG, m.leftLeg, tex, matrices, vcp, light);
+            drawLower(b.legMetal() ? METAL_LEG_LO : PEG_LEG_LO, m.leftLeg, legBend, 6f, tex, matrices, vcp, light);
+            if (b.legMetal() && b.legBlade()) drawLower(LEG_BLADE, m.leftLeg, legBend, 6f, BLADE, matrices, vcp, light);
         }
     }
 
     /** 1인칭 팔 (PlayerRendererMixin 에서 호출) */
     public static void drawFirstPersonArm(Body b, ModelPart arm, MatrixStack matrices, VertexConsumerProvider vcp, int light) {
         draw(METAL_ARM, arm, METAL, matrices, vcp, light);
-        if (b.buff() == 1) draw(ARM_BLADE, arm, BLADE, matrices, vcp, light);
+        drawLower(METAL_ARM_LO, arm, null, 4f, METAL, matrices, vcp, light);
+        if (b.armBlade()) drawLower(ARM_BLADE, arm, null, 4f, BLADE, matrices, vcp, light);
     }
 
     private static void draw(ModelPart part, ModelPart follow, Identifier tex, MatrixStack matrices, VertexConsumerProvider vcp, int light) {
         part.copyTransform(follow);
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(tex));
         part.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+    }
+
+    /** 굽힘 아래쪽 절반: 팔다리 변환 → (피벗에서 mid 픽셀 아래를 축으로) 굽힘만큼 돌림 → 그림. playerAnimator 가 손에 든 아이템을 꺾는 방식과 같음 */
+    private static void drawLower(ModelPart part, ModelPart follow, float[] bend, float mid, Identifier tex, MatrixStack matrices, VertexConsumerProvider vcp, int light) {
+        matrices.push();
+        follow.rotate(matrices);
+        if (bend != null && bend[1] != 0f) {
+            float off = mid / 16f;
+            matrices.translate(0, off, 0);
+            float ax = -bend[0];
+            matrices.multiply(new org.joml.Quaternionf().rotateAxis(bend[1], (float) Math.cos(ax), 0, (float) Math.sin(ax)));
+            matrices.translate(0, -off, 0);
+        }
+        part.setPivot(0, 0, 0);
+        part.setAngles(0, 0, 0);
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(tex));
+        part.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+        matrices.pop();
     }
 
     private static ModelPart.Cuboid box(int[] uv, float x, float y, float z, float sx, float sy, float sz) {

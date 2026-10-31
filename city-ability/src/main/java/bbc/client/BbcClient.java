@@ -32,6 +32,11 @@ public class BbcClient implements ClientModInitializer {
     public static boolean combat = false;
     /** playerAnimator 가 깔려 있나 (없으면 모션 없이 돈다) */
     static final boolean ANIM = hasAnimator();
+
+    /** 모션의 팔꿈치·무릎 굽힘 {축, 각도(라디안)}. 모션이 없거나 playerAnimator 가 없으면 null (오토메일 그리기에서 씀) */
+    public static float[] bend(net.minecraft.client.network.AbstractClientPlayerEntity p, String part) {
+        return ANIM ? Anim.bend(p, part) : null;
+    }
     private static boolean guardSent = false;
     private static final boolean[] skillDown = new boolean[5];
     private static long lastM1 = 0;
@@ -61,7 +66,7 @@ public class BbcClient implements ClientModInitializer {
         Cutscene.init();
         // 연금술사: 진리의 통행료로 잃은 팔·다리와 오토메일을 플레이어 모델에
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(bbc.job.alchemy.BodyPayload.ID, (payload, ctx) -> {
-            if (payload.toll().isEmpty() && payload.automail().isEmpty()) bbc.client.alchemy.AutomailRender.BODIES.remove(payload.player());
+            if (payload.toll().isEmpty() && payload.automail().isEmpty() && payload.buff() == 0) bbc.client.alchemy.AutomailRender.BODIES.remove(payload.player());
             else bbc.client.alchemy.AutomailRender.BODIES.put(payload.player(), new bbc.client.alchemy.AutomailRender.Body(payload.toll(), payload.automail(), payload.buff()));
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> bbc.client.alchemy.AutomailRender.BODIES.clear());
