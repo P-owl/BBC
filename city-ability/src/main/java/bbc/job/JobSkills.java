@@ -40,6 +40,8 @@ public final class JobSkills {
     private static final Map<UUID, Map<Integer, Long>> COOLDOWN = new HashMap<>();
 
     public static void resetCooldown(UUID id) { COOLDOWN.remove(id); }
+    /** 기술 하나의 재사용 시간 지우기 */
+    public static void clearCooldown(UUID id, int skill) { Map<Integer, Long> m = COOLDOWN.get(id); if (m != null) m.remove(skill); }
 
     /** 기술 번호 기준 남은 재사용 시간(초) */
     public static int cooldownLeft(UUID id, int skill) {

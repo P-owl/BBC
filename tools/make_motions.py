@@ -505,6 +505,91 @@ anim("heal", 20,
 anim("focus", 12,
     P(2, OQ, rightArm=(-70, -40, 0), leftArm=(-70, 40, 0)) + P(10, IO, rightArm=(-70, -40, 0), leftArm=(-70, 40, 0)))
 
+# ═════════ 연금술사 (참고: 강철의 연금술사 에드워드 — 다른 게임의 평타·대기 모션 영상, ABA 에드워드) ═════════
+# 대기: 몸을 옆으로 돌려 왼어깨를 앞에, 왼팔은 손바닥을 펴 앞으로 쭉, 오른 주먹(오토메일)은 가슴 앞. 숨 쉬듯 살짝
+AL_STANCE = dict(body=(0, -28, 0), head=(0, -28, 0), leftArm=(-82, 14, -4, -12), rightArm=(-44, -22, 10, -108))
+anim("stance_al", 60, P(0, LIN, **AL_STANCE)
+     + P(30, IO, body=(2, -29, 0), leftArm=(-78, 16, -4, -18), rightArm=(-47, -22, 10, -112))
+     + P(60, IO, **AL_STANCE), loop=True, ret=0)
+
+def al_strike(t_hit, end, hit, prep=None, hold=3, legs_hit=None, legs_prep=None, mid=None):
+    """연금술사 평타 틀: 자세 → (prep 감기) → (mid) → 판정 틱에 hit → 버팀 → 자세"""
+    z = dict(rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+    keys = P(0, LIN, **AL_STANCE, **z)
+    if prep: keys += P(max(1, t_hit - 2), IO, **prep)
+    if mid: keys += P(t_hit - 1, IQ, **mid)
+    if legs_prep: keys += P(max(1, t_hit - 2), IO, **legs_prep)
+    keys += P(t_hit, EX, **hit) + P(t_hit + hold, LIN, **hit)
+    if legs_hit: keys += P(t_hit, EX, **legs_hit) + P(t_hit + hold, LIN, **legs_hit)
+    keys += P(end, IO, **AL_STANCE, **z)
+    return keys
+
+AL_LUNGE_R = dict(rightLeg=(-34, 0, 4, 30), leftLeg=(24, 0, -4, 10))
+AL_LUNGE_L = dict(leftLeg=(-34, 0, -4, 30), rightLeg=(24, 0, 4, 10))
+AL_CROUCH = dict(rightLeg=(20, 0, 8, 70), leftLeg=(-46, 0, -8, 80))
+# 1타: 오토메일 팔 칼날 사선 베기 — 오른팔을 머리 위 뒤로 들었다가 왼쪽 아래까지 비스듬히 내려침
+anim("al_1", 10, al_strike(4, 10,
+    prep=dict(rightArm=(-160, -40, 24, -40), leftArm=(-60, 20, -8, -60), body=(6, -46, 0), head=(0, -36, 0)),
+    mid=dict(rightArm=(-120, -6, 10, -20), body=(0, -20, 0)),
+    hit=dict(rightArm=(-52, 46, -14, -8), leftArm=(-24, 24, -20, -90), body=(-16, 30, 0), head=(-10, 22, 0)),
+    legs_hit=AL_LUNGE_R))
+# 2타: 왼손 훅 — 팔꿈치를 접고 몸통째 크게 돌림
+anim("al_2", 10, al_strike(4, 10,
+    prep=dict(leftArm=(-66, -52, -34, -64), rightArm=(-40, -22, 10, -110), body=(0, -48, 0), head=(0, -40, 0)),
+    hit=dict(leftArm=(-92, 50, -8, -72), rightArm=(-30, -24, 12, -116), body=(-10, 26, 0), head=(-8, 20, 0)),
+    legs_hit=AL_LUNGE_L))
+# 3타: 돌려차기 — 몸을 감았다가 오른다리를 옆으로 높이 들어 크게 후림 (코트가 휘날리는 느낌으로 몸이 따라 돎)
+anim("al_3", 11, al_strike(4, 11,
+    prep=dict(body=(0, -70, 0), head=(0, -50, 0), rightArm=(-30, -20, 40, -40), leftArm=(-50, 30, -30, -60)),
+    mid=dict(body=(0, -10, -6), head=(0, -20, 0)),
+    hit=dict(body=(0, 70, -24), head=(-6, 30, 0), rightArm=(-20, 0, 70, -20), leftArm=(-30, 0, -60, -30)),
+    legs_prep=dict(rightLeg=(-60, 0, 20, 100), leftLeg=(0, 0, 0, 20)),
+    legs_hit=dict(rightLeg=(-40, 0, 84, 0), leftLeg=(6, 0, -6, 24)), hold=3))
+# 4타: 낮게 웅크려 왼손바닥으로 땅을 짚음 (연성 — 상대 발밑에서 작은 가시가 솟음)
+anim("al_4", 10, al_strike(4, 10,
+    prep=dict(body=(-10, -30, 0), head=(-6, -30, 0), leftArm=(-100, 10, -10, -60)),
+    hit=dict(body=(-38, -18, 0), head=(-26, -18, 0), leftArm=(-12, 6, -14, -4), rightArm=(-60, -30, 20, -100)),
+    legs_hit=AL_CROUCH, hold=3))
+# 5타 (마무리, 선딜 6): 손뼉 → 두 손으로 땅을 짚었다가 오른팔을 하늘로 크게 쳐올림 (상대 발밑에서 바위 기둥이 솟아 날려보냄)
+anim("al_5", 17, P(0, LIN, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+     + P(2, IO, rightArm=(-84, 36, -6, -60), leftArm=(-84, -36, 6, -60), body=(0, -10, 0), head=(0, -10, 0))      # 손뼉
+     + P(5, IQ, rightArm=(-14, -6, 10, -6), leftArm=(-14, 6, -10, -6), body=(-44, 0, 0), head=(-30, 0, 0), **AL_CROUCH)  # 땅을 짚음
+     + P(6, EX, rightArm=(-172, -10, 10, -8), leftArm=(-30, 20, -40, -40), body=(10, 16, 0), head=(-26, 16, 0),
+         rightLeg=(10, 0, 4, 6), leftLeg=(-24, 0, -4, 14))
+     + P(12, LIN, rightArm=(-170, -10, 10, -8), body=(10, 16, 0))
+     + P(17, IO, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
+# 띄우기 (평타 띄우기·업 플링): 땅을 짚었다가 올려치기
+anim("al_rise", 12, P(0, LIN, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+     + P(3, IQ, rightArm=(-20, -6, 10, -10), leftArm=(-40, 20, -10, -80), body=(-34, -10, 0), head=(-20, -10, 0), **AL_CROUCH)
+     + P(4, EX, rightArm=(-176, -4, 0, -6), leftArm=(-10, 16, -24, -60), body=(12, 14, 0), head=(-26, 14, 0),
+         rightLeg=(10, 0, 0, 4), leftLeg=(-20, 0, 0, 10))
+     + P(8, LIN, rightArm=(-174, -4, 0, -6))
+     + P(12, IO, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
+anim("al_slam", 14, [dict(m) for m in A["slam"]["emote"]["moves"]])
+
+# ── 연금술사 기술 ──
+# 손뼉 연성: 가슴 앞에서 손뼉 → 몸을 숙여 두 손바닥으로 땅을 짚음 (판정 6틱) → 일어남
+AL_PLANT = dict(rightArm=(-14, -6, 10, -6), leftArm=(-14, 6, -10, -6), body=(-46, 0, 0), head=(-30, 0, 0), **AL_CROUCH)
+anim("al_clap", 16, P(0, LIN, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+     + P(3, EX, rightArm=(-86, 38, -6, -64), leftArm=(-86, -38, 6, -64), body=(0, -6, 0), head=(0, -6, 0))
+     + P(4, LIN, rightArm=(-86, 38, -6, -64), leftArm=(-86, -38, 6, -64))
+     + P(6, EX, **AL_PLANT) + P(10, LIN, **AL_PLANT)
+     + P(16, IO, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
+# 무기 연성: 손뼉 → 무릎 꿇고 땅에서 창을 뽑아 올림
+anim("al_forge", 18, P(0, LIN, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
+     + P(3, EX, rightArm=(-86, 38, -6, -64), leftArm=(-86, -38, 6, -64))
+     + P(7, IO, rightArm=(-10, -4, 8, -6), leftArm=(-40, 10, -10, -40), body=(-36, -10, 0), head=(-20, -10, 0),
+         rightLeg=(60, 0, 4, 100), leftLeg=(-70, 0, -4, 90))
+     + P(11, EX, rightArm=(-150, -10, 10, -10), leftArm=(-30, 20, -20, -60), body=(-6, -20, 0), head=(-14, -20, 0),
+         rightLeg=(20, 0, 4, 40), leftLeg=(-30, 0, -4, 40))
+     + P(18, IO, **AL_STANCE, rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0)))
+# 오토메일 일격 (각성 4번): 몸을 끝까지 꼬았다가 깊게 내딛으며 오른 주먹을 꽂음 (선딜 6)
+anim("al_punch", 22, al_strike(6, 22,
+    prep=dict(rightArm=(14, -34, 22, -125), leftArm=(-80, 34, -10, -50), body=(8, -64, 0), head=(0, -50, 0)),
+    hit=dict(rightArm=(-96, 8, 0, 0), leftArm=(-16, 26, -16, -120), body=(-22, 40, 0), head=(-16, 34, 0)),
+    legs_prep=dict(rightLeg=(14, 0, 0, 34), leftLeg=(-14, 0, 0, 24)),
+    legs_hit=dict(rightLeg=(34, 0, 0, 10), leftLeg=(-56, 0, 0, 48)), hold=8))
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     for name, data in A.items():

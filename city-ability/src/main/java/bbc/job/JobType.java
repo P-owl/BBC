@@ -21,6 +21,12 @@ public interface JobType {
     default boolean selectable() { return true; }
     /** 직업 평타 세트 (사슬 길이·선딜·피해·사거리·모션). null 이면 맨손 기본 */
     default bbc.combat.Weapon.M1Profile m1() { return null; }
+    /** 지금 이 플레이어의 평타 세트 (예: 연금술사 무기 연성 중엔 창). 기본은 m1() */
+    default bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { return m1(); }
+    /** 직업 대기 자세 모션 (맨손일 때 전투 모드 아래층). null 이면 공통 'stance' */
+    default String stance() { return null; }
+    /** 평타 판정 순간 (모션 이름으로) — 직업별 연출 (예: 연금술사 4·5타 연성) */
+    default void m1Fx(ServerPlayerEntity p, String motion) {}
     /** 전투 기술 (없으면 null) */
     default JobSkills.Set skills() { return null; }
     default void onJoin(ServerPlayerEntity p, PlayerData.Entry e) {}

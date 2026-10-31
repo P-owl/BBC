@@ -77,7 +77,7 @@ public final class Weapon {
         if (t != null) return t.m1;
         if (e instanceof ServerPlayerEntity p) {
             bbc.job.JobType j = bbc.job.Jobs.type(bbc.job.Jobs.entry(p));
-            if (j != null && j.m1() != null) return j.m1();
+            if (j != null && j.m1(p) != null) return j.m1(p);
         }
         return FIST;
     }

@@ -37,9 +37,10 @@ final class Anim {
             var en = it.next();
             if (!(c.world.getEntityById(en.getKey()) instanceof AbstractClientPlayerEntity pl)) { it.remove(); continue; }
             var stack = pl.getMainHandStack();
+            boolean alSpear = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString().equals("bbc:alchemy_spear");
             String want = stack.isIn(net.minecraft.registry.tag.ItemTags.SWORDS) ? "stance_sword"
-                    : stack.isOf(net.minecraft.item.Items.TRIDENT) ? "stance_spear"
-                    : stack.isIn(net.minecraft.registry.tag.ItemTags.AXES) ? "stance_gs" : "stance";
+                    : stack.isOf(net.minecraft.item.Items.TRIDENT) || alSpear ? "stance_spear"
+                    : stack.isIn(net.minecraft.registry.tag.ItemTags.AXES) ? "stance_gs" : STANCE_BASE.getOrDefault(en.getKey(), "stance");
             if (want.equals(en.getValue())) continue;
             en.setValue(want);
             ModifierLayer<IAnimation> st = layer(pl, STANCE);
@@ -66,11 +67,15 @@ final class Anim {
 
     /** 싸움 자세를 켠 플레이어 → 지금 깔린 자세 이름 (손에 든 무기에 따라 바뀜) */
     private static final java.util.Map<Integer, String> STANCE_ON = new java.util.HashMap<>();
+    /** 직업 대기 자세 (맨손일 때) */
+    private static final java.util.Map<Integer, String> STANCE_BASE = new java.util.HashMap<>();
 
     static void play(AbstractClientPlayerEntity player, String motion) {
-        if (motion.equals("#stance") || motion.equals("#stance_off")) {
+        if (motion.startsWith("#stance")) {
             ModifierLayer<IAnimation> st = layer(player, STANCE);
-            if (motion.equals("#stance")) STANCE_ON.put(player.getId(), "");
+            if (motion.startsWith("#stance:")) STANCE_BASE.put(player.getId(), motion.substring(8));   // 직업 대기 자세 (예: stance_al)
+            else if (motion.equals("#stance")) STANCE_BASE.remove(player.getId());
+            if (!motion.equals("#stance_off")) STANCE_ON.put(player.getId(), "");
             else { STANCE_ON.remove(player.getId()); if (st != null) st.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(5, Ease.INOUTSINE), null); }
             return;
         }

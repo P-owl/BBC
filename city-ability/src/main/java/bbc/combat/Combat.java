@@ -271,6 +271,10 @@ public final class Combat {
             if (a.token != tok || a.stunned() || !p.isAlive() || p.isRemoved()) return;
             Weapon.trail(p, motion);   // 무기 모션이면 칼자국·찌르기 줄기
             resolve.run();
+            if (p instanceof net.minecraft.server.network.ServerPlayerEntity sp) {   // 직업 평타 연출
+                bbc.job.JobType jt = bbc.job.Jobs.type(bbc.job.Jobs.entry(sp));
+                if (jt != null) jt.m1Fx(sp, motion);
+            }
         });
     }
 

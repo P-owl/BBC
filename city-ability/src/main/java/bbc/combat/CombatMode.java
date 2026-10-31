@@ -48,7 +48,8 @@ public final class CombatMode {
             Stamina.showBar(p);
             p.getServerWorld().playSound(null, p.getBlockPos(), SoundEvents.ITEM_ARMOR_EQUIP_NETHERITE.value(), SoundCategory.PLAYERS, 0.8f, 1.2f);
             JobSkills.bar(p, "⚔ 전투 모드", Formatting.GOLD);
-            Motion.play(p, "#stance");
+            bbc.job.JobType jt0 = bbc.job.Jobs.type(bbc.job.Jobs.entry(p));
+            Motion.play(p, jt0 != null && jt0.stance() != null ? "#stance:" + jt0.stance() : "#stance");
         } else {
             ACTIVE.remove(p.getUuid());
             Combat.releaseInputs(p);
