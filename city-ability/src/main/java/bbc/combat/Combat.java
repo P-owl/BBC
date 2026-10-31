@@ -74,6 +74,8 @@ public final class Combat {
     /** 지금 맞히는 게 평타인가 (튕김 창에는 기술만 들어감) */
     private static final ThreadLocal<Boolean> FROM_M1 = ThreadLocal.withInitial(() -> false);
     static long now = 0;
+    /** 전투 틱 (각성·경직 등이 이 시계를 씀) */
+    public static long now() { return now; }
 
     private static final Identifier SPEED_ID = Identifier.of("bbc", "combat_speed");
     private static final Identifier JUMP_ID = Identifier.of("bbc", "combat_jump");
@@ -416,6 +418,7 @@ public final class Combat {
         if (groundSkill) stun = Math.max(stun, Tuning.SKILL_MIN_STUN);
         float dmg = h.damage() * scale * bbc.grow.Growth.damageMul(atk, FROM_M1.get(), Weapon.current(atk));   // 성장 스탯·특성·종족
         if (FROM_M1.get() && now < a.awakenUntil) dmg *= Awaken.M1_BONUS; // 각성 중 평타 강화
+        if (now < a.dmgBuffUntil) dmg *= a.dmgBuffMul;                      // 직업 버프
 
         if (!deal(atk, t, dmg)) { v.comboHits--; return Result.MISS; }
         Awaken.onHit(atk, t, dmg);

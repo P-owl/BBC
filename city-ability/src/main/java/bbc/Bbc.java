@@ -40,6 +40,17 @@ public class Bbc implements ModInitializer {
                 (payload, ctx) -> ctx.server().execute(() -> CombatMode.onKey(ctx.player(), payload.action())));
 
         Jobs.register(TraineeJob.INSTANCE);
+        // 연금술사 (무현버스에서 이식)
+        bbc.job.alchemy.AlchemyItems.register();
+        Jobs.register(bbc.job.alchemy.AlchemistJob.INSTANCE);
+        bbc.job.alchemy.Alch.register();
+        bbc.job.alchemy.AlchemyValues.register();
+        bbc.job.alchemy.AlchemyCommand.register();
+        bbc.job.alchemy.WishCommand.register();
+        bbc.job.alchemy.StoneDuel.register();
+        bbc.job.alchemy.AlchemyGolem.register();
+        bbc.job.alchemy.AutomailSkill.register();
+        bbc.job.alchemy.AlchemistJob.register();
 
         Tasks.register();
         Stamina.register();

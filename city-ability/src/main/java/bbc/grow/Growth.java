@@ -156,10 +156,13 @@ public final class Growth {
     }
 
     /** 재능 카드 후보를 뽑아 두고 고르는 창을 엶 */
-    public static void rollCards(ServerPlayerEntity p) {
+    public static void rollCards(ServerPlayerEntity p) { rollCards(p, 0); }
+
+    /** minRarity 이상 등급만 (현자의 돌 ③ 운명의 계시 = 희귀 이상) */
+    public static void rollCards(ServerPlayerEntity p, int minRarity) {
         PlayerData.Entry e = e(p);
         List<Talent> pool = new ArrayList<>();
-        for (Talent t : Talent.values()) if (!has(e, t) && !burned(e, t) && t.ok.test(e)) pool.add(t);
+        for (Talent t : Talent.values()) if (t.rarity >= minRarity && !has(e, t) && !burned(e, t) && t.ok.test(e)) pool.add(t);
         int want = race(e) == Race.HUMAN ? 4 : 3;
         List<String> got = new ArrayList<>();
         var rnd = p.getRandom();
@@ -302,7 +305,9 @@ public final class Growth {
         } else if (m1) {
             m = 1 + stat(e, Stat.STR) * 0.004 + trait(e, 2) * 0.03;
         } else {
-            m = 1 + stat(e, Stat.CLASS) * 0.004 + stat(e, Stat.INT) * 0.001 + trait(e, 3) * 0.03;
+            bbc.job.JobType jt = Jobs.type(e);
+            Stat base = jt == null ? null : jt.skillStat();
+            m = 1 + stat(e, Stat.CLASS) * 0.004 + (base != null ? stat(e, base) * 0.003 : stat(e, Stat.INT) * 0.001) + trait(e, 3) * 0.03;
         }
         if (reversal(p)) m *= 1.25;
         return (float) m;

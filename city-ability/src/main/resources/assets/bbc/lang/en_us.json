@@ -10,5 +10,16 @@
   "key.bbc.eye": "Mystic eye / Ripple breath",
   "key.bbc.implant": "Implant skill",
   "key.bbc.relic": "Use relic",
-  "key.bbc.grow": "Growth menu"
+  "key.bbc.grow": "Growth menu",
+  "item.bbc.philosophers_stone": "Philosopher's Stone",
+  "item.bbc.philosophers_stone.tooltip1": "Use: choose one effect",
+  "item.bbc.philosophers_stone.tooltip2": "Use on a player: risk-free duel",
+  "block.bbc.alchemy_circle": "Equivalent Exchange Circle",
+  "item.bbc.alchemy_glove": "Alchemy Glove",
+  "item.bbc.alchemy_glove.tooltip1": "Hold in main or off hand to wear it",
+  "item.bbc.alchemy_glove.tooltip2": "Alchemists need it to use skills until they see the Truth",
+  "item.bbc.automail_arm": "Automail Arm",
+  "item.bbc.automail_leg": "Automail Leg",
+  "item.bbc.automail_heart": "Steel Heart",
+  "item.bbc.alchemy_spear": "Transmuted Spear"
 }

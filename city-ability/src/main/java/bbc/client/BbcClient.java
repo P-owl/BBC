@@ -58,6 +58,15 @@ public class BbcClient implements ClientModInitializer {
         if (ANIM) Anim.init();
         CombatHud.init();
         GrowthClient.init();
+        // 연금술사: 진리의 통행료로 잃은 팔·다리와 오토메일을 플레이어 모델에
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(bbc.job.alchemy.BodyPayload.ID, (payload, ctx) -> {
+            if (payload.toll().isEmpty() && payload.automail().isEmpty()) bbc.client.alchemy.AutomailRender.BODIES.remove(payload.player());
+            else bbc.client.alchemy.AutomailRender.BODIES.put(payload.player(), new bbc.client.alchemy.AutomailRender.Body(payload.toll(), payload.automail(), payload.buff()));
+        });
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> bbc.client.alchemy.AutomailRender.BODIES.clear());
+        net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
+            if (renderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer pr) helper.register(new bbc.client.alchemy.AutomailRender(pr));
+        });
         ClientPlayNetworking.registerGlobalReceiver(MotionPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
             if (ctx.client().world == null) return;
             var ent = ctx.client().world.getEntityById(payload.entityId());

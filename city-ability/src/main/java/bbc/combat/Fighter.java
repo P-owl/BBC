@@ -35,6 +35,10 @@ public final class Fighter {
     boolean freshHit;     // 방금 맞음 → 클라이언트 움찔 다시 시작
     String dummyLast;
 
+    // ── 버프 (직업 기술: 예 연금술사 최후의 일격 = 주는 피해 ×1.4) ──
+    public long dmgBuffUntil;
+    public float dmgBuffMul = 1f;
+
     // ── 각성 ──
     double awakenGauge;   // 0~100
     long awakenUntil;     // 각성 끝나는 틱 (0 = 각성 아님)

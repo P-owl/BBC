@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [" W ", "WCW", " L "],
+  "key": {
+    "W": { "item": "minecraft:white_wool" },
+    "C": { "item": "bbc:alchemy_circle" },
+    "L": { "item": "minecraft:leather" }
+  },
+  "result": { "id": "bbc:alchemy_glove", "count": 1 }
+}

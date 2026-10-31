@@ -10,5 +10,16 @@
   "key.bbc.eye": "마안 / 파문 호흡",
   "key.bbc.implant": "임플란트 기술",
   "key.bbc.relic": "유물 사용",
-  "key.bbc.grow": "성장 창"
+  "key.bbc.grow": "성장 창",
+  "item.bbc.philosophers_stone": "현자의 돌",
+  "item.bbc.philosophers_stone.tooltip1": "우클릭: 효과를 하나 골라 사용",
+  "item.bbc.philosophers_stone.tooltip2": "플레이어 우클릭: 리스크 없는 결투",
+  "block.bbc.alchemy_circle": "등가교환 연성진",
+  "item.bbc.alchemy_glove": "연성 장갑",
+  "item.bbc.alchemy_glove.tooltip1": "주 손이나 보조 손에 들면 손에 끼워집니다",
+  "item.bbc.alchemy_glove.tooltip2": "진리를 보기 전 연금술사는 이 장갑이 있어야 연성 기술을 씁니다",
+  "item.bbc.automail_arm": "오토메일 의수",
+  "item.bbc.automail_leg": "오토메일 의족",
+  "item.bbc.automail_heart": "강철 심장",
+  "item.bbc.alchemy_spear": "연성 창"
 }

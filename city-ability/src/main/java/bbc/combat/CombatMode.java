@@ -82,7 +82,13 @@ public final class CombatMode {
         }
         if (action == KeyPayload.AWAKEN) { Awaken.press(p); return; }
         if (action == KeyPayload.SLOT_BASE) { Weapon.cycle(p); return; }
-        // 스위치·임플란트·유물·마안은 이후에 연결
+        if (action == KeyPayload.IMPLANT) {
+            bbc.core.PlayerData.Entry en = bbc.job.Jobs.entry(p);
+            bbc.job.JobType jt = bbc.job.Jobs.type(en);
+            if (jt == null || !jt.implant(p, en)) JobSkills.bar(p, "장착한 임플란트가 없습니다", net.minecraft.util.Formatting.GRAY);
+            return;
+        }
+        // 유물·마안은 이후에 연결
     }
 
     public static void register() {

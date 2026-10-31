@@ -41,6 +41,12 @@ public final class Awaken {
         return f != null && Combat.now < f.awakenUntil;
     }
 
+    /** 각성 시간 늘리기 (연금술사 붉은 연성 등) */
+    public static void extend(LivingEntity e, int ticks) {
+        Fighter f = Combat.peek(e);
+        if (f != null && Combat.now < f.awakenUntil) f.awakenUntil += ticks;
+    }
+
     public static double gauge(LivingEntity e) {
         Fighter f = Combat.peek(e);
         return f == null ? 0 : f.awakenGauge;

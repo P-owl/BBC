@@ -1,0 +1,18 @@
+{
+  "type": "bbc:truth",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "bbc:truth",
+      "layers": [
+        {
+          "block": "minecraft:air",
+          "height": 1
+        }
+      ],
+      "lakes": false,
+      "features": false,
+      "structure_overrides": []
+    }
+  }
+}

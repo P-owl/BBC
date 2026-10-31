@@ -12,7 +12,8 @@
     "MinecraftClientMixin",
     "KeyboardInputMixin",
     "LivingEntityRendererMixin",
-    "CameraMixin"
+    "CameraMixin",
+    "PlayerRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

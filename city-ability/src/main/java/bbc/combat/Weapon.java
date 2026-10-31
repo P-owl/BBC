@@ -57,6 +57,7 @@ public final class Weapon {
         if (s == null || s.isEmpty()) return null;
         if (s.isIn(ItemTags.SWORDS)) return Type.SWORD;
         if (s.isOf(Items.TRIDENT)) return Type.SPEAR;
+        if (net.minecraft.registry.Registries.ITEM.getId(s.getItem()).toString().equals("bbc:alchemy_spear")) return Type.SPEAR;   // 연금술사 무기 연성
         if (s.isIn(ItemTags.AXES)) return Type.GREATSWORD;
         return null;
     }

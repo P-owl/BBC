@@ -30,6 +30,10 @@ public interface JobType {
     default void onAwakenEnd(ServerPlayerEntity p, PlayerData.Entry e) {}
     /** 각성기. 썼으면 true. false 를 돌려주면 공통 각성기 ‘난무’가 나간다 */
     default boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
+    /** 임플란트 키(H). 썼으면 true (연금술사: 오토메일 칼날) */
+    default boolean implant(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
+    /** 직업 기술 피해의 기준 스탯 (null 이면 직업 숙련만). 예: 연금술사 = 지능 */
+    default bbc.grow.Stat skillStat() { return null; }
     /** 궁극기 이름 (HUD 기술 목록 맨 아래). 직업 궁극기가 없으면 공통 '난무' */
     default String ultimateName() { return "난무"; }
 }
