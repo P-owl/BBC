@@ -58,6 +58,7 @@ public class BbcClient implements ClientModInitializer {
         if (ANIM) Anim.init();
         CombatHud.init();
         GrowthClient.init();
+        Cutscene.init();
         // 연금술사: 진리의 통행료로 잃은 팔·다리와 오토메일을 플레이어 모델에
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(bbc.job.alchemy.BodyPayload.ID, (payload, ctx) -> {
             if (payload.toll().isEmpty() && payload.automail().isEmpty()) bbc.client.alchemy.AutomailRender.BODIES.remove(payload.player());

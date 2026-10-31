@@ -36,6 +36,7 @@ public class Bbc implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(bbc.net.ComboPayload.ID, bbc.net.ComboPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.AwakenPayload.ID, bbc.net.AwakenPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.FxPayload.ID, bbc.net.FxPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.CutscenePayload.ID, bbc.net.CutscenePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(KeyPayload.ID,
                 (payload, ctx) -> ctx.server().execute(() -> CombatMode.onKey(ctx.player(), payload.action())));
 

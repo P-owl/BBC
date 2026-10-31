@@ -29,7 +29,7 @@ final class Anim {
         PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(STANCE, 500, player -> new ModifierLayer<>());
     }
 
-    /** 매 틱: 손에 든 무기에 맞는 싸움 자세로 (맨손·검·창·대검) */
+    /** 매 틱: 손에 든 무기에 맞는 싸움 자세로 (맨손·검·창·대검), 달리면 달리기 모션 */
     static void tick(net.minecraft.client.MinecraftClient c) {
         if (c.world == null) { STANCE_ON.clear(); return; }
         var it = STANCE_ON.entrySet().iterator();
@@ -38,9 +38,20 @@ final class Anim {
             if (!(c.world.getEntityById(en.getKey()) instanceof AbstractClientPlayerEntity pl)) { it.remove(); continue; }
             var stack = pl.getMainHandStack();
             boolean alSpear = net.minecraft.registry.Registries.ITEM.getId(stack.getItem()).toString().equals("bbc:alchemy_spear");
+            boolean weapon = stack.isIn(net.minecraft.registry.tag.ItemTags.SWORDS) || stack.isOf(net.minecraft.item.Items.TRIDENT)
+                    || alSpear || stack.isIn(net.minecraft.registry.tag.ItemTags.AXES);
             String want = stack.isIn(net.minecraft.registry.tag.ItemTags.SWORDS) ? "stance_sword"
                     : stack.isOf(net.minecraft.item.Items.TRIDENT) || alSpear ? "stance_spear"
                     : stack.isIn(net.minecraft.registry.tag.ItemTags.AXES) ? "stance_gs" : STANCE_BASE.getOrDefault(en.getKey(), "stance");
+            // 이동: 땅에서 달리면(빠르게) 달리기 모션, 걸으면 다리는 바닐라 걷기 (다리까지 잡은 자세는 '_walk' 판으로)
+            double sp = Math.hypot(pl.getX() - pl.prevX, pl.getZ() - pl.prevZ);
+            int id = en.getKey();
+            if (sp > 0.03) MOVED_AT.put(id, c.world.getTime());
+            boolean moving = c.world.getTime() - MOVED_AT.getOrDefault(id, -100L) <= 3;
+            if (sp > 0.19 || pl.isSprinting() && moving) RAN_AT.put(id, c.world.getTime());
+            boolean running = moving && c.world.getTime() - RAN_AT.getOrDefault(id, -100L) <= 3;
+            if (running) want = weapon ? "run_w" : "run";
+            else if (moving && WALK_VARIANT.contains(want)) want = want + "_walk";
             if (want.equals(en.getValue())) continue;
             en.setValue(want);
             ModifierLayer<IAnimation> st = layer(pl, STANCE);
@@ -69,6 +80,10 @@ final class Anim {
     private static final java.util.Map<Integer, String> STANCE_ON = new java.util.HashMap<>();
     /** 직업 대기 자세 (맨손일 때) */
     private static final java.util.Map<Integer, String> STANCE_BASE = new java.util.HashMap<>();
+    /** 마지막으로 움직인·달린 틱 (잠깐 멈칫해도 모션이 깜빡이지 않게 3틱 여유) */
+    private static final java.util.Map<Integer, Long> MOVED_AT = new java.util.HashMap<>(), RAN_AT = new java.util.HashMap<>();
+    /** 다리까지 잡은 대기 자세 → 걸을 땐 팔만 잡은 '_walk' 판으로 */
+    private static final java.util.Set<String> WALK_VARIANT = java.util.Set.of("stance_al");
 
     static void play(AbstractClientPlayerEntity player, String motion) {
         if (motion.startsWith("#stance")) {

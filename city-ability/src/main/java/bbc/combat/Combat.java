@@ -140,6 +140,12 @@ public final class Combat {
         if (!p.isOnGround() && now < f.airComboUntil + 10) f.airComboUntil = Math.max(f.airComboUntil, now + 30);
     }
 
+    /** 컷신 등: ticks 동안 무적 */
+    public static void invuln(LivingEntity e, int ticks) {
+        Fighter f = of(e);
+        f.invulnUntil = Math.max(f.invulnUntil, now + ticks);
+    }
+
     /** 기술용: 속도를 바로 넣음 (플레이어면 즉시 전송) */
     public static void move(LivingEntity e, Vec3d v) { setVel(e, v); }
 

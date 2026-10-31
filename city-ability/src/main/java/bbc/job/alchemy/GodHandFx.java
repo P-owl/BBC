@@ -57,7 +57,11 @@ public final class GodHandFx {
     /** at = 대상 발 위치. close 틱에 움켜쥠, hold 틱 동안 유지 후 가라앉음 */
     public static void play(ServerWorld w, Vec3d at, double groundY, int close, int hold) {
         // 대상 뒤쪽(무작위 방향)에서 손바닥이 대상을 향하도록
-        double ang = ThreadLocalRandom.current().nextDouble(Math.PI * 2);
+        play(w, at, groundY, close, hold, ThreadLocalRandom.current().nextDouble(Math.PI * 2));
+    }
+
+    /** ang = 손이 대상의 어느 쪽에서 솟을지 (라디안, x = cos, z = sin 방향의 반대편). 두 손을 마주 보게 할 때 */
+    public static void play(ServerWorld w, Vec3d at, double groundY, int close, int hold, double ang) {
         double dx = Math.cos(ang), dz = Math.sin(ang);
         double hx = at.x - dx * 1.6, hz = at.z - dz * 1.6;
         float yaw = (float) Math.atan2(at.x - hx, at.z - hz);
