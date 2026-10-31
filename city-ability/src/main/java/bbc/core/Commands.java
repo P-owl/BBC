@@ -98,7 +98,7 @@ public final class Commands {
         ServerPlayerEntity p = c.getSource().getPlayerOrThrow();
         bbc.grow.Stat s = bbc.grow.Stat.byId(StringArgumentType.getString(c, "stat"));
         if (s == null) { c.getSource().sendError(Text.literal("없는 스탯")); return 0; }
-        p.giveItemStack(bbc.grow.GrowthEvents.tool(s, count));
+        for (int i = 0; i < Math.max(1, Math.min(count, 36)); i++) p.giveItemStack(bbc.grow.GrowthEvents.tool(s));
         return 1;
     }
 

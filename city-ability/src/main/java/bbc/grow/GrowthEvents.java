@@ -93,7 +93,7 @@ public final class GrowthEvents {
             if (world.isClient || !(player instanceof ServerPlayerEntity p)) return TypedActionResult.pass(st);
             Stat tool = toolOf(st);
             if (tool != null) {
-                if (Growth.confirm(p, tool)) st.decrement(1);
+                if (Growth.confirm(p, tool)) useTool(p, st);
                 return TypedActionResult.success(st);
             }
             if (st.isOf(Items.BOOK) && hand == Hand.MAIN_HAND) {
@@ -160,17 +160,40 @@ public final class GrowthEvents {
         return n.contains("bbc_tool") ? Stat.byId(n.getString("bbc_tool")) : null;
     }
 
-    /** 수련 도구 아이템 (레시피 결과와 같은 모양) */
-    public static ItemStack tool(Stat s, int count) {
-        ItemStack st = new ItemStack(s.icon == Items.WRITABLE_BOOK ? Items.WRITABLE_BOOK : baseOf(s), count);
+    /** 수련 도구 한 개로 확정할 수 있는 횟수 (내구도) */
+    public static final int TOOL_USES = 20;
+    /** 텍스처 번호 (assets/minecraft/models/item/warped_fungus_on_a_stick.json 의 custom_model_data) */
+    public static final int TOOL_MODEL = 7101;
+
+    /** 수련 도구 아이템: 뒤틀린 균 낚싯대 바탕 + 텍스처 + 내구도 (레시피 결과와 같은 모양) */
+    public static ItemStack tool(Stat s) {
+        ItemStack st = new ItemStack(Items.WARPED_FUNGUS_ON_A_STICK);
         NbtCompound n = new NbtCompound();
         n.putString("bbc_tool", s.id);
         st.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(n));
+        st.set(DataComponentTypes.CUSTOM_MODEL_DATA, new net.minecraft.component.type.CustomModelDataComponent(TOOL_MODEL + s.ordinal()));
+        st.set(DataComponentTypes.MAX_DAMAGE, TOOL_USES);
+        st.set(DataComponentTypes.DAMAGE, 0);
         st.set(DataComponentTypes.CUSTOM_NAME, Text.literal(s.tool).formatted(Formatting.YELLOW).styled(x -> x.withItalic(false)));
         st.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("우클릭: " + s.name + " 확정 대기 1점을 확정").formatted(Formatting.GRAY).styled(x -> x.withItalic(false)))));
-        st.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+                Text.literal("우클릭 또는 성장 창(K)의 ↑: " + s.name + " 확정 대기 1점을 확정").formatted(Formatting.GRAY).styled(x -> x.withItalic(false)),
+                Text.literal("한 번 확정할 때마다 내구도 1 (" + TOOL_USES + "회)").formatted(Formatting.DARK_GRAY).styled(x -> x.withItalic(false)))));
         return st;
+    }
+
+    /** 확정 1번 = 내구도 1. 예전 소모형 도구(내구도 없음)는 한 개 줄임 */
+    public static void useTool(ServerPlayerEntity p, ItemStack st) {
+        if (!st.isDamageable()) { st.decrement(1); return; }
+        String name = st.getName().getString();
+        st.damage(1, p.getServerWorld(), p, item -> {
+            p.playSoundToPlayer(net.minecraft.sound.SoundEvents.ENTITY_ITEM_BREAK, net.minecraft.sound.SoundCategory.PLAYERS, 0.8f, 1f);
+            p.sendMessage(Text.literal(name + "이(가) 다 닳았다").formatted(Formatting.GRAY), true);
+        });
+    }
+
+    /** 남은 확정 횟수 (내구도형은 남은 내구도, 예전 소모형은 개수) */
+    public static int usesLeft(ItemStack st) {
+        return st.isDamageable() ? st.getMaxDamage() - st.getDamage() : st.getCount();
     }
 
     public static net.minecraft.item.Item baseOf(Stat s) {

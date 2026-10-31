@@ -70,7 +70,7 @@ public final class GrowthNet {
                 if (s == null) break;
                 ItemStack tool = findTool(p, s);
                 if (tool == null) { p.sendMessage(net.minecraft.text.Text.literal("가방에 " + s.tool + "이(가) 없습니다").formatted(net.minecraft.util.Formatting.GRAY), true); break; }
-                if (Growth.confirm(p, s)) tool.decrement(1);
+                if (Growth.confirm(p, s)) GrowthEvents.useTool(p, tool);
             }
             default -> {}
         }
@@ -86,7 +86,7 @@ public final class GrowthNet {
     static int countTools(ServerPlayerEntity p, Stat s) {
         int n = 0;
         var inv = p.getInventory();
-        for (int i = 0; i < inv.size(); i++) { ItemStack st = inv.getStack(i); if (!st.isEmpty() && GrowthEvents.toolOf(st) == s) n += st.getCount(); }
+        for (int i = 0; i < inv.size(); i++) { ItemStack st = inv.getStack(i); if (!st.isEmpty() && GrowthEvents.toolOf(st) == s) n += GrowthEvents.usesLeft(st); }
         return n;
     }
 

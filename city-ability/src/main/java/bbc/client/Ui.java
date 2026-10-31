@@ -1,10 +1,13 @@
 package bbc.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.StringVisitable;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +19,108 @@ final class Ui {
     // Deepwoken 풍 색
     static final int TEAL = 0xF01B2B29, TEAL_D = 0xF0142120, TEAL_L = 0xFF2C403D, CREAM = 0xFFE8DDBE, CREAM_D = 0xFFBFB28E,
             BRONZE = 0xFFB08A4A, BRONZE_D = 0xFF6E5228, GOLD = 0xFFE0B860, INK = 0xFF15110C, LINE = 0xFFCFC3A0;
+
+    // ═════════ 텍스처 (tools/make_ui_textures.py 가 만든 것, GUI 1칸 = 3픽셀) ═════════
+
+    static Identifier id(String path) { return Identifier.of("bbc", "textures/gui/" + path + ".png"); }
+
+    /** 텍스처를 쓰기 전에: 앞에 쌓인 사각형·글자를 먼저 그리고, 부드러운 확대·축소, 반투명 섞기 */
+    private static Identifier prep(DrawContext ctx, String path, float alpha) {
+        Identifier id = id(path);
+        ctx.draw();
+        MinecraftClient.getInstance().getTextureManager().getTexture(id).setFilter(true, false);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1f, 1f, 1f, alpha);
+        return id;
+    }
+
+    private static void unprep() { RenderSystem.setShaderColor(1f, 1f, 1f, 1f); }
+
+    /** 텍스처 전체를 (x, y, w, h) 에 */
+    static void tex(DrawContext ctx, String path, float x, float y, float w, float h) { tex(ctx, path, x, y, w, h, 1f); }
+
+    static void tex(DrawContext ctx, String path, float x, float y, float w, float h, float alpha) {
+        if (alpha <= 0.01f) return;
+        Identifier id = prep(ctx, path, alpha);
+        var m = ctx.getMatrices();
+        m.push();
+        m.translate(x, y, 0);
+        m.scale(w / 256f, h / 256f, 1f);
+        ctx.drawTexture(id, 0, 0, 256, 256, 0f, 0f, 256, 256, 256, 256);
+        m.pop();
+        unprep();
+    }
+
+    /**
+     * 가로로 늘이는 텍스처 (양끝 cap 칸은 그대로, 가운데만 늘림). tw·th = 텍스처 크기(GUI 칸).
+     * 높이 h 에 맞춰 통째로 비율 조절
+     */
+    static void slice3(DrawContext ctx, String path, int tw, int th, int cap, float x, float y, float w, float h, float alpha) {
+        if (alpha <= 0.01f) return;
+        Identifier id = prep(ctx, path, alpha);
+        int TW = tw * 3, TH = th * 3, C = cap * 3;
+        float k = h / th / 3f;                 // 텍스처 1픽셀 = k 칸
+        int total = Math.max(2 * C + 1, Math.round(w / k));
+        var m = ctx.getMatrices();
+        m.push();
+        m.translate(x, y, 0);
+        m.scale(k, k, 1f);
+        ctx.drawTexture(id, 0, 0, C, TH, 0f, 0f, C, TH, TW, TH);
+        ctx.drawTexture(id, C, 0, total - 2 * C, TH, C, 0f, TW - 2 * C, TH, TW, TH);
+        ctx.drawTexture(id, total - C, 0, C, TH, TW - C, 0f, C, TH, TW, TH);
+        m.pop();
+        unprep();
+    }
+
+    /** 금속 단추 (gold / red / teal) + 가운데 글자 */
+    static void button(DrawContext ctx, TextRenderer tr, String color, float x, float y, float w, float h, String label, boolean hover) {
+        slice3(ctx, "btn_" + color, 40, 22, 8, x, y, w, h, 1f);
+        if (hover) { ctx.fill((int) x + 2, (int) y + 2, (int) (x + w) - 2, (int) (y + h) - 2, 0x22FFFFFF); }
+        int tw = tr.getWidth(label);
+        float ts = Math.min(1f, (h - 4) / 9f);
+        var m = ctx.getMatrices();
+        m.push();
+        m.translate(x + w / 2f, y + h / 2f - 4 * ts + 0.5f, 0);
+        m.scale(ts, ts, 1);
+        ctx.drawText(tr, label, -tw / 2, 0, color.equals("gold") ? 0xFF2A1A08 : 0xFFF4E8CC, !color.equals("gold"));
+        m.pop();
+    }
+
+    /** 장식 구분선 (가운데 마름모) — 너비 w, 가운데 (cx, y) */
+    static void ornament(DrawContext ctx, float cx, float y, float w) {
+        float h = 12 * Math.min(1f, Math.max(0.7f, w / 200f));
+        tex(ctx, "ornament", cx - w / 2f, y - h / 2f, w, h, 0.95f);
+    }
+
+    /** 수련 도구 아이템 (텍스처 번호 7101 + 스탯 순서) */
+    static net.minecraft.item.ItemStack toolStack(int statIndex) {
+        var st = new net.minecraft.item.ItemStack(net.minecraft.item.Items.WARPED_FUNGUS_ON_A_STICK);
+        st.set(net.minecraft.component.DataComponentTypes.CUSTOM_MODEL_DATA, new net.minecraft.component.type.CustomModelDataComponent(7101 + statIndex));
+        return st;
+    }
+
+    /** 크기 조절한 아이템 (가운데 기준) */
+    static void item(DrawContext ctx, net.minecraft.item.ItemStack st, float cx, float cy, float scale) {
+        var m = ctx.getMatrices();
+        m.push();
+        m.translate(cx, cy, 0);
+        m.scale(scale, scale, 1);
+        ctx.drawItem(st, -8, -8);
+        m.pop();
+    }
+
+    /** 글자를 가운데 정렬 + 배율 */
+    static void text(DrawContext ctx, TextRenderer tr, String s, float cx, float y, float scale, int col, boolean shadow) {
+        var m = ctx.getMatrices();
+        m.push();
+        m.translate(cx, y, 0);
+        m.scale(scale, scale, 1);
+        ctx.drawText(tr, s, -tr.getWidth(s) / 2, 0, col, shadow);
+        m.pop();
+    }
+
+    static int alpha(int argb, float a) { return ((int) (((argb >>> 24) & 0xFF) * Math.max(0, Math.min(1, a))) << 24) | (argb & 0xFFFFFF); }
 
     static void quad(DrawContext ctx, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int col) {
         var vc = ctx.getVertexConsumers().getBuffer(RenderLayer.getGui());
@@ -112,5 +217,6 @@ final class Ui {
             return null;
         }
         boolean over(double mx, double my, int x, int y, int w, int h) { return mx >= x && mx < x + w && my >= y && my < y + h; }
+        static boolean inside(double mx, double my, float x, float y, float w, float h) { return mx >= x && mx < x + w && my >= y && my < y + h; }
     }
 }

@@ -206,20 +206,35 @@ final class CombatHud {
 
     private static float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
-    /** 체력 위 작은 스태미나 막대 (예전 보스바는 각성 막대와 겹쳐서 옮김) */
+    /**
+     * 배고픔 위 스태미나 막대 (체력 줄이 늘어나도 안 겹치게 오른쪽으로 옮김).
+     * 숨 방울이 보이면 그 위로, 탈것 체력이 여러 줄이면 그만큼 위로
+     */
     private static void staminaBar(DrawContext ctx, MinecraftClient c) {
         if (stamMax <= 0 || c.player == null || c.player.isCreative() || c.player.isSpectator()) return;
-        int w = 81, x = ctx.getScaledWindowWidth() / 2 - 91;
-        int y = ctx.getScaledWindowHeight() - 39 - 10 - (c.player.getArmor() > 0 ? 10 : 0) + 4;  // 하트(갑옷) 바로 위
+        int w = 81, x = ctx.getScaledWindowWidth() / 2 + 91 - w;
+        int y = ctx.getScaledWindowHeight() - 39 - 6;
+        if (c.player.getVehicle() instanceof net.minecraft.entity.LivingEntity v) {
+            int hearts = Math.min(30, (int) (v.getMaxHealth() + 0.5f) / 2);
+            y -= (Math.max(1, (hearts + 9) / 10) - 1) * 10;
+        }
+        if (c.player.isSubmergedIn(net.minecraft.registry.tag.FluidTags.WATER) || c.player.getAir() < c.player.getMaxAir()) y -= 10;
         float r = Math.max(0f, Math.min(1f, stam / (float) stamMax));
+        boolean low = r < 0.25f;
+        int fw = (int) (w * r);
         ctx.fill(x - 1, y - 1, x + w + 1, y + 4, 0xFF000000);
-        ctx.fill(x, y, x + w, y + 3, 0xFF3A3410);
-        ctx.fill(x, y, x + (int) (w * r), y + 3, r < 0.25f ? 0xFFE04030 : 0xFFF0C830);
+        ctx.fill(x, y, x + w, y + 3, 0xFF2A2610);
+        if (fw > 0) {
+            ctx.fill(x + w - fw, y, x + w, y + 3, low ? 0xFFD83A2A : 0xFFE8B820);   // 오른쪽에서 왼쪽으로 줄어듦 (배고픔과 같은 방향)
+            ctx.fill(x + w - fw, y, x + w, y + 1, low ? 0xFFFF7A5A : 0xFFFFE070);
+        }
+        for (int k = 1; k < 4; k++) ctx.fill(x + w * k / 4, y, x + w * k / 4 + 1, y + 3, 0x66000000);   // 4칸 눈금
         var m = ctx.getMatrices();
         m.push();
-        m.translate(x + w + 3, y - 1, 0);
+        String t = "⚡" + stam;
+        m.translate(x - 2, y - 1, 0);
         m.scale(0.6f, 0.6f, 1f);
-        ctx.drawTextWithShadow(c.textRenderer, Text.literal("⚡" + stam), 0, 0, 0xFFF0D860);
+        ctx.drawTextWithShadow(c.textRenderer, Text.literal(t), -c.textRenderer.getWidth(t), 0, low ? 0xFFFF8A6A : 0xFFF0D860);
         m.pop();
     }
 

@@ -1,0 +1,56 @@
+{
+ "parent": "minecraft:item/handheld_rod",
+ "textures": {
+  "layer0": "minecraft:item/warped_fungus_on_a_stick"
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "custom_model_data": 7101
+   },
+   "model": "bbc:item/tool_str"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7102
+   },
+   "model": "bbc:item/tool_end"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7103
+   },
+   "model": "bbc:item/tool_agi"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7104
+   },
+   "model": "bbc:item/tool_int"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7105
+   },
+   "model": "bbc:item/tool_light"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7106
+   },
+   "model": "bbc:item/tool_medium"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7107
+   },
+   "model": "bbc:item/tool_heavy"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7108
+   },
+   "model": "bbc:item/tool_class"
+  }
+ ]
+}

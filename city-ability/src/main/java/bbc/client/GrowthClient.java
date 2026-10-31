@@ -25,7 +25,7 @@ public final class GrowthClient {
             MinecraftClient c = ctx.client();
             if (p.open() == 1) c.setScreen(new GrowthScreen());
             else if (p.open() == 2) c.setScreen(new TalentScreen(true));
-            else if (c.currentScreen instanceof TalentScreen ts && state.getAsJsonArray("pick").isEmpty()) ts.close();
+            else if (c.currentScreen instanceof TalentScreen ts && state.getAsJsonArray("pick").isEmpty() && !ts.busy()) ts.close();
         }));
         ClientPlayNetworking.registerGlobalReceiver(CombatTagPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             combatTicks = p.ticks();
