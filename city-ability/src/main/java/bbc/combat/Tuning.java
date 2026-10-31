@@ -39,10 +39,9 @@ public final class Tuning {
     public static final int BOUNCE_WINDOW = 20;   // ABA 위키: 슬램 맞으면 1초 경직
     /** 공중 래더: 공중에서 스페이스를 누른 채 5타째 → 둘 다 다시 띄우고 사슬 처음부터 (상대당 콤보 1번) */
     /** 드롭킥 (ABA): 공중에서 스페이스를 누른 채 5타째 → 두 발로 차서 상대를 거의 수평으로 멀리 날림 (날아가는 동안 중력 무시 STRAIGHT 틱).
-     *  나도 앞으로 조금 날아감. 대시로 쫓아가 이을 수 있음 */
+     *  차는 쪽은 제자리 (따라 날아가지 않음). 대시로 쫓아가 이을 수 있음 */
     public static final Hit DROPKICK = new Hit(1.5f, Hit.Kind.KNOCK, 16, 1.35, 0.12, 25, false, false);   // ABA: 평타 4.1 → 드롭킥 6
     public static final int DROPKICK_STARTUP = 4, DROPKICK_RECOVERY = 8, DROPKICK_STRAIGHT = 8;
-    public static final double DROPKICK_LUNGE = 0.9;   // ABA: 차는 쪽도 몸을 눕힌 채 상대를 따라 쭉 날아감
     /** (예전 래더, 지금은 안 씀) */
     public static final Hit LADDER = new Hit(1.0f, Hit.Kind.AIR, 24, 0.05, 0.7, 12, false, false);
     public static final double LADDER_VY = 0.62;

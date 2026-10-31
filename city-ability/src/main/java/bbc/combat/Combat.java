@@ -205,10 +205,11 @@ public final class Combat {
                 int n;
                 try { n = hitArea(p, Tuning.DROPKICK, false); } finally { STRAIGHT = false; }
                 a.airComboUntil = 0;
-                Vec3d lunge = new Vec3d(fw.x * Tuning.DROPKICK_LUNGE, 0.08, fw.z * Tuning.DROPKICK_LUNGE);
-                setVel(p, lunge);
-                if (n > 0 && now < a.freezeUntil) a.resumeVel = lunge;
-                if (n > 0) { a.straightUntil = now + 3 + 5; Fx.kickStreak((ServerWorld) p.getWorld(), p.getPos().add(fw.multiply(1.8)).add(0, 1.0, 0), fw); }
+                // 차는 쪽은 따라 날아가지 않음: 찬 반동으로 제자리에서 살짝 뜬 뒤 그대로 떨어짐
+                Vec3d recoil = new Vec3d(-fw.x * 0.1, 0.12, -fw.z * 0.1);
+                setVel(p, recoil);
+                if (n > 0 && now < a.freezeUntil) a.resumeVel = recoil;
+                if (n > 0) Fx.kickStreak((ServerWorld) p.getWorld(), p.getPos().add(fw.multiply(1.8)).add(0, 1.0, 0), fw);
             });
         } else if (air) {
             swing(p, a, weapon ? pr.motion() + "slam" : "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
