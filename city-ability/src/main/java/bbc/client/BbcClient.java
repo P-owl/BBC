@@ -57,6 +57,7 @@ public class BbcClient implements ClientModInitializer {
 
         if (ANIM) Anim.init();
         CombatHud.init();
+        GrowthClient.init();
         ClientPlayNetworking.registerGlobalReceiver(MotionPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
             if (ctx.client().world == null) return;
             var ent = ctx.client().world.getEntityById(payload.entityId());

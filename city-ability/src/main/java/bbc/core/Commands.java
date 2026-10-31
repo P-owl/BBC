@@ -34,7 +34,7 @@ public final class Commands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((d, reg, env) -> d.register(CommandManager.literal("bbc")
                 .then(CommandManager.literal("skills").executes(c -> { SkillMenu.open(c.getSource().getPlayerOrThrow()); return 1; }))
-                .then(CommandManager.literal("grow").executes(c -> { bbc.grow.GrowthMenu.open(c.getSource().getPlayerOrThrow()); return 1; }))
+                .then(CommandManager.literal("grow").executes(c -> { bbc.grow.GrowthNet.open(c.getSource().getPlayerOrThrow()); return 1; }))
                 .then(CommandManager.literal("combat").executes(c -> { CombatMode.toggle(c.getSource().getPlayerOrThrow()); return 1; }))
                 .then(CommandManager.literal("info")
                         .executes(c -> info(c, c.getSource().getPlayerOrThrow()))

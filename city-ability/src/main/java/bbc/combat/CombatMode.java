@@ -38,6 +38,10 @@ public final class CombatMode {
             JobSkills.bar(p, "전투 기술이 있는 직업이 아닙니다", Formatting.GRAY);
             on = false;
         }
+        if (!on && active(p) && CombatTag.tagged(p) && Jobs.hasCombat(Jobs.entry(p))) {   // 전투 중엔 끌 수 없음
+            JobSkills.bar(p, "⚠ 전투 중엔 전투 모드를 끌 수 없습니다 (" + (CombatTag.left(p) / 20 + 1) + "초)", Formatting.RED);
+            on = true;
+        }
         if (on == active(p)) { ServerPlayNetworking.send(p, new CombatStatePayload(on)); return; }
         if (on) {
             ACTIVE.add(p.getUuid());
@@ -58,7 +62,7 @@ public final class CombatMode {
     /** 클라이언트 키 입력 처리 (서버 스레드에서 호출) */
     public static void onKey(ServerPlayerEntity p, int action) {
         if (action == KeyPayload.TOGGLE) { toggle(p); return; }
-        if (action == KeyPayload.GROWTH) { bbc.grow.GrowthMenu.open(p); return; }
+        if (action == KeyPayload.GROWTH) { bbc.grow.GrowthNet.open(p); return; }
         if (!active(p)) return;
         switch (action) {
             case KeyPayload.M1 -> { Combat.m1(p, false); return; }

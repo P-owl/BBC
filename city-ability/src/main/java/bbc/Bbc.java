@@ -28,6 +28,9 @@ public class Bbc implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(bbc.net.SkillHudPayload.ID, bbc.net.SkillHudPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.TargetPayload.ID, bbc.net.TargetPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.StatusPayload.ID, bbc.net.StatusPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.CombatTagPayload.ID, bbc.net.CombatTagPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(bbc.net.GrowthSyncPayload.ID, bbc.net.GrowthSyncPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(bbc.net.GrowthActionPayload.ID, bbc.net.GrowthActionPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(MotionPayload.ID, MotionPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.StunPayload.ID, bbc.net.StunPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(bbc.net.ComboPayload.ID, bbc.net.ComboPayload.CODEC);
@@ -46,6 +49,8 @@ public class Bbc implements ModInitializer {
         bbc.combat.Channel.register();
         CombatMode.register();
         bbc.grow.GrowthEvents.register();
+        bbc.combat.CombatTag.register();
+        bbc.grow.GrowthNet.register();
         Commands.register();
         LOG.info("BBC 도시 능력자 로드됨");
     }

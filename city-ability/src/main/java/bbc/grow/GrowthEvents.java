@@ -143,6 +143,8 @@ public final class GrowthEvents {
                     Growth.gainEp(p, 15, "새 장소: " + b);
                 }
             }
+            // 부상이 끝나면 최대 체력 되돌림
+            if (e.num("g.injury_until") > 0 && e.num("g.injury_until") <= System.currentTimeMillis()) { e.num("g.injury_until", 0); Growth.apply(p); }
             // 수인 밤눈
             if (Growth.race(e) == Race.BEAST && p.getServerWorld().isNight())
                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.NIGHT_VISION, 260, 0, true, false));

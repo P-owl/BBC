@@ -58,6 +58,9 @@ public final class Growth {
         for (int i = 0; i < TRAITS.length; i++) spent += trait(e, i);
         return Math.min(24, power(e) / 2) - spent;
     }
+    /** 소각 토큰 (파워업마다 +1, 최대 3, 처음 1) */
+    public static int burns(PlayerData.Entry e) { return e.jd.contains("g.burns") ? (int) e.num("g.burns") : 1; }
+    public static boolean burned(PlayerData.Entry e, Talent t) { return ("," + e.str("g.burned") + ",").contains("," + t.id + ","); }
     public static Race race(PlayerData.Entry e) { return Race.byId(e.str("g.race")); }
     public static String raceSub(PlayerData.Entry e) { return e.str("g.race_sub"); }
 
@@ -94,6 +97,7 @@ public final class Growth {
         if (pend >= PENDING_CAP) x = Math.min(x, need(e, s));
         e.num("g.x." + s.id, x);
         e.num("g.p." + s.id, pend);
+        GrowthNet.markDirty(p);
         if (got) {
             p.sendMessage(Text.literal("✦ " + s.name + " 1점 확정 대기 (" + s.tool + "로 확정, 대기 " + pend + ")").formatted(Formatting.GREEN), true);
             p.playSoundToPlayer(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 0.5f, 1.4f);
@@ -106,6 +110,7 @@ public final class Growth {
         PlayerData.Entry e = e(p);
         e.addNum("g.ep", amount);
         Jobs.dirty(p);
+        GrowthNet.markDirty(p);
         if (amount >= 5) p.sendMessage(Text.literal("존재치 +" + (int) amount + (why.isEmpty() ? "" : " (" + why + ")")).formatted(Formatting.LIGHT_PURPLE), true);
         tryPowerUp(p);
     }
@@ -129,6 +134,7 @@ public final class Growth {
         p.sendMessage(Text.literal("✔ " + s.name + " " + stat(e, s) + " (이번 파워 투자 " + invested(e) + "/" + perPower(power(e)) + ")").formatted(Formatting.AQUA), true);
         p.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.4f, 1.6f);
         apply(p);
+        GrowthNet.markDirty(p);
         tryPowerUp(p);
         return true;
     }
@@ -139,6 +145,7 @@ public final class Growth {
         if (pw >= MAX_POWER || invested(e) < perPower(pw) || ep(e) < epFor(pw + 1)) return;
         e.num("g.power", pw + 1);
         e.num("g.inv", 0);
+        e.num("g.burns", Math.min(3, burns(e) + 1));
         Jobs.dirty(p);
         p.sendMessage(Text.literal("★ 파워 " + (pw + 1) + "!").formatted(Formatting.GOLD, Formatting.BOLD), false);
         if ((pw + 1) % 2 == 0 && traitPoints(e) > 0)
@@ -152,7 +159,7 @@ public final class Growth {
     public static void rollCards(ServerPlayerEntity p) {
         PlayerData.Entry e = e(p);
         List<Talent> pool = new ArrayList<>();
-        for (Talent t : Talent.values()) if (!has(e, t) && t.ok.test(e)) pool.add(t);
+        for (Talent t : Talent.values()) if (!has(e, t) && !burned(e, t) && t.ok.test(e)) pool.add(t);
         int want = race(e) == Race.HUMAN ? 4 : 3;
         List<String> got = new ArrayList<>();
         var rnd = p.getRandom();
@@ -165,7 +172,7 @@ public final class Growth {
         if (got.isEmpty()) { p.sendMessage(Text.literal("지금 조건을 만족하는 새 재능 카드가 없습니다 (스탯을 올리면 늘어남)").formatted(Formatting.GRAY), false); return; }
         e.str("g.pick", String.join(",", got));
         Jobs.dirty(p);
-        GrowthMenu.openCards(p);
+        GrowthNet.openCards(p);
     }
 
     public static void choose(ServerPlayerEntity p, Talent t) {
@@ -177,6 +184,25 @@ public final class Growth {
         Jobs.dirty(p);
         p.sendMessage(Text.literal("재능 카드: " + t.name + " — " + t.effect).formatted(t.color()), false);
         apply(p);
+        GrowthNet.sync(p, 0);
+    }
+
+    /** 소각: 고를 후보에서 빼고 앞으로 다시는 안 나오게 (토큰 1, 마지막 한 장은 못 태움) */
+    public static boolean burn(ServerPlayerEntity p, Talent t) {
+        PlayerData.Entry e = e(p);
+        List<Talent> pk = pick(e);
+        if (!pk.contains(t) || pk.size() <= 1 || burns(e) <= 0) return false;
+        pk.remove(t);
+        List<String> ids = new ArrayList<>();
+        for (Talent x : pk) ids.add(x.id);
+        e.str("g.pick", String.join(",", ids));
+        String b = e.str("g.burned");
+        e.str("g.burned", b.isEmpty() ? t.id : b + "," + t.id);
+        e.num("g.burns", burns(e) - 1);
+        Jobs.dirty(p);
+        p.sendMessage(Text.literal("🔥 " + t.name + " 소각 — 다시는 나오지 않습니다").formatted(Formatting.RED), true);
+        p.playSoundToPlayer(SoundEvents.ITEM_FIRECHARGE_USE, SoundCategory.PLAYERS, 0.6f, 1.2f);
+        return true;
     }
 
     public static boolean spendTrait(ServerPlayerEntity p, int i) {
@@ -240,7 +266,8 @@ public final class Growth {
         PlayerData.Entry e = e(p);
         double base = 20;
         double hp = stat(e, Stat.END) * 0.15 + base * (0.05 * trait(e, 0) + (has(e, Talent.THICK_SKIN) ? 0.08 : 0)
-                - (race(e) == Race.HOMUNCULUS && raceSub(e).equals("마술형") ? 0.15 : 0));
+                - (race(e) == Race.HOMUNCULUS && raceSub(e).equals("마술형") ? 0.15 : 0)
+                - (e.num("g.injury_until") > System.currentTimeMillis() ? 0.15 : 0));   // 도주 부상
         set(p, EntityAttributes.GENERIC_MAX_HEALTH, HP_ID, hp, EntityAttributeModifier.Operation.ADD_VALUE);
         set(p, EntityAttributes.GENERIC_MOVEMENT_SPEED, SPEED_ID, stat(e, Stat.AGI) * 0.0005, EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE);
         if (p.getHealth() > p.getMaxHealth()) p.setHealth(p.getMaxHealth());

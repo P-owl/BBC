@@ -455,6 +455,36 @@ final class CombatHud {
         m.pop();
     }
 
+    /**
+     * 전투 중 표시 (Deepwoken IN DANGER): 화면 위 가운데에 붉은 해골 마름모 + '전투 중' + 남은 초, 아래 작은 문구.
+     * 전투 모드가 꺼져 있어도 보임
+     */
+    private static void dangerBar(DrawContext ctx, MinecraftClient c) {
+        float left = GrowthClient.combatLeft();
+        if (left <= 0) return;
+        TextRenderer tr = c.textRenderer;
+        float k = hudScale(c);
+        var m = ctx.getMatrices();
+        m.push();
+        m.scale(k, k, 1);
+        int Wv = (int) (ctx.getScaledWindowWidth() / k);
+        int y = BbcClient.combat ? (targetId >= 0 && clock - targetAt <= 120 ? 36 : 24) : 6;
+        float pulse = 0.75f + 0.25f * (float) Math.sin(clock * 0.3);
+        int red = fade(0xFFE03A30, pulse);
+        String label = "전투 중  " + (int) Math.ceil(left) + "초";
+        int w = tr.getWidth(label);
+        int cx = Wv / 2;
+        quad(ctx, cx - w / 2f - 12, y + 4, cx - w / 2f - 6, y - 2, cx - w / 2f, y + 4, cx - w / 2f - 6, y + 10, 0xFF000000);
+        quad(ctx, cx - w / 2f - 11, y + 4, cx - w / 2f - 6, y - 1, cx - w / 2f - 1, y + 4, cx - w / 2f - 6, y + 9, red);
+        ctx.drawTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), cx - w / 2 + 2, y, red);
+        m.push();
+        m.translate(cx, y + 11, 0);
+        m.scale(0.7f, 0.7f, 1);
+        ctx.drawCenteredTextWithShadow(tr, "긴장감이 짙어지며 아드레날린이 솟구친다 — 지금 나가면 도주 처리", 0, 0, 0xFFE0C0B0);
+        m.pop();
+        m.pop();
+    }
+
     private static void render(DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.options.hudHidden) return;
@@ -462,6 +492,7 @@ final class CombatHud {
         float fa = flashStr * Math.max(0f, 1f - (clock - flashAt) / 6f);
         if (fa > 0.01f) ctx.fill(0, 0, ctx.getScaledWindowWidth(), ctx.getScaledWindowHeight(), ((int) (fa * 200) << 24) | 0xFFFFFF);
         concentrationLines(ctx);
+        dangerBar(ctx, c);
         if (BbcClient.combat) { awakenBar(ctx, c); staminaBar(ctx, c); skillCards(ctx, c); targetBar(ctx, c); }
         if (comboHits <= 0) return;
         long age = clock - comboAt;

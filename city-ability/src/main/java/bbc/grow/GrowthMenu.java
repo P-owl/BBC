@@ -99,7 +99,7 @@ public class GrowthMenu extends ButtonMenu {
     protected boolean onPick(int slot) {
         PlayerData.Entry e = Growth.e(player);
         if (slot == 2 && !e.flag("g.rerolled")) { Growth.rerollRace(player); draw(); return false; }
-        if (slot == 6 && !Growth.pick(e).isEmpty()) { player.closeHandledScreen(); openCards(player); return false; }
+        if (slot == 6 && !Growth.pick(e).isEmpty()) { player.closeHandledScreen(); GrowthNet.openCards(player); return false; }
         for (int i = 0; i < Growth.TRAITS.length; i++) if (slot == 37 + i * 2) { Growth.spendTrait(player, i); draw(); return false; }
         return false;
     }
