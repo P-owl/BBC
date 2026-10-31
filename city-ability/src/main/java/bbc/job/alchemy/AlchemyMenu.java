@@ -144,7 +144,11 @@ public class AlchemyMenu extends GenericContainerScreenHandler {
                 "대연금술사 이상 · 에너지 " + Alchemy.fmt(AlchemyValues.stoneCost) + " E + 희귀 재료",
                 "+ 영혼 " + AlchemyValues.stoneSacrifices + "개를 제물로 (대연금술사가 된 뒤 쓰러뜨린 생명)",
                 "개인 " + AlchemyValues.stoneCooldownDays + "일 · 서버 " + AlchemyValues.stoneServerCooldownDays + "일에 1개 · 클릭해서 조건 확인"));
-        getInventory().setStack(JOB, Alch.isAlchemist(e)
+        getInventory().setStack(JOB, Alch.isAlchemist(e) && Alch.rank(e) == 4
+                ? ButtonMenu.icon(Items.ENDER_EYE, "진리의 문 열기", Formatting.DARK_PURPLE,
+                        "대연금술사만 · 이 연성진 근처에서", "대가: 연성 에너지 " + Alchemy.fmt(Alch.GATE_ENERGY) + " E + 경험치 " + Alch.GATE_LEVELS + "레벨",
+                        "+ 팔·다리·심장 중 하나 (영구)", "클릭해서 통행료 고르기")
+                : Alch.isAlchemist(e)
                 ? ButtonMenu.icon(Items.BREWING_STAND, "직업: " + Alch.rankName(e), Formatting.GOLD,
                         "숙련도 " + Alchemy.fmt(e.xp) + " E (연성에 쓴 에너지)", "다음 등급은 /alchemy 로 확인")
                 : ButtonMenu.icon(Items.BREWING_STAND, "연금술사 되기", Formatting.GOLD,
@@ -222,7 +226,13 @@ public class AlchemyMenu extends GenericContainerScreenHandler {
                     player.closeHandledScreen();
                 }
             }
-            case JOB -> Tasks.later(1, () -> { if (!player.isDisconnected()) { player.closeHandledScreen(); AlchemistJob.tryJoin(player); } });
+            case JOB -> Tasks.later(1, () -> {
+                if (player.isDisconnected()) return;
+                AlchemyData.Entry je = Alch.entry(player);
+                if (Alch.isAlchemist(je) && Alch.rank(je) == 4) { GateMenu.open(player); return; }   // 진리의 문
+                player.closeHandledScreen();
+                AlchemistJob.tryJoin(player);
+            });
             case STONE -> Tasks.later(1, () -> { if (!player.isDisconnected()) StoneForgeMenu.open(player, pos); });
             case BOX -> Tasks.later(1, () -> { if (!player.isDisconnected()) AlchemyDepositMenu.open(player, pos); });
             default -> { }
