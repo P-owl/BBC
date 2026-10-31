@@ -237,7 +237,30 @@ final class CombatHud {
         return ((int) (a * f) << 24) | (argb & 0xFFFFFF);
     }
 
-    /** 화면 위 가운데 얇은 각성 막대 (ABA PRESS G). 각성 중엔 남은 시간 */
+    /** 사각형이 아닌 도형용: 네 점 (시계 반대든 시계든 상관없게 두 번 그림) */
+    static void quad(DrawContext ctx, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int col) {
+        var vc = ctx.getVertexConsumers().getBuffer(net.minecraft.client.render.RenderLayer.getGui());
+        var m = ctx.getMatrices().peek().getPositionMatrix();
+        vc.vertex(m, x1, y1, 0).color(col); vc.vertex(m, x2, y2, 0).color(col); vc.vertex(m, x3, y3, 0).color(col); vc.vertex(m, x4, y4, 0).color(col);
+        vc.vertex(m, x4, y4, 0).color(col); vc.vertex(m, x3, y3, 0).color(col); vc.vertex(m, x2, y2, 0).color(col); vc.vertex(m, x1, y1, 0).color(col);
+        ctx.draw();   // 바로 그려서 뒤에 오는 글자·사각형과 순서가 섞이지 않게
+    }
+
+    /** 왼쪽이 비스듬한 평행사변형 막대 (x..x+w, 위쪽 왼끝이 slant 만큼 오른쪽) */
+    static void slab(DrawContext ctx, float x, float y, float w, float h, float slant, int col) {
+        quad(ctx, x + slant, y, x + w, y, x + w, y + h, x, y + h, col);
+    }
+
+    /** HSV 무지개 색 (각성기 준비 막대) */
+    static int rainbow(float t) {
+        int rgb = java.awt.Color.HSBtoRGB(t - (float) Math.floor(t), 0.75f, 1f);
+        return 0xFF000000 | (rgb & 0xFFFFFF);
+    }
+
+    /**
+     * 화면 위 가운데 각성 막대 (ABA PRESS G 막대): 굵은 검은 테두리, 5칸으로 나뉜 빨간 막대, 위쪽 광택, 양끝 마름모 장식.
+     * 다 차면 'PRESS G' 가 깜빡이며 빛나고, 각성 중엔 금색으로 남은 시간
+     */
     private static void awakenBar(DrawContext ctx, MinecraftClient c) {
         TextRenderer tr = c.textRenderer;
         float k = hudScale(c);
@@ -245,25 +268,29 @@ final class CombatHud {
         m.push();
         m.scale(k, k, 1);
         int Wv = (int) (ctx.getScaledWindowWidth() / k);
-        int w = 220, h = 11, x = (Wv - w) / 2, y = 4;
-        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xCC000000);
-        ctx.fill(x, y, x + w, y + h, 0xAA3A0A0A);
-        String label;
-        int text = 0xFFFFFFFF;
-        if (awLeft > 0) {
-            ctx.fill(x, y, x + (int) (w * Math.min(1.0, awLeft / 900.0)), y + h, 0xFFE0A020);
-            label = "각성 " + (awLeft / 20 + 1) + "초" + (awUlt ? " · G 각성기" : "");
-        } else {
-            boolean full = awGauge >= 100;
-            int col = full ? ((clock / 5) % 2 == 0 ? 0xFFFF3030 : 0xFFC01818) : 0xFFC01818;
-            ctx.fill(x, y, x + (int) (w * awGauge / 100.0), y + h, col);
-            label = full ? "PRESS G" : "각성 " + awGauge + "%";
-            if (!full) text = 0xFFDDDDDD;
+        int w = 220, h = 11, x = (Wv - w) / 2, y = 5;
+        boolean awake = awLeft > 0, full = !awake && awGauge >= 100;
+        float ratio = awake ? (float) Math.min(1.0, awLeft / 900.0) : awGauge / 100f;
+        int fill = awake ? 0xFFE8B020 : full ? ((clock / 4) % 2 == 0 ? 0xFFFF3A3A : 0xFFD01C1C) : 0xFFC01818;
+        // 테두리·바탕
+        ctx.fill(x - 2, y - 2, x + w + 2, y + h + 2, 0xFF000000);
+        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF5A5A5A);
+        ctx.fill(x, y, x + w, y + h, 0xFF2A0606);
+        ctx.fill(x, y, x + (int) (w * ratio), y + h, fill);
+        ctx.fill(x, y, x + (int) (w * ratio), y + 3, 0x40FFFFFF);                 // 광택
+        ctx.fill(x, y + h - 2, x + (int) (w * ratio), y + h, 0x30000000);         // 아래 그늘
+        for (int q = 1; q < 5; q++) ctx.fill(x + w * q / 5 - 1, y, x + w * q / 5 + 1, y + h, 0xFF000000);   // 5칸
+        // 양끝 마름모
+        for (int side = 0; side < 2; side++) {
+            float cx = side == 0 ? x - 6 : x + w + 6, cy = y + h / 2f;
+            quad(ctx, cx, cy - 7, cx + 7, cy, cx, cy + 7, cx - 7, cy, 0xFF000000);
+            quad(ctx, cx, cy - 5, cx + 5, cy, cx, cy + 5, cx - 5, cy, awake ? 0xFFE8B020 : full ? fill : 0xFF7A1010);
         }
+        if (full) ctx.fill(x - 2, y + h + 2, x + w + 2, y + h + 3, fade(0xFFFF5050, 0.5f + 0.5f * (float) Math.sin(clock * 0.6)));
+        String label = awake ? "각성 " + (awLeft / 20 + 1) + "초" + (awUlt ? "  -  G 각성기" : "") : full ? "PRESS G" : "각성 " + awGauge + "%";
         m.push();
         m.translate(x + w / 2f, y + 1.5f, 0);
-        m.scale(1.0f, 1.0f, 1);
-        ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), 0, 0, text);
+        ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), 0, 0, full || awake ? 0xFFFFFFFF : 0xFFE0D0D0);
         m.pop();
         m.pop();
     }
@@ -307,9 +334,10 @@ final class CombatHud {
     private static boolean guardHeldHud;
 
     /**
-     * 기술 카드 (ABA): 핫바 오른쪽 옆에 작은 빨간 카드 5장 (숫자키·기술 이름). 핫바·화면 가운데를 가리지 않음.
-     * 재사용 중이면 위에서부터 어둡게 덮이고 남은 초, 못 쓰면 회색. 한동안 싸우지 않고 전부 준비돼 있으면 반투명.
-     * 카드 위 한 줄: 칸 이름 · 회피 · 패링 · 가드 게이지 (예전 액션바 글자)
+     * 기술 목록 (ABA 오른쪽 아래): 비스듬한 검은 막대가 위에서부터 1~5번, 맨 아래는 각성(G) 막대.
+     * 이름은 오른쪽 정렬 + (숫자키). 재사용 중이면 막대가 붉게 물들고 줄어드는 만큼 검게 돌아오며 남은 초,
+     * 못 쓰면 글자가 흐림. 각성기가 준비되면 G 막대가 무지개로 흐름. 맨 위에 작은 키 탭 (Q 대시·회피, F 가드)
+     * 한동안 싸우지 않고 전부 준비돼 있으면 반투명
      */
     private static void skillCards(DrawContext ctx, MinecraftClient c) {
         if (clock - skAt > 40 || skNames.isEmpty()) return;
@@ -318,56 +346,84 @@ final class CombatHud {
         var m = ctx.getMatrices();
         m.push();
         m.scale(k, k, 1);
-        float Wr = ctx.getScaledWindowWidth(), Hr = ctx.getScaledWindowHeight();
-        int Wv = (int) (Wr / k), Hv = (int) (Hr / k);
-        int n = skNames.size(), cw = 48, ch = 26, gap = 3;
-        int total = n * cw + (n - 1) * gap;
-        // ABA 처럼 화면 아래 가운데: 스태미나 막대(하트 위, 갑옷 있으면 한 줄 더 위) 바로 위에 붙임
-        int stamY = (int) Hr - 39 - 10 - (c.player != null && c.player.getArmor() > 0 ? 10 : 0) + 4;
-        int x0 = Wv / 2 - total / 2, y0 = (int) ((stamY - 3) / k) - ch;
+        int Wv = (int) (ctx.getScaledWindowWidth() / k), Hv = (int) (ctx.getScaledWindowHeight() / k);
+        int n = skNames.size(), w = 150, h = 14, gap = 3, slant = 6;
+        int right = Wv - 8;
+        int rows = n + 1;
+        int top = Hv - 8 - rows * (h + gap);
         boolean anyCd = skState.contains(1);
-        boolean idle = !anyCd && clock - comboAt > 100 && clock - targetAt > 100 && !guardHeldHud;
-        float f = idle ? 0.45f : 1f;
-        // 윗줄 상태
-        StringBuilder sb = new StringBuilder(skTitle);
-        sb.append(sb.length() > 0 ? "  " : "").append(evadeLeft > 0 ? "회피 " + (evadeLeft / 20 + 1) + "s" : "회피 ✔");
-        if (parryLeft > 0) sb.append("  패링 ").append(parryLeft / 20 + 1).append("s");
-        if (guardHeldHud || guard < 100) sb.append("  가드 ").append(guard);
-        m.push();
-        m.translate(x0, y0 - 9, 0);
-        m.scale(0.85f, 0.85f, 1);
-        ctx.drawTextWithShadow(tr, sb.toString(), 0, 0, fade(guard < 30 ? 0xFFFF7060 : 0xFFFFD27A, f));
-        m.pop();
-        for (int i = 0; i < n; i++) {
-            int x = x0 + i * (cw + gap), y = y0;
-            String name = skNames.get(i);
-            int st = skState.get(i);
-            boolean empty = name.isEmpty();
-            int bg = empty ? 0x55303030 : st == 2 ? 0xCC4A4A4A : 0xDDB3141E;
-            ctx.fill(x - 1, y - 1, x + cw + 1, y + ch + 1, fade(empty ? 0x55000000 : 0xFF3A0508, f));
-            ctx.fill(x, y, x + cw, y + ch, fade(bg, f));
-            if (!empty && st != 2) ctx.fill(x, y, x + cw, y + ch / 2, fade(0x22FFFFFF, f));
+        boolean idle = !anyCd && clock - comboAt > 100 && clock - targetAt > 100 && !guardHeldHud && awGauge < 100 && awLeft <= 0;
+        float f = idle ? 0.5f : 1f;
+        // 키 탭 (오른쪽 정렬, 위로)
+        int ty = top - 15;
+        String[][] tabs = {
+                {"F", guardHeldHud || guard < 100 ? "가드 " + guard : "가드", guard < 30 ? "1" : "0"},
+                {"Q", evadeLeft > 0 ? "회피 " + (evadeLeft / 20 + 1) + "s" : "대시·회피", evadeLeft > 0 ? "1" : "0"}};
+        int tx = right;
+        for (String[] t : tabs) {
+            int tw = tr.getWidth(t[1]) + 22;
+            int x = tx - tw;
+            slab(ctx, x - 1, ty - 1, tw + 2, 13, 4, fade(0xFFB0B0B0, f));
+            slab(ctx, x, ty, tw, 11, 4, fade(t[2].equals("1") ? 0xE0401010 : 0xE0181818, f));
+            ctx.fill(x + 5, ty + 1, x + 15, ty + 10, fade(0xFFE0E0E0, f));
+            ctx.drawCenteredTextWithShadow(tr, t[0], x + 10, ty + 2, fade(0xFF101010, f));
+            ctx.drawTextWithShadow(tr, t[1], x + 18, ty + 2, fade(t[2].equals("1") ? 0xFFFF8070 : 0xFFFFFFFF, f));
+            tx = x - 4;
+        }
+        if (!skTitle.isEmpty()) {
             m.push();
-            m.translate(x + 2f, y + 2f, 0);
+            m.translate(right - w, ty - 10, 0);
             m.scale(0.85f, 0.85f, 1);
-            ctx.drawTextWithShadow(tr, String.valueOf(i + 1), 0, 0, fade(0xFFFFFFFF, f));
+            ctx.drawTextWithShadow(tr, skTitle, 0, 0, fade(0xFFFFD27A, f));
             m.pop();
+        }
+        for (int i = 0; i < rows; i++) {
+            boolean ult = i == n;
+            int y = top + i * (h + gap);
+            int x = right - w - (i % 2 == 1 ? 4 : 0);   // 한 줄씩 살짝 들여쓰기 (ABA 처럼 들쭉날쭉)
+            String name; int st; int left = 0, max = 1;
+            if (ult) {
+                name = awLeft > 0 ? (awUlt ? "각성기" : "각성 중 " + (awLeft / 20 + 1) + "초") : "각성";
+                st = awLeft > 0 ? (awUlt ? 0 : 2) : awGauge >= 100 ? 0 : 1;
+                left = 100 - awGauge; max = 100;
+            } else { name = skNames.get(i); st = skState.get(i); if (st == 1) { left = skLeft.get(i); max = Math.max(1, skMax.get(i)); } }
+            boolean empty = !ult && name.isEmpty();
+            // 테두리 + 바탕
+            slab(ctx, x - 1, y - 1, w + 2, h + 2, slant, fade(empty ? 0x66808080 : 0xFFC8C8C8, f));
+            slab(ctx, x, y, w, h, slant, fade(0xE6101014, f));
+            if (ult && (awUlt || (awLeft <= 0 && awGauge >= 100))) {   // 무지개로 흐름
+                int seg = 30;
+                for (int q = 0; q < seg; q++) {
+                    float x0 = x + slant + (w - slant) * q / (float) seg, x1 = x + slant + (w - slant) * (q + 1) / (float) seg;
+                    ctx.fill((int) x0, y + 1, (int) Math.ceil(x1), y + h - 1, fade(rainbow(q / (float) seg * 0.8f - clock * 0.02f), f * 0.85f));
+                }
+            } else if (ult) {
+                float r = awLeft > 0 ? (float) Math.min(1.0, awLeft / 900.0) : awGauge / 100f;
+                ctx.fill(x + slant, y + 1, x + slant + (int) ((w - slant) * r), y + h - 1, fade(awLeft > 0 ? 0xC0E8B020 : 0xC0901414, f));
+            } else if (st == 1) {   // 재사용: 남은 만큼 붉게
+                float r = Math.min(1f, left / (float) max);
+                slab(ctx, x, y, slant + (w - slant) * r, h, slant, 0xD08A1414);
+            }
+            ctx.fill(x + slant, y + 1, x + w - 1, y + 3, fade(0x18FFFFFF, f));   // 위 광택
+            // 왼쪽 장식 (숫자키 칩)
+            float ex = x - 12;
+            quad(ctx, ex, y + h / 2f, ex + 7, y - 1, ex + 14, y + h / 2f, ex + 7, y + h + 1, fade(0xFF000000, f));
+            quad(ctx, ex + 2, y + h / 2f, ex + 7, y + 1, ex + 12, y + h / 2f, ex + 7, y + h - 1, fade(ult ? 0xFFE8B020 : st == 1 ? 0xFF8A1414 : 0xFFB0B0B0, f));
             if (empty) continue;
-            float sc = Math.min(0.95f, (cw - 4) / (float) Math.max(1, tr.getWidth(name)));
+            String label = name + (ult ? " (G)" : " (" + (i + 1) + ")");
+            int col = st == 2 ? 0xFF8A8A8A : st == 1 ? 0xFFD0A0A0 : 0xFFFFFFFF;
+            float sc = Math.min(0.9f, (w - slant - 26) / (float) Math.max(1, tr.getWidth(label)));
             m.push();
-            m.translate(x + cw / 2f, y + ch / 2f + 2, 0);
+            m.translate(x + w - 4, y + h / 2f - 3.5f * sc, 0);
             m.scale(sc, sc, 1);
-            ctx.drawCenteredTextWithShadow(tr, name, 0, -4, fade(st == 2 ? 0xFFAAAAAA : 0xFFFFFFFF, f));
+            ctx.drawTextWithShadow(tr, label, -tr.getWidth(label), 0, fade(col, f));
             m.pop();
-            if (st == 1) {
-                int left = skLeft.get(i), max = Math.max(1, skMax.get(i));
-                int hgt = Math.min(ch, Math.round(ch * Math.min(1f, left / (float) max)));
-                ctx.fill(x, y, x + cw, y + hgt, 0xB0000000);
+            if (!ult && st == 1) {
                 String sec = left >= 100 ? String.valueOf((left + 9) / 10) : String.format("%.1f", left / 10f);
                 m.push();
-                m.translate(x + cw / 2f, y + ch - 9f, 0);
-                m.scale(0.85f, 0.85f, 1);
-                ctx.drawCenteredTextWithShadow(tr, sec, 0, 0, 0xFFFFE070);
+                m.translate(x + slant + 4, y + h / 2f - 3.2f, 0);
+                m.scale(0.8f, 0.8f, 1);
+                ctx.drawTextWithShadow(tr, sec, 0, 0, 0xFFFFE070);
                 m.pop();
             }
         }
