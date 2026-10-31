@@ -22,16 +22,18 @@ import java.util.List;
  * 3단계 성장: 레벨 없이 존재치(EP) + 파워(1~20) + 행동 스탯 + 재능 카드 + 특성 + 스킬 숙련 + 종족.
  *
  *  - 존재치: 몬스터 처치·새 바이옴 발견(·나중에 퀘스트)으로 오름
- *  - 파워: 파워마다 투자 한도 15점. 스탯을 15점 다 확정하고 존재치가 문턱(50×p×(p−1))을 넘으면 다음 파워
+ *  - 파워(1~50): 투자 한도 1~20 은 15점, 21~50 은 3점. 한도를 다 확정하고 존재치가 문턱(60×(p−1)^2.3)을 넘으면 다음 파워
  *  - 스탯: 행동하면 경험치 → 다 차면 '확정 대기' 1점 → 수련 도구를 쓰면 확정 (스탯 하나 최대 100)
- *  - 파워가 오르면 재능 카드 3장(인간 4장) 중 1장, 짝수 파워마다 특성 1점 (최대 12, 한 곳 6)
+ *  - 파워가 오르면 재능 카드 3장(인간 4장) 중 1장, 짝수 파워마다 특성 1점 (최대 24, 한 곳 6)
  *  - 직업 기술은 쓸수록 숙련 0→100%, 100% 면 숙달 (재사용·비용 −20%)
  * 데이터는 PlayerData.Entry.jd 의 "g." 키 (캐릭터 슬롯이 생기면 슬롯마다 따로).
  */
 public final class Growth {
     private Growth() {}
 
-    public static final int MAX_POWER = 20, PER_POWER = 15, STAT_CAP = 100, TRAIT_CAP = 6, PENDING_CAP = 9;
+    public static final int MAX_POWER = 50, STAT_CAP = 100, TRAIT_CAP = 6, PENDING_CAP = 9;
+    /** 파워별 투자 한도: 1~20 은 15점, 21~50 은 3점 (총 285 + 90 = 375점 → 스탯 8개 합 800 중 일부만, 빌드가 갈림) */
+    public static int perPower(int power) { return power < 20 ? 15 : 3; }
     public static final String[] TRAITS = {"life", "know", "mastery", "reso"};
     public static final String[] TRAIT_NAMES = {"생명력", "지식", "숙달", "공명"};
     public static final String[] TRAIT_DESC = {"최대 체력 +5%", "최대 스태미나 +10", "평타·무기 피해 +3%", "직업 기술 피해 +3%"};
@@ -45,14 +47,16 @@ public final class Growth {
     public static int stat(PlayerData.Entry e, Stat s) { return (int) e.num("g.s." + s.id); }
     public static int pending(PlayerData.Entry e, Stat s) { return (int) e.num("g.p." + s.id); }
     public static double exp(PlayerData.Entry e, Stat s) { return e.num("g.x." + s.id); }
-    public static double need(PlayerData.Entry e, Stat s) { return 30 + 2.0 * stat(e, s); }
+    /** 스탯 1점에 필요한 경험치: 40 × (1 + 스탯/12)^1.5 — 0점 40, 10점 98, 30점 248, 60점 547, 99점 1156 (갈수록 크게 느려짐) */
+    public static double need(PlayerData.Entry e, Stat s) { return 40 * Math.pow(1 + stat(e, s) / 12.0, 1.5); }
     /** 이 파워에 오르는 데 필요한 누적 존재치 */
-    public static double epFor(int power) { return 50.0 * power * (power - 1); }
+    /** 60 × (p−1)^2.3 — 파워 2 = 60, 5 = 1450, 10 = 9800, 20 = 52000, 30 = 140000, 50 = 470000 (뒤로 갈수록 보스·퀘스트가 주 수입) */
+    public static double epFor(int power) { return power <= 1 ? 0 : 60 * Math.pow(power - 1, 2.3); }
     public static int trait(PlayerData.Entry e, int i) { return (int) e.num("g.t." + TRAITS[i]); }
     public static int traitPoints(PlayerData.Entry e) {
         int spent = 0;
         for (int i = 0; i < TRAITS.length; i++) spent += trait(e, i);
-        return Math.min(12, power(e) / 2) - spent;
+        return Math.min(24, power(e) / 2) - spent;
     }
     public static Race race(PlayerData.Entry e) { return Race.byId(e.str("g.race")); }
     public static String raceSub(PlayerData.Entry e) { return e.str("g.race_sub"); }
@@ -112,9 +116,9 @@ public final class Growth {
     public static boolean confirm(ServerPlayerEntity p, Stat s) {
         PlayerData.Entry e = e(p);
         if (pending(e, s) <= 0) { p.sendMessage(Text.literal(s.name + " 확정 대기 점수가 없습니다 (" + s.how + ")").formatted(Formatting.GRAY), true); return false; }
-        if (power(e) >= MAX_POWER && invested(e) >= PER_POWER) { p.sendMessage(Text.literal("최고 파워입니다").formatted(Formatting.GRAY), true); return false; }
-        if (invested(e) >= PER_POWER) {
-            p.sendMessage(Text.literal("이번 파워의 투자 한도(15)를 다 썼습니다 — 존재치 " + (int) ep(e) + "/" + (int) epFor(power(e) + 1) + " 를 채우면 파워업").formatted(Formatting.YELLOW), true);
+        if (power(e) >= MAX_POWER && invested(e) >= perPower(power(e))) { p.sendMessage(Text.literal("최고 파워입니다").formatted(Formatting.GRAY), true); return false; }
+        if (invested(e) >= perPower(power(e))) {
+            p.sendMessage(Text.literal("이번 파워의 투자 한도(" + perPower(power(e)) + ")를 다 썼습니다 — 존재치 " + (int) ep(e) + "/" + (int) epFor(power(e) + 1) + " 를 채우면 파워업").formatted(Formatting.YELLOW), true);
             return false;
         }
         if (stat(e, s) >= STAT_CAP) { p.sendMessage(Text.literal(s.name + " 최대치").formatted(Formatting.GRAY), true); return false; }
@@ -122,7 +126,7 @@ public final class Growth {
         e.addNum("g.s." + s.id, 1);
         e.addNum("g.inv", 1);
         Jobs.dirty(p);
-        p.sendMessage(Text.literal("✔ " + s.name + " " + stat(e, s) + " (이번 파워 투자 " + invested(e) + "/15)").formatted(Formatting.AQUA), true);
+        p.sendMessage(Text.literal("✔ " + s.name + " " + stat(e, s) + " (이번 파워 투자 " + invested(e) + "/" + perPower(power(e)) + ")").formatted(Formatting.AQUA), true);
         p.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.4f, 1.6f);
         apply(p);
         tryPowerUp(p);
@@ -132,7 +136,7 @@ public final class Growth {
     public static void tryPowerUp(ServerPlayerEntity p) {
         PlayerData.Entry e = e(p);
         int pw = power(e);
-        if (pw >= MAX_POWER || invested(e) < PER_POWER || ep(e) < epFor(pw + 1)) return;
+        if (pw >= MAX_POWER || invested(e) < perPower(pw) || ep(e) < epFor(pw + 1)) return;
         e.num("g.power", pw + 1);
         e.num("g.inv", 0);
         Jobs.dirty(p);
@@ -297,7 +301,7 @@ public final class Growth {
 
     /** 표시용 한 줄 */
     public static String summary(PlayerData.Entry e) {
-        return "파워 " + power(e) + " · 존재치 " + (int) ep(e) + "/" + (int) epFor(power(e) + 1) + " · 투자 " + invested(e) + "/15";
+        return "파워 " + power(e) + " · 존재치 " + (int) ep(e) + "/" + (int) epFor(power(e) + 1) + " · 투자 " + invested(e) + "/" + perPower(power(e));
     }
 
     static String bar(double v, double max, int n) {

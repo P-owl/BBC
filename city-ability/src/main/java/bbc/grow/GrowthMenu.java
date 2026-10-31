@@ -44,8 +44,8 @@ public class GrowthMenu extends ButtonMenu {
         double ep = Growth.ep(e), next = Growth.epFor(pw + 1);
         button(0, icon(Items.NETHER_STAR, "파워 " + pw + (pw >= Growth.MAX_POWER ? " (최고)" : ""), Formatting.GOLD,
                 "존재치 " + (int) ep + " / " + (int) next, Growth.bar(ep - Growth.epFor(pw), next - Growth.epFor(pw), 20),
-                "이번 파워 투자 " + Growth.invested(e) + " / 15",
-                "다음 파워: 스탯 15점 확정 + 존재치 " + (int) next,
+                "이번 파워 투자 " + Growth.invested(e) + " / " + Growth.perPower(pw),
+                "다음 파워: 스탯 " + Growth.perPower(pw) + "점 확정 + 존재치 " + (int) next,
                 "존재치: 몬스터 처치 · 새 바이옴 발견"));
         Race r = Growth.race(e);
         List<String> rl = new ArrayList<>(List.of("장점: " + r.good, "약점: " + r.bad));
@@ -60,7 +60,7 @@ public class GrowthMenu extends ButtonMenu {
         if (!Growth.pick(e).isEmpty()) button(6, icon(Items.ENCHANTED_BOOK, "고를 카드가 있습니다!", Formatting.YELLOW, "▶ 클릭해서 고르기"));
         else button(6, icon(Items.GRAY_DYE, "고를 카드 없음", Formatting.GRAY));
         int tp = Growth.traitPoints(e);
-        button(8, icon(Items.EXPERIENCE_BOTTLE, "특성 점수 " + Math.max(0, tp), Formatting.GREEN, "짝수 파워마다 1점 (최대 12, 한 곳 6)"));
+        button(8, icon(Items.EXPERIENCE_BOTTLE, "특성 점수 " + Math.max(0, tp), Formatting.GREEN, "짝수 파워마다 1점 (최대 24, 한 곳 6)"));
 
         Stat[] st = Stat.values();
         for (int i = 0; i < st.length; i++) {

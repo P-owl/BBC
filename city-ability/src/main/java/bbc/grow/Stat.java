@@ -5,7 +5,7 @@ import net.minecraft.item.Items;
 
 /**
  * 행동으로 쌓는 스탯 (Deepwoken식). 행동하면 경험치가 차고, 다 차면 '확정 대기' 1점 → 수련 도구를 쓰면 1점 확정.
- * 확정은 파워마다 투자 한도(15점) 안에서만.
+ * 확정은 파워마다 투자 한도(파워 1~19 는 15점, 20부터 3점) 안에서만.
  */
 public enum Stat {
     STR("str", "힘", "나무 베기·광질·근접 타격", "아령", Items.IRON_INGOT),
