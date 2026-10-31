@@ -93,6 +93,22 @@ public final class AlchemistJob implements JobType {
     @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { return spearOn(p) ? SPEAR_M1 : bladeOn(p) ? BLADE_M1 : M1; }
     @Override public String stance() { return "stance_al"; }
 
+    /** 다운 슬램: 공중에서 손뼉 → 그 순간 손(오토메일·장갑)에 칼을 연성해 내리찍고 사라짐 */
+    @Override
+    public void m1Start(ServerPlayerEntity p, String motion) {
+        if (!motion.equals("al_slam")) return;   // 칼날 평타 중(ab_slam)이면 이미 칼이 있음
+        ServerWorld w = p.getServerWorld();
+        UUID id = p.getUuid();
+        Tasks.later(1, () -> {
+            if (p.isDisconnected()) return;
+            clapFx(p);
+            AutomailSkill.setForgedBlade(p, true);
+            Vec3d r = rightSide(p, 0.4);
+            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, r.x, p.getY() + 1.2, r.z, 10, 0.15, 0.3, 0.15, 0.15);
+        });
+        Tasks.later(13, () -> { if (!p.isDisconnected() && !BLADE_UNTIL.containsKey(id)) AutomailSkill.setForgedBlade(p, false); });
+    }
+
     /** 5타 = 땅을 짚은 자리에 연성진 + 상대 발밑에서 바위 기둥, 띄우기 = 가시 (연출만, 판정은 평타 그대로) */
     @Override
     public void m1Fx(ServerPlayerEntity p, String motion) {
@@ -108,15 +124,11 @@ public final class AlchemistJob implements JobType {
             }
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.6f, 1.5f);
         }
-        if (motion.equals("al_slam") || motion.equals("ab_slam")) {   // 다운 슬램: 상대 머리 위에서 바위 기둥이 내리꽂힘
+        if (motion.equals("al_slam") || motion.equals("ab_slam")) {   // 다운 슬램: 연성한 칼로 내리찍은 자리에 하얀 세로 베기 + 흙먼지
+            Fx.slash(w, p, 2.8, 90, true, Fx.WHITE);
             Vec3d f = Combat.horizontal(p.getRotationVec(1f));
-            Vec3d top = p.getPos().add(f.x * 1.6, 3.2, f.z * 1.6), bot = p.getPos().add(f.x * 1.6, 0.4, f.z * 1.6);
-            Entity col = StonePillarFx.segment(w, top, top.add(0, 1.4, 0), Blocks.POLISHED_ANDESITE.getDefaultState(), 1.1f);
-            if (col != null) {
-                Tasks.later(2, () -> col.requestTeleport(bot.x, bot.y, bot.z));
-                Tasks.later(9, () -> { w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POLISHED_ANDESITE.getDefaultState()), bot.x, bot.y + 0.6, bot.z, 14, 0.4, 0.5, 0.4, 0.1); col.discard(); });
-            }
-            Alchemy.fx(w, BlockPos.ofFloored(top.subtract(0, 1, 0)), false);
+            Fx.debris(w, p.getPos().add(f.multiply(1.6)), 8, 0.8);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 0.9f, 0.7f);
             return;
         }
         if (!motion.startsWith("al_")) return;
@@ -165,7 +177,7 @@ public final class AlchemistJob implements JobType {
     // 각성판 (ABA 수치 ÷ 4.1 ≈ 우리 평타 1.0 기준, 큰 건 조금 깎음)
     private static final Hit CREATION = new Hit(1.3f, Hit.Kind.HIT, 16, 0.25, 0.1, 20, false, false);
     private static final Hit CREATION_END = new Hit(3.6f, Hit.Kind.KNOCK, 26, 2.4, 0.6, 50, true, false);
-    private static final Hit GIANT_PUNCH = new Hit(4.6f, Hit.Kind.KNOCK, 26, 2.6, 0.45, 50, true, false);
+    private static final Hit GIANT_PUNCH_UP = new Hit(4.6f, Hit.Kind.AIR, 34, 0.3, 1.8, 50, true, false);   // 땅에서 솟은 주먹이 하늘로 올려침
     private static final Hit HAND_CLAP = new Hit(1.6f, Hit.Kind.HIT, 30, 0, 0, 30, true, false);
     private static final Hit HAND_CRUSH = new Hit(4.0f, Hit.Kind.DOWN, 24, 0, -1.2, 40, true, true);
     private static final Hit FIELD_TICK = new Hit(1.0f, Hit.Kind.HIT, 12, 0, 0, 12, false, false);
@@ -265,11 +277,11 @@ public final class AlchemistJob implements JobType {
         if (dir.lengthSquared() < 1e-4) dir = look;
         final Vec3d d = dir.normalize();
         Motion.play(p, "al_backflip");
-        Combat.afterSkill(p, 16);
-        Combat.move(p, new Vec3d(-d.x * 0.55, 0.55, -d.z * 0.55));
+        Combat.afterSkill(p, 22);
         ServerWorld w = p.getServerWorld();
-        w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 1.4f);
-        Tasks.later(10, () -> {
+        AlchemySounds.play(p, AlchemySounds.ATTACK, 1.0f);
+        backflipJump(p, d, 0.38, 0.5);
+        Tasks.later(BACKFLIP_LAND, () -> {
             if (p.isDisconnected() || !p.isAlive()) return;
             clapFx(p);
             Double g = AlchemyFx.ground(w, p.getPos());
@@ -289,6 +301,17 @@ public final class AlchemistJob implements JobType {
             }
         });
         return true;
+    }
+
+    /** 백덤블링 (al_backflip 과 맞춤): 3틱 웅크렸다가 뒤로·위로 솟구침, 16틱에 착지하며 땅을 짚음 */
+    private static final int BACKFLIP_LAND = 16;
+    private static void backflipJump(ServerPlayerEntity p, Vec3d d, double back, double up) {
+        Tasks.later(3, () -> {
+            if (p.isDisconnected() || !p.isAlive()) return;
+            Combat.move(p, new Vec3d(-d.x * back, up, -d.z * back));
+            p.getServerWorld().playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 1.4f);
+        });
+        Tasks.later(9, () -> { if (!p.isDisconnected()) p.fallDistance = 0; });
     }
 
     /** base → end 로 4틱 동안 자라는 비스듬한 바위 기둥. 자라는 동안 닿은 상대를 한 번 때림, life 틱 뒤 부서짐 */
@@ -347,6 +370,7 @@ public final class AlchemistJob implements JobType {
     private static boolean weaponForge(ServerPlayerEntity p) {
         if (spearOn(p)) return spearThrust(p);
         if (bladeOn(p)) return pillarPlunge(p);
+        AlchemySounds.play(p, AlchemySounds.WEAPON, 1.0f);
         if (!p.isOnGround()) return bladeForge(p);
         Motion.play(p, "al_forge");
         Combat.afterSkill(p, 12);
@@ -533,7 +557,8 @@ public final class AlchemistJob implements JobType {
         return true;
     }
 
-    // ②'' 신의 손 (공중): 등 뒤 위쪽 하늘에서 거대한 바위 주먹이 팔뚝을 끌고 날아와 상대에게 꽂힘 → 멀리 날림, 가드 깨기
+    // ②'' 신의 손 (공중, ABA Hand of God 공중판): 손바닥을 내밀면 공중의 상대 아래 땅을 뚫고 관절까지 있는 거대한 바위 주먹이
+    //     솟구쳐 올려침 → 하늘로 날려버림, 가드 깨기. 솟는 동안 상대는 그 자리에 묶임
     private static boolean airFist(ServerPlayerEntity p) {
         LivingEntity t = pickTarget(p, 22, 16);
         if (t == null) { JobSkills.bar(p, "주변에 공격할 대상이 없습니다", Formatting.RED); return false; }
@@ -545,49 +570,24 @@ public final class AlchemistJob implements JobType {
         Tasks.later(3, () -> clapFx(p));
         Tasks.later(6, () -> {
             if (p.isDisconnected() || !p.isAlive() || !t.isAlive()) return;
-            Vec3d f = Combat.horizontal(t.getPos().subtract(p.getPos())).normalize();
-            Vec3d start = p.getPos().add(f.multiply(-2.5)).add(0, 4.5, 0);
-            Alchemy.fx(w, BlockPos.ofFloored(start), Alch.entry(p).truth);
-            List<Entity> parts = new ArrayList<>();
-            Vec3d[] prev = {start};
-            Entity[] fist = {null};
-            int steps = 5;
-            boolean[] hitDone = {false};
-            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_SONIC_CHARGE, SoundCategory.PLAYERS, 0.8f, 0.6f);
-            for (int i = 1; i <= steps; i++) {
-                final int k = i;
-                Tasks.later(i - 1, () -> {
-                    Vec3d aim = t.isAlive() ? t.getBoundingBox().getCenter() : prev[0];
-                    Vec3d to = start.lerp(aim, k / (double) steps);
-                    Entity seg = StonePillarFx.segment(w, prev[0], to, Blocks.POLISHED_ANDESITE.getDefaultState(), 1.3f);
-                    if (seg != null) parts.add(seg);
-                    Vec3d dir = to.subtract(prev[0]).normalize();
-                    if (fist[0] == null) { fist[0] = StonePillarFx.segment(w, to, to.add(dir.multiply(2.2)), Blocks.STONE.getDefaultState(), 2.4f); if (fist[0] != null) parts.add(fist[0]); }
-                    else fist[0].requestTeleport(to.x, to.y, to.z);
-                    prev[0] = to;
-                    w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, to.x, to.y, to.z, 4, 0.6, 0.6, 0.6, 0.1);
-                    if (k == steps && !hitDone[0] && t.isAlive()) {
-                        hitDone[0] = true;
-                        Combat.hit(p, t, GIANT_PUNCH);
-                        Vec3d c = t.getBoundingBox().getCenter();
-                        Fx.rings(w, c, dir, 4.5f, 3);
-                        Fx.word(w, c.add(0, 1.6, 0), Fx.Sfx.DOGOOON, 1.6f);
-                        Fx.burst(w, c, dir, 2.2f);
-                        Fx.impactFlash(w, c, 1.6f);
-                        Fx.debris(w, t.getPos(), 16, 1.4);
-                        Fx.shakeAround(w, c, 14, 1.0f);
-                        w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.9f, 0.8f);
-                        w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_IRON_GOLEM_ATTACK, SoundCategory.PLAYERS, 1.5f, 0.4f);
-                    }
-                });
-            }
-            Tasks.later(steps + 18, () -> {
-                for (Entity e2 : parts) {
-                    if (e2 == null || e2.isRemoved()) continue;
-                    w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.POLISHED_ANDESITE.getDefaultState()), e2.getX(), e2.getY() + 0.5, e2.getZ(), 10, 0.6, 0.6, 0.6, 0.1);
-                    e2.discard();
-                }
-            });
+            Vec3d at = t.getPos();
+            Double g = AlchemyFx.ground(w, at);
+            if (g == null) g = AlchemyFx.ground(w, at.add(0, -6, 0));
+            double gy = g == null ? at.y - 3 : g;
+            Alchemy.fx(w, BlockPos.ofFloored(at.x, gy, at.z), Alch.entry(p).truth);
+            hold(t, 6);
+            GodHandFx.fist(w, at, gy, p.getPos(), 16);
+        });
+        Tasks.later(12, () -> {
+            if (!t.isAlive()) return;
+            Combat.hit(p, t, GIANT_PUNCH_UP);
+            Vec3d c = t.getBoundingBox().getCenter();
+            Fx.rings(w, c, new Vec3d(0, 1, 0), 4.5f, 3);
+            Fx.word(w, c.add(0, 1.6, 0), Fx.Sfx.DOGOOON, 1.6f);
+            Fx.burst(w, c, new Vec3d(0, 1, 0), 2.2f);
+            Fx.impactFlash(w, c, 1.6f);
+            Fx.shakeAround(w, c, 14, 1.0f);
+            w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.9f, 0.8f);
         });
         return true;
     }
@@ -676,11 +676,10 @@ public final class AlchemistJob implements JobType {
         if (dir.lengthSquared() < 1e-4) dir = look;
         final Vec3d d = dir.normalize();
         Motion.play(p, "al_backflip");
-        Combat.afterSkill(p, 16);
-        Combat.move(p, new Vec3d(-d.x * 0.45, 0.5, -d.z * 0.45));
+        Combat.afterSkill(p, 22);
         ServerWorld w = p.getServerWorld();
-        w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 1.4f);
-        Tasks.later(10, () -> {
+        backflipJump(p, d, 0.32, 0.48);
+        Tasks.later(BACKFLIP_LAND, () -> {
             if (p.isDisconnected() || !p.isAlive()) return;
             clapFx(p);
             Vec3d origin = p.getPos();
@@ -715,6 +714,7 @@ public final class AlchemistJob implements JobType {
     private static boolean finalPunch(ServerPlayerEntity p) {
         Motion.play(p, "al_punch");
         Combat.afterSkill(p, 20);
+        AlchemySounds.play(p, AlchemySounds.RUSH, 1.0f);
         ServerWorld w = p.getServerWorld();
         w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_SONIC_CHARGE, SoundCategory.PLAYERS, 0.8f, 1.6f);
         for (int i = 1; i <= 6; i += 2) {
@@ -893,7 +893,7 @@ public final class AlchemistJob implements JobType {
     // ═════════ 각성 · 각성기 · 임플란트 ═════════
 
     /** 컷신 길이 (클라이언트 Cutscene 대본과 맞춤) */
-    private static final int AWAKEN_SCENE = 60, ULT_SCENE = 44;
+    private static final int AWAKEN_SCENE = 170, ULT_SCENE = 100;
 
     static void cutscene(ServerPlayerEntity actor, String shot, LivingEntity target, List<ServerPlayerEntity> to) {
         CutscenePayload pl = new CutscenePayload(shot, actor.getId(), target == null ? -1 : target.getId());
@@ -903,53 +903,66 @@ public final class AlchemistJob implements JobType {
 
     @Override
     public void onAwaken(ServerPlayerEntity p, PlayerData.Entry e) {
-        // 컷신 60틱 (참고: 다른 게임의 에드워드 연출): 먼지 낀 발 → 얼굴까지 훑어 올라감 → 얼굴 앞에서 합장하듯 손뼉 →
-        //   웅크려 두 손바닥으로 땅을 내리침, 거대한 연성진 → 사방에서 가시 숲이 솟고 먼지 (그 속에서 코트가 찢겨 날아감) →
-        //   가시 숲 속에서 일어나 오토메일 손바닥을 앞으로 쭉 내밂. 가시는 연출만 (피해 없음)
+        // 컷신 170틱 ≈ 8.5초 (참고: 다른 게임의 에드워드 연출 + 각성 음성): 먼지 속 발 → 얼굴까지 훑어 올라감 → 얼굴 앞 합장 손뼉(40) →
+        //   두 팔을 들었다가 땅을 내리침(66, 거대한 연성진) → 사방에서 가시 숲이 솟고 먼지 속에서 코트가 찢겨 날아감(82) →
+        //   천천히 일어나(100~114) 한 발 내딛으며 오토메일 손바닥을 앞으로(138). 가시는 연출만 (피해 없음)
+        // 컷신 동안 무적이고 각성 시간은 그만큼 늘려 줌. 각성 중엔 테마곡 (주변 24칸 사람도)
         ServerWorld w = p.getServerWorld();
         Motion.play(p, "al_awaken");
         cutscene(p, "al_awaken", null, List.of(p));
         Combat.invuln(p, AWAKEN_SCENE);
         Combat.afterSkill(p, AWAKEN_SCENE - 6);
-        for (int t = 0; t <= 8; t += 4) Tasks.later(t, () -> { if (!p.isDisconnected()) Fx.smoke(w, p.getPos().add(0, 0.1, 0), 10, 0.9); });
-        Tasks.later(11, () -> {
+        Awaken.extend(p, AWAKEN_SCENE);
+        AlchemySounds.play(p, AlchemySounds.AWAKEN, 1.2f);
+        startTheme(p);
+        for (int t = 0; t <= 28; t += 4) Tasks.later(t, () -> { if (!p.isDisconnected()) Fx.smoke(w, p.getPos().add(0, 0.1, 0), 8, 1.0); });
+        Tasks.later(40, () -> {
             if (p.isDisconnected()) return;
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.9f, 1.9f);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 0.8f, 0.7f);
+            AlchemySounds.play(p, AlchemySounds.SPARK, 1.0f);
             Vec3d f = Combat.horizontal(p.getRotationVec(1f));
-            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX() + f.x * 0.4, p.getY() + 1.6, p.getZ() + f.z * 0.4, 14, 0.1, 0.1, 0.1, 0.15);
+            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX() + f.x * 0.35, p.getY() + 1.6, p.getZ() + f.z * 0.35, 16, 0.1, 0.1, 0.1, 0.15);
         });
-        Tasks.later(23, () -> {
+        for (int t = 42; t < 64; t += 3) {   // 합장한 손에 연성 에너지가 모임
+            Tasks.later(t, () -> {
+                if (p.isDisconnected()) return;
+                Vec3d f = Combat.horizontal(p.getRotationVec(1f));
+                w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX() + f.x * 0.35, p.getY() + 1.6, p.getZ() + f.z * 0.35, 3, 0.15, 0.15, 0.15, 0.05);
+            });
+        }
+        Tasks.later(66, () -> {
             if (p.isDisconnected()) return;
             Alchemy.bigFx(p);
             Alchemy.fx(w, p.getBlockPos(), Alch.entry(p).truth);
-            Fx.wave(w, p.getPos().add(0, 0.1, 0), 0.5, 8.0, Fx.WHITE, 10);
+            AlchemySounds.play(p, AlchemySounds.SPARK, 1.4f);
+            Fx.wave(w, p.getPos().add(0, 0.1, 0), 0.5, 8.0, Fx.WHITE, 12);
             Fx.shakeAround(w, p.getPos(), 12, 0.8f);
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 0.9f, 0.5f);
         });
-        Tasks.later(27, () -> {
+        Tasks.later(82, () -> {
             if (p.isDisconnected()) return;
             Vec3d c = p.getPos();
             java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
-            for (int ring = 0; ring < 4; ring++) {
-                final double rad = 2.4 + ring * 1.5;
+            for (int ring = 0; ring < 5; ring++) {
+                final double rad = 2.2 + ring * 1.4;
                 final int rg = ring;
-                Tasks.later(ring, () -> {
+                Tasks.later(ring * 2, () -> {
                     int n = (int) (rad * 3.2);
                     for (int i = 0; i < n; i++) {
                         double a = Math.PI * 2 * i / n + r.nextDouble(0.3);
                         double x = c.x + Math.cos(a) * rad, z = c.z + Math.sin(a) * rad;
                         Double g = AlchemyFx.ground(w, new Vec3d(x, c.y, z));
-                        if (g != null) AlchemyFx.spike(w, x, g, z, 0.8f + r.nextFloat() * 0.5f, 2.8f + rg * 0.7f + r.nextFloat() * 1.6f, 34 - rg * 2);
+                        if (g != null) AlchemyFx.spike(w, x, g, z, 0.8f + r.nextFloat() * 0.5f, 2.8f + rg * 0.7f + r.nextFloat() * 1.6f, 80 - rg * 2);
                     }
-                    Fx.smoke(w, c.add(0, 0.5, 0), 18, rad);
+                    Fx.smoke(w, c.add(0, 0.5, 0), 22, rad);
+                    w.playSound(null, BlockPos.ofFloored(c), SoundEvents.BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory.PLAYERS, 1.6f, 0.5f + rg * 0.08f);
                 });
             }
             coatBurst(p);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory.PLAYERS, 2.0f, 0.4f);
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.7f, 0.6f);
         });
-        Tasks.later(48, () -> {
+        for (int t = 90; t <= 110; t += 5) Tasks.later(t, () -> { if (!p.isDisconnected()) Fx.smoke(w, p.getPos().add(0, 0.4, 0), 14, 3.0); });
+        Tasks.later(138, () -> {
             if (p.isDisconnected()) return;
             Vec3d r = rightSide(p, 0.3).add(Combat.horizontal(p.getRotationVec(1f)).multiply(0.7));
             w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, r.x, p.getY() + 1.4, r.z, 12, 0.1, 0.1, 0.1, 0.12);
@@ -959,6 +972,32 @@ public final class AlchemistJob implements JobType {
             if (!p.isDisconnected() && awake(p))
                 JobSkills.bar(p, "✦ 손뼉 연성 — 기술이 바뀜: 창조의 기둥 · 신의 손 · 가시밭 · 최후의 일격  (G = 대지의 심판)", Formatting.AQUA);
         });
+    }
+
+    @Override
+    public void onAwakenEnd(ServerPlayerEntity p, PlayerData.Entry e) { stopTheme(p); }
+
+    /** 각성 테마곡: 각성한 사람과 주변 24칸 사람에게 (각성이 끝나면 같은 사람들에게서 멈춤) */
+    private static final Map<UUID, List<UUID>> THEME_LISTENERS = new HashMap<>();
+    private static void startTheme(ServerPlayerEntity p) {
+        List<UUID> ls = new ArrayList<>();
+        CutscenePayload pl = new CutscenePayload("#music:" + AlchemySounds.THEME, p.getId(), -1);
+        for (ServerPlayerEntity o : p.getServerWorld().getPlayers()) {
+            if (o != p && o.squaredDistanceTo(p) > 24 * 24) continue;
+            if (!ServerPlayNetworking.canSend(o, CutscenePayload.ID)) continue;
+            ServerPlayNetworking.send(o, pl);
+            ls.add(o.getUuid());
+        }
+        THEME_LISTENERS.put(p.getUuid(), ls);
+    }
+    private static void stopTheme(ServerPlayerEntity p) {
+        List<UUID> ls = THEME_LISTENERS.remove(p.getUuid());
+        if (ls == null || p.getServer() == null) return;
+        CutscenePayload pl = new CutscenePayload("#music_stop", p.getId(), -1);
+        for (UUID id : ls) {
+            ServerPlayerEntity o = p.getServer().getPlayerManager().getPlayer(id);
+            if (o != null && ServerPlayNetworking.canSend(o, CutscenePayload.ID)) ServerPlayNetworking.send(o, pl);
+        }
     }
 
     /** 내 오른쪽 어깨 쪽 위치 */
@@ -998,8 +1037,10 @@ public final class AlchemistJob implements JobType {
         w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 1.0f, 0.6f);
     }
 
-    // 각성기 '대지의 심판' (컷신 44틱): 두 팔을 머리 위로 → 손뼉 → 두 손바닥으로 땅을 내리침 → 대상 발밑마다 연성진, 양옆에서 거대한 바위 손이
-    //   솟아 박수로 짓누름(가드 깨기·다운) → 둘레로 가시가 솟음. 걸린 상대는 박수까지 묶임. 현자의 돌을 지니면 붉은 연성 (각성 30초 연장 · 재사용 초기화)
+    // 각성기 '대지의 심판' (컷신 100틱, 대사 "망할 진리와 함께.. 네놈들도 날려주마!" 에 맞춤): 두 팔을 머리 위로 들고 버팀 — 연성 에너지가 모이고
+    //   발밑 연성진이 커짐 → 크게 손뼉(50) → 땅을 내리침(60): 대상 발밑마다 연성진 → 양옆에서 거대한 바위 손이 솟아(62)
+    //   박수로 짓누름(74, 가드 깨기·다운) → 둘레로 가시. 걸린 상대는 박수까지 묶이고 (플레이어면) 같은 컷신을 봄
+    //   현자의 돌을 지니면 붉은 연성 (각성 30초 연장 · 재사용 초기화)
     @Override
     public boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) {
         ServerWorld w = p.getServerWorld();
@@ -1014,24 +1055,34 @@ public final class AlchemistJob implements JobType {
         Motion.play(p, "al_ult");
         Combat.invuln(p, ULT_SCENE);
         Combat.afterSkill(p, ULT_SCENE - 8);
+        Awaken.extend(p, ULT_SCENE);
+        AlchemySounds.play(p, AlchemySounds.GROUND, 1.3f);
         List<ServerPlayerEntity> viewers = new ArrayList<>();
         viewers.add(p);
-        for (LivingEntity t : ts) { hold(t, 24); if (t instanceof ServerPlayerEntity sp) viewers.add(sp); }
+        for (LivingEntity t : ts) { hold(t, 74); if (t instanceof ServerPlayerEntity sp) viewers.add(sp); }
         cutscene(p, "al_ult", ts.get(0), viewers);
         w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_EMERGE, SoundCategory.PLAYERS, 1.0f, 0.8f);
-        for (int i = 0; i < 11; i += 2) {
-            Tasks.later(i, () -> w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX(), p.getY() + 0.2, p.getZ(), 12, 1.2, 0.1, 1.2, 0.2));
+        for (int i = 8; i < 50; i += 3) {
+            final int ii = i;
+            Tasks.later(i, () -> {
+                if (p.isDisconnected()) return;
+                double r = 1.0 + ii * 0.05;
+                w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX(), p.getY() + 0.2, p.getZ(), 10, r, 0.1, r, 0.2);
+                w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX(), p.getY() + 2.4, p.getZ(), 4, 0.2, 0.2, 0.2, 0.1);
+                if (ii % 12 == 8) Alchemy.fx(w, p.getBlockPos(), true);
+            });
         }
-        Tasks.later(8, () -> clapFx(p));
-        Tasks.later(12, () -> {
+        Tasks.later(50, () -> { clapFx(p); w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.5f, 1.8f); });
+        Tasks.later(60, () -> {
             if (p.isDisconnected()) return;
             Alchemy.bigFx(p);
+            AlchemySounds.play(p, AlchemySounds.SPARK, 1.4f);
             Fx.wave(w, p.getPos().add(0, 0.1, 0), 0.5, 9.0, Fx.WHITE, 10);
             Fx.shakeAround(w, p.getPos(), 14, 0.8f);
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 1.0f, 0.5f);
             for (LivingEntity t : ts) Alchemy.fx(w, t.getBlockPos(), true);
         });
-        Tasks.later(14, () -> {
+        Tasks.later(62, () -> {
             Vec3d fwd = Combat.horizontal(p.getRotationVec(1f));
             Vec3d s = fwd.crossProduct(new Vec3d(0, 1, 0)).normalize();
             for (LivingEntity t : ts) {
@@ -1039,11 +1090,11 @@ public final class AlchemistJob implements JobType {
                 Vec3d at = t.getPos();
                 Double gy = AlchemyFx.ground(w, at);
                 double y = gy == null ? at.y : gy;
-                GodHandFx.play(w, at, y, 10, 16, Math.atan2(-s.z, -s.x));
-                GodHandFx.play(w, at, y, 10, 16, Math.atan2(s.z, s.x));
+                GodHandFx.play(w, at, y, 12, 16, Math.atan2(-s.z, -s.x));
+                GodHandFx.play(w, at, y, 12, 16, Math.atan2(s.z, s.x));
             }
         });
-        Tasks.later(24, () -> {
+        Tasks.later(74, () -> {
             for (LivingEntity t : ts) {
                 if (!t.isAlive()) continue;
                 Combat.hit(p, t, JUDGMENT);
@@ -1056,7 +1107,7 @@ public final class AlchemistJob implements JobType {
             Fx.shakeAround(w, p.getPos(), 16, 1.0f);
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 1.2f, 0.6f);
         });
-        Tasks.later(30, () -> {
+        Tasks.later(80, () -> {
             for (LivingEntity t : ts) {
                 Vec3d at = t.getPos();
                 for (int i = 0; i < 12; i++) {
@@ -1097,6 +1148,7 @@ public final class AlchemistJob implements JobType {
     private static void clapFx(ServerPlayerEntity p) {
         ServerWorld w = p.getServerWorld();
         w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.6f, 1.8f);
+        AlchemySounds.play(p, AlchemySounds.SPARK, 1.0f);   // 연성음
         Alchemy.fx(w, p.getBlockPos(), Alch.entry(p).truth);
     }
 
@@ -1133,6 +1185,7 @@ public final class AlchemistJob implements JobType {
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((h, srv) -> {
             if (SPEAR_UNTIL.containsKey(h.getPlayer().getUuid())) endSpear(h.getPlayer());
             if (BLADE_UNTIL.containsKey(h.getPlayer().getUuid())) endBlade(h.getPlayer());
+            stopTheme(h.getPlayer());
         });
     }
 }

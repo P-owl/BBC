@@ -24,7 +24,7 @@ import org.joml.Vector3f;
 /**
  * 각성 (기획안 1부 ‘각성 시스템’ 공통 규칙). 플레이어·몬스터 공통.
  *  - 게이지 0~100: 때릴 때 피해 × DEAL, 맞을 때 피해 × TAKE 만큼 참 (맞는 쪽이 더 많이 → 역전 수단)
- *  - 100에서 G → 45초 각성. 순간 주위 4칸 밀어내기 + 1초 무적. 콤보를 맞는 중엔 못 함 (회피기가 그 역할)
+ *  - 100에서 G → 45초 각성. 순간 최대 체력 30% 회복 + 주위 4칸 밀어내기 + 1초 무적. 콤보를 맞는 중엔 못 함 (회피기가 그 역할)
  *  - 각성 중 G → 각성기 (각성 한 번에 1번, 쓰면 각성 10초 짧아짐). 직업마다 다르고, 없으면 공통 각성기 ‘난무’
  *  - 각성 중 공통 강화: 평타 피해 ×1.25. 직업별 강화·교체는 JobType.onAwaken 에서
  */
@@ -35,6 +35,8 @@ public final class Awaken {
     public static final double DEAL = 2.0, TAKE = 3.2;          // 피해 1당 게이지 (평타 1대 ≈ 때리면 2, 맞으면 3.2)
     public static final int DURATION = 900, ULT_COST = 200, PUSH_RADIUS = 4, INVULN = 20;
     public static final float M1_BONUS = 1.25f;
+    /** 각성 순간 최대 체력의 이만큼 회복 */
+    public static final float HEAL = 0.3f;
 
     public static boolean active(LivingEntity e) {
         Fighter f = Combat.peek(e);
@@ -76,7 +78,9 @@ public final class Awaken {
         f.awakenUntil = Combat.now + DURATION;
         f.ultUsed = false;
         f.invulnUntil = Math.max(f.invulnUntil, Combat.now + INVULN);
+        e.heal(e.getMaxHealth() * HEAL);   // ABA: 각성하면 체력 회복
         ServerWorld w = (ServerWorld) e.getWorld();
+        w.spawnParticles(ParticleTypes.HEART, e.getX(), e.getY() + 1.6, e.getZ(), 6, 0.4, 0.3, 0.4, 0);
         for (Entity en : w.getOtherEntities(e, e.getBoundingBox().expand(PUSH_RADIUS), x -> x instanceof LivingEntity && x.isAlive() && !(x instanceof ArmorStandEntity))) {
             Vec3d d = Combat.horizontal(en.getPos().subtract(e.getPos()));
             Combat.move((LivingEntity) en, new Vec3d(d.x * 1.1, 0.45, d.z * 1.1));

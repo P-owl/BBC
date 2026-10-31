@@ -26,7 +26,7 @@ def ease(name, f):
     return f
 
 PARTS = ["head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg", "torso"]
-AXES = ("pitch", "yaw", "roll", "bend", "axis", "z")
+AXES = ("pitch", "yaw", "roll", "bend", "axis", "z", "x", "y")
 
 def tracks(anim):
     """part -> axis -> sorted list of (tick, value, ease)"""
@@ -106,7 +106,7 @@ def boxes(ps):
                 if lower: v = RB @ (v - mid) + mid
                 v = R @ v + np.array(piv, float) + np.array([0, 0, r.get("z", 0) if limb else 0])
                 w = np.array([-v[0], -v[1], v[2]]) / 16 + np.array([0, 1.501, 0])   # scale(-1,-1,1), translate
-                w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0])        # 몸 전체 회전
+                w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0]) + np.array([b.get("x", 0), b.get("y", 0), -b.get("z", 0)])  # 몸 전체 회전·위치
                 corners.append(w)
             if lower and name == "rightArm" and ITEM[0]:  # 손에 든 무기: 손에서 아래팔에 수직으로 (앞쪽) 뻗음
                 L = ITEM[0]
@@ -119,7 +119,7 @@ def boxes(ps):
                     v = RB @ (v - mid) + mid
                     v = R @ v + np.array(piv, float) + np.array([0, 0, r.get("z", 0)])
                     w = np.array([-v[0], -v[1], v[2]]) / 16 + np.array([0, 1.501, 0])
-                    w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0])
+                    w = W @ (w - np.array([0, 0.7, 0])) + np.array([0, 0.7, 0]) + np.array([b.get("x", 0), b.get("y", 0), -b.get("z", 0)])
                     ic.append(w)
                 for f in FACES: polys.append(([ic[i] for i in f], (150, 150, 160)))
             for fi, f in enumerate(FACES):

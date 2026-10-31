@@ -280,6 +280,10 @@ public final class Combat {
     private static void swing(LivingEntity p, Fighter a, String motion, int startup, int recovery, SoundEvent sfx, Runnable resolve) {
         int tok = ++a.token;
         Motion.play(p, motion);
+        if (p instanceof net.minecraft.server.network.ServerPlayerEntity sp0) {   // 직업 평타 시작 연출 (예: 연금술사 슬램 때 칼 연성)
+            bbc.job.JobType jt0 = bbc.job.Jobs.type(bbc.job.Jobs.entry(sp0));
+            if (jt0 != null) jt0.m1Start(sp0, motion);
+        }
         a.m1ReadyAt = now + startup + 1 + recovery;
         a.recoveryUntil = a.m1ReadyAt;
         a.m1ChainUntil = a.m1ReadyAt + Tuning.CHAIN_RESET;

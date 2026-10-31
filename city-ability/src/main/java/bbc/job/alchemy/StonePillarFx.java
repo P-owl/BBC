@@ -125,6 +125,7 @@ public final class StonePillarFx {
         t.put("right_rotation", floats(0, 0, 0, 1));
         n.put("transformation", t);
         n.putFloat("view_range", 2.0f);
+        n.put("brightness", AlchemyFx.bright());
         Entity e = EntityType.loadEntityWithPassengers(n, w, ent -> {
             ent.refreshPositionAndAngles(from.x, from.y, from.z, 0, 0);
             return ent;

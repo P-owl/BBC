@@ -98,6 +98,35 @@ public final class GodHandFx {
         Tasks.later(close + hold + 12, () -> { for (Seg sg : h.segs()) sg.e().discard(); });
     }
 
+    /**
+     * 주먹 (공중 신의 손): 공중의 대상(at) 아래 땅을 뚫고 꽉 쥔 바위 주먹이 6틱 만에 솟구쳐 올려침. from = 시전자 (주먹이 그쪽을 향해 살짝 기울어짐).
+     * 손가락 마디·엄지까지 같은 손 모형을 주먹 모양으로 굽힌 것. hold 틱 뒤 가라앉음
+     */
+    public static void fist(ServerWorld w, Vec3d at, double groundY, Vec3d from, int hold) {
+        Vec3d d = new Vec3d(at.x - from.x, 0, at.z - from.z);
+        if (d.lengthSquared() < 1e-4) d = new Vec3d(0, 0, 1);
+        d = d.normalize();
+        double hx = at.x - d.x * 1.0, hz = at.z - d.z * 1.0;
+        float yaw = (float) Math.atan2(d.x, d.z);
+        double liftY = Math.max(groundY - 0.5, at.y - PALM_H * 0.5);   // 주먹 꼭대기가 대상 몸통쯤
+        float armLen = (float) Math.max(8.0, liftY - groundY + 3.0);
+        Hand h = spawn(w, hx, groundY - armLen - PALM_H, hz, yaw, armLen);
+        pose(h, 2);
+        Tasks.later(1, () -> moveAll(h, hx, liftY, hz));
+        w.playSound(null, BlockPos.ofFloored(hx, groundY, hz), SoundEvents.BLOCK_DEEPSLATE_BREAK, SoundCategory.PLAYERS, 2.0f, 0.4f);
+        w.playSound(null, BlockPos.ofFloored(hx, groundY, hz), SoundEvents.ENTITY_WARDEN_DIG, SoundCategory.PLAYERS, 1.2f, 1.0f);
+        for (int t = 0; t < 8; t += 2) {
+            Tasks.later(t, () -> {
+                w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, KNUCKLE), hx, groundY + 0.1, hz, 24, 1.6, 0.2, 1.6, 0.35);
+                w.spawnParticles(BLUE, hx, groundY + 0.2, hz, 10, 1.6, 0.1, 1.6, 0);
+                w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, hx, groundY + 1, hz, 6, 1.2, 1.0, 1.2, 0.1);
+            });
+        }
+        Tasks.later(6, () -> w.playSound(null, BlockPos.ofFloored(at), SoundEvents.ENTITY_IRON_GOLEM_ATTACK, SoundCategory.PLAYERS, 1.8f, 0.35f));
+        Tasks.later(6 + hold, () -> moveAll(h, hx, groundY - armLen - PALM_H - 2, hz));
+        Tasks.later(6 + hold + 12, () -> { for (Seg sg : h.segs()) sg.e().discard(); });
+    }
+
     // ───────── 손 만들기 ─────────
 
     private static final int SEGS = 17; // 손바닥 1 + 손가락 12 + 엄지 2 + 손목 1 + 팔뚝 1
@@ -114,7 +143,7 @@ public final class GodHandFx {
         segs.add(new Seg(display(w, KNUCKLE, x, y, z), KNUCKLE, PALM_W * 0.82f, armLen, PALM_D * 1.08f)); // 팔뚝 (땅속까지)
         segs.removeIf(sg -> sg.e() == null);
         Hand h = new Hand(segs, x, y, z, yaw);
-        if (segs.size() == SEGS) pose(h, false);
+        if (segs.size() == SEGS) pose(h, 0);
         return h;
     }
 
@@ -122,14 +151,18 @@ public final class GodHandFx {
      * 손 모양 계산 (정기구학). 손 좌표계: 손바닥 아래 가운데가 원점, 손가락은 +Y, 손바닥 면은 +Z.
      * 마디마다 X축으로 꺾어서 +Z(대상 쪽)로 구부림.
      */
-    private static void pose(Hand h, boolean closed) {
+    private static void pose(Hand h, boolean closed) { pose(h, closed ? 1 : 0); }
+
+    /** mode 0 = 편 손, 1 = 움켜쥠, 2 = 꽉 쥔 주먹 (손가락 마디를 끝까지 말고 엄지로 덮음, 대상 쪽으로 30° 기울임) */
+    private static void pose(Hand h, int mode) {
         if (h.segs().size() != SEGS) return;
-        Quaternionf handRot = new Quaternionf().rotateY(h.yaw()).rotateX((float) Math.toRadians(closed ? 22 : 4)); // 움켜쥘 때 대상 쪽으로 숙임
+        boolean closed = mode >= 1, fist = mode == 2;
+        Quaternionf handRot = new Quaternionf().rotateY(h.yaw()).rotateX((float) Math.toRadians(fist ? 30 : closed ? 22 : 4)); // 움켜쥘 때 대상 쪽으로 숙임
         int i = 0;
         // 손바닥
         place(h.segs().get(i++), handRot, new Vector3f(0, 0, 0));
         // 손가락 4개 × 3마디
-        float[] curl = closed ? new float[]{60, 68, 60} : new float[]{6, 10, 8};
+        float[] curl = fist ? new float[]{88, 96, 84} : closed ? new float[]{60, 68, 60} : new float[]{6, 10, 8};
         for (int f = 0; f < 4; f++) {
             Vector3f base = new Vector3f(FINGER_X[f], PALM_H - 0.05f, 0.05f * K);
             Quaternionf q = new Quaternionf();
@@ -144,12 +177,12 @@ public final class GodHandFx {
         }
         // 엄지: 손바닥 옆 아래쪽에서 비스듬히
         Vector3f tb = new Vector3f(PALM_W / 2 - 0.15f * K, 0.9f * K, 0.25f * K);
-        Quaternionf tq = new Quaternionf().rotateZ((float) Math.toRadians(-35)).rotateX((float) Math.toRadians(closed ? 55 : 12));
+        Quaternionf tq = new Quaternionf().rotateZ((float) Math.toRadians(fist ? -20 : -35)).rotateX((float) Math.toRadians(fist ? 72 : closed ? 55 : 12));
         for (int j = 0; j < 2; j++) {
             Seg s = h.segs().get(i++);
             place(s, new Quaternionf(handRot).mul(tq), new Vector3f(tb).rotate(handRot));
             tb.add(new Vector3f(0, s.h() * 0.95f, 0).rotate(tq));
-            tq.rotateX((float) Math.toRadians(closed ? 45 : 8));
+            tq.rotateX((float) Math.toRadians(fist ? 70 : closed ? 45 : 8));
         }
         // 손목 → 팔뚝: 손바닥 아래로 곧게 (손이 숙여지면 같이 기울어짐)
         Seg wrist = h.segs().get(i++);
@@ -186,6 +219,7 @@ public final class GodHandFx {
         n.put("block_state", NbtHelper.fromBlockState(state));
         n.putInt("teleport_duration", 6);
         n.putFloat("view_range", 3.0f);
+        n.put("brightness", AlchemyFx.bright());   // 땅속에서 솟아 빛이 0 으로 굳어 새까맣게 보이던 문제
         Entity e = EntityType.loadEntityWithPassengers(n, w, ent -> {
             ent.refreshPositionAndAngles(x, y, z, 0, 0);
             return ent;

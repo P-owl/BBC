@@ -57,6 +57,7 @@ public final class AlchemyFx {
         tr.put("scale", floats(sx, sy, sz));
         n.put("transformation", tr);
         n.putInt("teleport_duration", glide);
+        n.put("brightness", bright());
         float yaw = (float) (Math.random() * 360);
         Entity e = EntityType.loadEntityWithPassengers(n, w, ent -> {
             ent.refreshPositionAndAngles(x, y - sy, z, yaw, 0);
@@ -68,6 +69,14 @@ public final class AlchemyFx {
         Tasks.later(delay + life, () -> e.requestTeleport(x, y - sy, z));
         Tasks.later(delay + life + glide + 1, e::discard);
         return e;
+    }
+
+    /** 블록 디스플레이 밝기 고정 (땅속에서 솟아오르면 빛 0 으로 계산돼 새까매짐) */
+    public static NbtCompound bright() {
+        NbtCompound b = new NbtCompound();
+        b.putInt("sky", 15);
+        b.putInt("block", 12);
+        return b;
     }
 
     private static NbtList floats(float... v) {

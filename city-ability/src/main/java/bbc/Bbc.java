@@ -43,6 +43,7 @@ public class Bbc implements ModInitializer {
         Jobs.register(TraineeJob.INSTANCE);
         // 연금술사 (무현버스에서 이식)
         bbc.job.alchemy.AlchemyItems.register();
+        bbc.job.alchemy.AlchemySounds.register();
         Jobs.register(bbc.job.alchemy.AlchemistJob.INSTANCE);
         bbc.job.alchemy.Alch.register();
         bbc.job.alchemy.AlchemyValues.register();
