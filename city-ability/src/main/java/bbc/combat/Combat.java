@@ -183,7 +183,7 @@ public final class Combat {
                     setVel(p, new Vec3d(p.getVelocity().x * 0.3, 0.12, p.getVelocity().z * 0.3));
                 });
             } else if (up && idx >= 1) {
-                swing(p, a, "launch", pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                swing(p, a, weapon ? pr.motion() + "rise" : "launch", pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
                     if (hitArea(p, Tuning.HOP, false) > 0) {
                         a.airComboUntil = now + 30;
                         setVel(p, new Vec3d(0, Tuning.HOP_VY, 0));
@@ -228,7 +228,7 @@ public final class Combat {
                 } else setVel(p, new Vec3d(0, -0.6, 0));
             });
         } else if (up) {
-            swing(p, a, "launch", Tuning.FLING_STARTUP, Tuning.FLING_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
+            swing(p, a, weapon ? pr.motion() + "rise" : "launch", Math.max(Tuning.FLING_STARTUP, pr.finishStartup()), Tuning.FLING_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
                 if (hitArea(p, Tuning.UP_FLING, false) > 0) {
                     ServerWorld w = ((ServerWorld) p.getWorld());
                     Vec3d c = p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5));

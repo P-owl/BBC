@@ -170,10 +170,10 @@ public final class Weapon {
         // 모션마다 휘두른 방향 그대로 (make_motions.py 와 맞춤): 기울기, 반대 방향(왼→오 / 아래→위)
         double tilt = switch (motion) {
             case "sw_3", "sw_4", "sp_1", "sp_2", "gs_1" -> 50;
-            case "sw_5", "sw_rise", "gs_3", "gs_cleave", "sw_slam", "sp_slam", "gs_slam" -> 90;
+            case "sw_5", "sw_rise", "sp_rise", "gs_rise", "gs_3", "gs_cleave", "sw_slam", "sp_slam", "gs_slam" -> 90;
             default -> 0;   // sw_1, sw_2, sp_sweep, gs_2: 가로
         };
-        boolean reverse = switch (motion) { case "sw_2", "sw_4", "sw_rise", "sp_2", "gs_2" -> true; default -> false; };
+        boolean reverse = switch (motion) { case "sw_2", "sw_4", "sw_rise", "sp_rise", "gs_rise", "sp_2", "gs_2" -> true; default -> false; };
         boolean heavy = motion.startsWith("gs_");
         boolean finisher = motion.equals("sw_5") || motion.equals("sp_4") || motion.equals("gs_3") || motion.equals("gs_cleave") || motion.endsWith("slam");
         boolean vertical = tilt >= 90;

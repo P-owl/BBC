@@ -347,6 +347,19 @@ anim("sp_rapid", 4,  # 연속 찌르기 (꾹 누르는 동안 4틱마다 반복 
     seq([(0, LIN, dict(body=(0, -56, 0), head=(0, -50, 0), rightArm=RP_BACK, leftArm=LP_BACK)),
          (1, EX, dict(body=(-14, -50, 0), head=(-10, -46, 0), rightArm=RP_OUT(-4), leftArm=LP_OUT)),
          (4, IO, dict(body=(0, -56, 0), head=(0, -50, 0), rightArm=RP_BACK, leftArm=LP_BACK))]), stop=5)
+# 창·대검 올려치기 (평타 띄우기·업 플링용): 무기를 아래로 늘어뜨렸다가 하늘로 걷어 올림
+anim("sp_rise", 12, cut(SPEAR_STANCE, 4, 12,
+    coil=dict(body=(-16, 24, 0), head=(-6, 16, 0), **two((0.1, -0.95, 0.3), (0.05, -0.3, 1), -20), **CROUCH),
+    mid=dict(body=(-4, 4, 0), **two((0.1, -0.25, -0.96), (0, -0.96, 0.25), -6)),
+    hit=dict(body=(14, -12, 0), head=(-30, -10, 0), **two((0.1, 0.95, -0.3), (0.05, 0.3, 0.95), -6), **RISE),
+    follow=dict(body=(16, -14, 0), **two((0.1, 0.98, 0.0), (0.05, 0.0, 1), -6)), hold_to=9))
+anim("gs_rise", 16, cut(GS_STANCE, 6, 16,
+    coil=dict(body=(-20, 30, 0), head=(-6, 20, 0), rightArm=D((0.2, -0.95, 0.25), (0.1, -0.3, 1), -15), leftArm=(-30, 16, -10, -60), **CROUCH),
+    coil2=dict(body=(-22, 34, 0), rightArm=D((0.25, -0.93, 0.3), (0.1, -0.35, 1), -15)),
+    mid=dict(body=(-6, 8, 0), rightArm=D((0.15, -0.25, -0.96), (0, -0.96, 0.25), -6)),
+    hit=dict(body=(16, -16, 0), head=(-30, -12, 0), rightArm=D((0.15, 0.95, -0.3), (0.05, 0.3, 0.95)), leftArm=(-10, 0, -60, -30), **RISE),
+    follow=dict(body=(20, -20, 0), rightArm=D((0.15, 0.98, 0.1), (0.05, -0.1, 1))), hold_to=12))
+
 anim("sp_sweep", 15, cut(SPEAR_STANCE, 5, 15,  # 창을 낮게 들고 몸 전체로 크게 휩쓸기
     coil=dict(body=(0, -60, 0), head=(0, -32, 0), **two((0.85, -0.2, 0.45), (0.25, -0.1, 1), -20), **WIDE),
     mid=dict(body=(-6, -16, 0), **two((0.6, -0.2, -0.75), (-0.6, -0.1, -0.8), -10)),
