@@ -57,6 +57,11 @@ public final class JobSkills {
         return left <= 0 ? 0 : (int) (left / 100 + 1);
     }
 
+    public static String ultName(PlayerData.Entry e) {
+        JobType j = Jobs.type(e);
+        return j == null ? "난무" : j.ultimateName();
+    }
+
     /** HUD 카드: 장착한 5칸 */
     public static bbc.net.SkillHudPayload hudPayload(ServerPlayerEntity p, PlayerData.Entry e, String title) {
         java.util.List<String> n = new java.util.ArrayList<>(); java.util.List<Integer> st = new java.util.ArrayList<>(), l = new java.util.ArrayList<>(), m = new java.util.ArrayList<>();
@@ -73,7 +78,7 @@ public final class JobSkills {
             n.add(s.name()); l.add(left); m.add(Math.max(1, s.cooldown() * 10));
             st.add(left > 0 ? 1 : (s.rank() > rank || res + 1e-6 < s.cost()) ? 2 : 0);
         }
-        return new bbc.net.SkillHudPayload(title, n, st, l, m);
+        return new bbc.net.SkillHudPayload(title, n, st, l, m, ultName(e));
     }
 
     public static void setCooldown(UUID id, int skill, long untilMs) {

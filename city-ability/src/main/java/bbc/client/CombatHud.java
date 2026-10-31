@@ -55,6 +55,7 @@ final class CombatHud {
     private static java.util.List<String> skNames = java.util.List.of();
     private static java.util.List<Integer> skState = java.util.List.of(), skLeft = java.util.List.of(), skMax = java.util.List.of();
     private static long skAt = -100;
+    private static String skUlt = "난무";
     // 때린 상대 (체력·경직 막대)
     private static int targetId = -1;
     private static long targetAt = -1000;
@@ -86,7 +87,7 @@ final class CombatHud {
             else { flashStr = p.strength(); flashAt = clock; }
         }));
         ClientPlayNetworking.registerGlobalReceiver(bbc.net.SkillHudPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
-            skTitle = p.title(); skNames = p.names(); skState = p.state(); skLeft = p.left(); skMax = p.max(); skAt = clock;
+            skTitle = p.title(); skUlt = p.ult(); skNames = p.names(); skState = p.state(); skLeft = p.left(); skMax = p.max(); skAt = clock;
         }));
         ClientPlayNetworking.registerGlobalReceiver(bbc.net.StatusPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             guardHeldHud = p.guard() >= 1000; guard = p.guard() % 1000; evadeLeft = p.evadeLeft(); parryLeft = p.parryLeft();
@@ -382,24 +383,20 @@ final class CombatHud {
             int y = top + i * (h + gap);
             int x = right - w - (i % 2 == 1 ? 4 : 0);   // 한 줄씩 살짝 들여쓰기 (ABA 처럼 들쭉날쭉)
             String name; int st; int left = 0, max = 1;
-            if (ult) {
-                name = awLeft > 0 ? (awUlt ? "각성기" : "각성 중 " + (awLeft / 20 + 1) + "초") : "각성";
-                st = awLeft > 0 ? (awUlt ? 0 : 2) : awGauge >= 100 ? 0 : 1;
-                left = 100 - awGauge; max = 100;
+            if (ult) {   // 궁극기: 각성 중이고 아직 안 썼을 때만 쓸 수 있음 (각성 게이지는 위쪽 막대)
+                name = skUlt;
+                st = awLeft > 0 && awUlt ? 0 : 2;
             } else { name = skNames.get(i); st = skState.get(i); if (st == 1) { left = skLeft.get(i); max = Math.max(1, skMax.get(i)); } }
             boolean empty = !ult && name.isEmpty();
             // 테두리 + 바탕
             slab(ctx, x - 1, y - 1, w + 2, h + 2, slant, fade(empty ? 0x66808080 : 0xFFC8C8C8, f));
             slab(ctx, x, y, w, h, slant, fade(0xE6101014, f));
-            if (ult && (awUlt || (awLeft <= 0 && awGauge >= 100))) {   // 무지개로 흐름
+            if (ult && awLeft > 0 && awUlt) {   // 궁극기 준비: 무지개로 흐름
                 int seg = 30;
                 for (int q = 0; q < seg; q++) {
                     float x0 = x + slant + (w - slant) * q / (float) seg, x1 = x + slant + (w - slant) * (q + 1) / (float) seg;
                     ctx.fill((int) x0, y + 1, (int) Math.ceil(x1), y + h - 1, fade(rainbow(q / (float) seg * 0.8f - clock * 0.02f), f * 0.85f));
                 }
-            } else if (ult) {
-                float r = awLeft > 0 ? (float) Math.min(1.0, awLeft / 900.0) : awGauge / 100f;
-                ctx.fill(x + slant, y + 1, x + slant + (int) ((w - slant) * r), y + h - 1, fade(awLeft > 0 ? 0xC0E8B020 : 0xC0901414, f));
             } else if (st == 1) {   // 재사용: 남은 만큼 붉게
                 float r = Math.min(1f, left / (float) max);
                 slab(ctx, x, y, slant + (w - slant) * r, h, slant, 0xD08A1414);
@@ -408,9 +405,9 @@ final class CombatHud {
             // 왼쪽 장식 (숫자키 칩)
             float ex = x - 12;
             quad(ctx, ex, y + h / 2f, ex + 7, y - 1, ex + 14, y + h / 2f, ex + 7, y + h + 1, fade(0xFF000000, f));
-            quad(ctx, ex + 2, y + h / 2f, ex + 7, y + 1, ex + 12, y + h / 2f, ex + 7, y + h - 1, fade(ult ? 0xFFE8B020 : st == 1 ? 0xFF8A1414 : 0xFFB0B0B0, f));
+            quad(ctx, ex + 2, y + h / 2f, ex + 7, y + 1, ex + 12, y + h / 2f, ex + 7, y + h - 1, fade(ult ? (st == 0 ? rainbow(clock * 0.02f) : 0xFF505050) : st == 1 ? 0xFF8A1414 : 0xFFB0B0B0, f));
             if (empty) continue;
-            String label = name + (ult ? " (G)" : " (" + (i + 1) + ")");
+            String label = name + (ult ? (st == 0 ? " (G)" : awLeft > 0 ? " · 사용함" : " · 각성 필요") : " (" + (i + 1) + ")");
             int col = st == 2 ? 0xFF8A8A8A : st == 1 ? 0xFFD0A0A0 : 0xFFFFFFFF;
             float sc = Math.min(0.9f, (w - slant - 26) / (float) Math.max(1, tr.getWidth(label)));
             m.push();

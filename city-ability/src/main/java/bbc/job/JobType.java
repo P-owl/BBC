@@ -30,4 +30,6 @@ public interface JobType {
     default void onAwakenEnd(ServerPlayerEntity p, PlayerData.Entry e) {}
     /** 각성기. 썼으면 true. false 를 돌려주면 공통 각성기 ‘난무’가 나간다 */
     default boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
+    /** 궁극기 이름 (HUD 기술 목록 맨 아래). 직업 궁극기가 없으면 공통 '난무' */
+    default String ultimateName() { return "난무"; }
 }

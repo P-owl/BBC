@@ -92,7 +92,7 @@ public final class Weapon {
             n.add(s.name()); l.add(lt); m.add(Math.max(1, s.cooldown() * 10));
             st.add(lt > 0 ? 1 : bbc.job.Stamina.get(p) + 1e-6 < s.cost() ? 2 : 0);
         }
-        return new bbc.net.SkillHudPayload("🗡 " + t.name, n, st, l, m);
+        return new bbc.net.SkillHudPayload("🗡 " + t.name, n, st, l, m, bbc.job.JobSkills.ultName(bbc.job.Jobs.entry(p)));
     }
 
     // ═════════ 전환 ═════════
