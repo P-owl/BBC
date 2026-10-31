@@ -70,9 +70,29 @@ public final class Weapon {
         return of(e.getMainHandStack());
     }
 
+    /** 평타 사슬 설정: 무기 칸이면 무기, 클래스 칸이면 직업이 정한 것 (직업마다 판정·모션 세트), 없으면 맨손 */
     public static M1Profile profile(LivingEntity e) {
         Type t = current(e);
-        return t == null ? FIST : t.m1;
+        if (t != null) return t.m1;
+        if (e instanceof ServerPlayerEntity p) {
+            bbc.job.JobType j = bbc.job.Jobs.type(bbc.job.Jobs.entry(p));
+            if (j != null && j.m1() != null) return j.m1();
+        }
+        return FIST;
+    }
+
+    /** HUD 카드: 무기 기술 2칸 */
+    public static bbc.net.SkillHudPayload hudPayload(ServerPlayerEntity p, Type t) {
+        Fighter f = Combat.of(p);
+        java.util.List<String> n = new java.util.ArrayList<>(); java.util.List<Integer> st = new java.util.ArrayList<>(), l = new java.util.ArrayList<>(), m = new java.util.ArrayList<>();
+        for (int i = 0; i < t.skills.length; i++) {
+            WSkill s = t.skills[i];
+            long left = f.weaponCd.getOrDefault(t.name() + i, 0L) - Combat.now;
+            int lt = left > 0 ? (int) (left / 2 + 1) : 0;   // 틱 → 0.1초
+            n.add(s.name()); l.add(lt); m.add(Math.max(1, s.cooldown() * 10));
+            st.add(lt > 0 ? 1 : bbc.job.Stamina.get(p) + 1e-6 < s.cost() ? 2 : 0);
+        }
+        return new bbc.net.SkillHudPayload("🗡 " + t.name, n, st, l, m);
     }
 
     // ═════════ 전환 ═════════

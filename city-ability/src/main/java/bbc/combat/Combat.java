@@ -486,6 +486,8 @@ public final class Combat {
 
         if (atk instanceof ServerPlayerEntity sp && ServerPlayNetworking.canSend(sp, ComboPayload.ID))
             ServerPlayNetworking.send(sp, new ComboPayload(v.comboHits, v.comboDamage));
+        if (atk instanceof ServerPlayerEntity sp && ServerPlayNetworking.canSend(sp, bbc.net.TargetPayload.ID))
+            ServerPlayNetworking.send(sp, new bbc.net.TargetPayload(t.getId()));
         return Result.HIT;
     }
 

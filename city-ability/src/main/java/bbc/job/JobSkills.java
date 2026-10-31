@@ -49,6 +49,33 @@ public final class JobSkills {
         return left <= 0 ? 0 : (int) (left / 1000 + 1);
     }
 
+    /** 남은 재사용 (0.1초 단위, HUD 용) */
+    public static int cooldownLeftTenths(UUID id, int skill) {
+        Long until = COOLDOWN.getOrDefault(id, Map.of()).get(skill);
+        if (until == null) return 0;
+        long left = until - System.currentTimeMillis();
+        return left <= 0 ? 0 : (int) (left / 100 + 1);
+    }
+
+    /** HUD 카드: 장착한 5칸 */
+    public static bbc.net.SkillHudPayload hudPayload(ServerPlayerEntity p, PlayerData.Entry e, String title) {
+        java.util.List<String> n = new java.util.ArrayList<>(); java.util.List<Integer> st = new java.util.ArrayList<>(), l = new java.util.ArrayList<>(), m = new java.util.ArrayList<>();
+        Set set = of(e);
+        Skill[] skills = set == null ? new Skill[0] : set.skills(p, e);
+        int[] eq = equipped(e);
+        int rank = Jobs.rank(e);
+        double res = set == null ? 0 : set.resource(p, e);
+        for (int i = 0; i < SLOTS; i++) {
+            int k = i < eq.length ? eq[i] : -1;
+            if (k < 0 || k >= skills.length || skills[k] == null) { n.add(""); st.add(2); l.add(0); m.add(1); continue; }
+            Skill s = skills[k];
+            int left = cooldownLeftTenths(p.getUuid(), k);
+            n.add(s.name()); l.add(left); m.add(Math.max(1, s.cooldown() * 10));
+            st.add(left > 0 ? 1 : (s.rank() > rank || res + 1e-6 < s.cost()) ? 2 : 0);
+        }
+        return new bbc.net.SkillHudPayload(title, n, st, l, m);
+    }
+
     public static void setCooldown(UUID id, int skill, long untilMs) {
         COOLDOWN.computeIfAbsent(id, k -> new HashMap<>()).merge(skill, untilMs, Math::max);
     }

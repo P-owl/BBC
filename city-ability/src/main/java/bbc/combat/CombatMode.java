@@ -86,12 +86,19 @@ public final class CombatMode {
     }
 
     private static void tick(MinecraftServer server) {
-        if (++clock % 10 != 0) return;
+        ++clock;
+        if (clock % 4 != 0) return;
         for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
             if (!active(p)) continue;
             if (!Jobs.hasCombat(Jobs.entry(p))) { set(p, false); continue; } // 직업을 잃음
             Weapon.Type w = Weapon.current(p);
-            p.sendMessage(Combat.hudPrefix(p).append(w != null ? Weapon.hud(p, w) : JobSkills.hud(p, Jobs.entry(p))), true);
+            // 기술 칸은 화면 아래 카드로 (ABA), 액션바엔 가드·패링·회피 상태만
+            if (ServerPlayNetworking.canSend(p, bbc.net.SkillHudPayload.ID)) {
+                var job = Jobs.type(Jobs.entry(p));
+                ServerPlayNetworking.send(p, w != null ? Weapon.hudPayload(p, w) : JobSkills.hudPayload(p, Jobs.entry(p), job == null ? "" : job.name()));
+                if (clock % 20 == 0) p.sendMessage(Combat.hudPrefix(p), true);
+            } else if (clock % 12 == 0)
+                p.sendMessage(Combat.hudPrefix(p).append(w != null ? Weapon.hud(p, w) : JobSkills.hud(p, Jobs.entry(p))), true);
         }
     }
 }

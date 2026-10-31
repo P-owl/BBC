@@ -50,6 +50,15 @@ final class CombatHud {
     private static float shakeStr, flashStr;
     private static long shakeAt = -100, flashAt = -100;
     private static float linesStr;
+    // 기술 카드 (서버가 4틱마다 보냄)
+    private static String skTitle = "";
+    private static java.util.List<String> skNames = java.util.List.of();
+    private static java.util.List<Integer> skState = java.util.List.of(), skLeft = java.util.List.of(), skMax = java.util.List.of();
+    private static long skAt = -100;
+    // 때린 상대 (체력·경직 막대)
+    private static int targetId = -1;
+    private static long targetAt = -1000;
+    private static float targetShownHp = -1;
     private static long linesAt = -100;
 
     static void init() {
@@ -75,6 +84,13 @@ final class CombatHud {
                 shakeAt = clock;
             } else if (p.kind() == FxPayload.LINES) { linesStr = Math.max(p.strength(), linesStr * Math.max(0f, 1f - (clock - linesAt) / 7f)); linesAt = clock; }
             else { flashStr = p.strength(); flashAt = clock; }
+        }));
+        ClientPlayNetworking.registerGlobalReceiver(bbc.net.SkillHudPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
+            skTitle = p.title(); skNames = p.names(); skState = p.state(); skLeft = p.left(); skMax = p.max(); skAt = clock;
+        }));
+        ClientPlayNetworking.registerGlobalReceiver(bbc.net.TargetPayload.ID, (p, ctx) -> ctx.client().execute(() -> {
+            if (p.entityId() != targetId) targetShownHp = -1;
+            targetId = p.entityId(); targetAt = clock;
         }));
         ClientTickEvents.END_CLIENT_TICK.register(CombatHud::tick);
         HudRenderCallback.EVENT.register((ctx, counter) -> render(ctx));
@@ -261,6 +277,67 @@ final class CombatHud {
         ctx.draw();
     }
 
+    /**
+     * 기술 카드 (ABA): 핫바 위에 빨간 카드가 칸마다 하나. 왼쪽 위 숫자키, 가운데 기술 이름.
+     * 재사용 중이면 위에서부터 어둡게 덮이고 남은 초, 못 쓰면(등급·자원) 회색
+     */
+    private static void skillCards(DrawContext ctx, MinecraftClient c) {
+        if (clock - skAt > 40 || skNames.isEmpty()) return;
+        TextRenderer tr = c.textRenderer;
+        int n = skNames.size(), cw = 46, ch = 28, gap = 3;
+        int W = ctx.getScaledWindowWidth(), H = ctx.getScaledWindowHeight();
+        int total = n * cw + (n - 1) * gap;
+        int x0 = W / 2 - total / 2, y0 = H - 22 - 12 - 9 - ch - 4;
+        if (!skTitle.isEmpty()) ctx.drawTextWithShadow(tr, skTitle, x0, y0 - 10, 0xFFFFD27A);
+        for (int i = 0; i < n; i++) {
+            int x = x0 + i * (cw + gap), y = y0;
+            String name = skNames.get(i);
+            int st = skState.get(i);
+            boolean empty = name.isEmpty();
+            int bg = empty ? 0x66303030 : st == 2 ? 0xCC4A4A4A : 0xDDB3141E;
+            ctx.fill(x - 1, y - 1, x + cw + 1, y + ch + 1, empty ? 0x66000000 : 0xFF3A0508);
+            ctx.fill(x, y, x + cw, y + ch, bg);
+            if (!empty && st != 2) ctx.fill(x, y, x + cw, y + ch / 2, 0x22FFFFFF);   // 위쪽 밝은 띠
+            ctx.drawTextWithShadow(tr, String.valueOf(i + 1), x + 2, y + 2, 0xFFFFFFFF);
+            if (empty) continue;
+            // 이름: 카드 폭에 맞게 줄임
+            var m = ctx.getMatrices();
+            float sc = Math.min(0.8f, (cw - 4) / (float) Math.max(1, tr.getWidth(name)));
+            m.push();
+            m.translate(x + cw / 2f, y + ch / 2f + 1, 0);
+            m.scale(sc, sc, 1);
+            ctx.drawCenteredTextWithShadow(tr, name, 0, -4, st == 2 ? 0xFFAAAAAA : 0xFFFFFFFF);
+            m.pop();
+            if (st == 1) {
+                int left = skLeft.get(i), max = Math.max(1, skMax.get(i));
+                int hgt = Math.min(ch, Math.round(ch * Math.min(1f, left / (float) max)));
+                ctx.fill(x, y, x + cw, y + hgt, 0xB0000000);
+                String sec = left >= 100 ? String.valueOf((left + 9) / 10) : String.format("%.1f", left / 10f);
+                ctx.drawCenteredTextWithShadow(tr, sec, x + cw / 2, y + ch - 10, 0xFFFFE070);
+            }
+        }
+    }
+
+    /** 때린 상대: 화면 위 각성 막대 아래에 이름·체력(빨강, 깎인 만큼 흰색이 천천히 따라옴)·경직 표시 (6초 안 때리면 사라짐) */
+    private static void targetBar(DrawContext ctx, MinecraftClient c) {
+        if (targetId < 0 || clock - targetAt > 120 || c.world == null) return;
+        if (!(c.world.getEntityById(targetId) instanceof net.minecraft.entity.LivingEntity t) || !t.isAlive()) { targetId = -1; return; }
+        TextRenderer tr = c.textRenderer;
+        int W = ctx.getScaledWindowWidth(), w = 160, h = 7;
+        int x = W / 2 - w / 2, y = 34;
+        float hp = Math.max(0, t.getHealth()), max = Math.max(1, t.getMaxHealth());
+        if (targetShownHp < 0 || targetShownHp < hp) targetShownHp = hp;
+        else targetShownHp = Math.max(hp, targetShownHp - max * 0.01f);
+        boolean stunned = STUN.containsKey(targetId) && STUN.get(targetId) > clock;
+        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF101010);
+        ctx.fill(x, y, x + w, y + h, 0xFF3A3A3A);
+        ctx.fill(x, y, x + Math.round(w * targetShownHp / max), y + h, 0xFFF0F0F0);
+        ctx.fill(x, y, x + Math.round(w * hp / max), y + h, stunned ? 0xFFE0281E : 0xFF35C83A);
+        for (int k = 1; k < 10; k++) ctx.fill(x + w * k / 10, y, x + w * k / 10 + 1, y + h, 0x55000000);   // 칸 나눔
+        String label = t.getDisplayName().getString() + (stunned ? "  경직" : "");
+        ctx.drawCenteredTextWithShadow(tr, label, W / 2, y + h + 2, stunned ? 0xFFFF6A5A : 0xFFE0E0E0);
+    }
+
     private static void render(DrawContext ctx) {
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.options.hudHidden) return;
@@ -268,7 +345,7 @@ final class CombatHud {
         float fa = flashStr * Math.max(0f, 1f - (clock - flashAt) / 6f);
         if (fa > 0.01f) ctx.fill(0, 0, ctx.getScaledWindowWidth(), ctx.getScaledWindowHeight(), ((int) (fa * 200) << 24) | 0xFFFFFF);
         concentrationLines(ctx);
-        if (BbcClient.combat) { awakenBar(ctx, c); staminaBar(ctx, c); }
+        if (BbcClient.combat) { awakenBar(ctx, c); staminaBar(ctx, c); skillCards(ctx, c); targetBar(ctx, c); }
         if (comboHits <= 0) return;
         long age = clock - comboAt;
         if (age > 30) return;

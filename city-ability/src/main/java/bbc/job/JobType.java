@@ -19,6 +19,8 @@ public interface JobType {
     String[] summary();
     /** 직업 선택 창에서 바로 고를 수 있는가 (특수한 방법으로만 되는 직업은 false) */
     default boolean selectable() { return true; }
+    /** 직업 평타 세트 (사슬 길이·선딜·피해·사거리·모션). null 이면 맨손 기본 */
+    default bbc.combat.Weapon.M1Profile m1() { return null; }
     /** 전투 기술 (없으면 null) */
     default JobSkills.Set skills() { return null; }
     default void onJoin(ServerPlayerEntity p, PlayerData.Entry e) {}
