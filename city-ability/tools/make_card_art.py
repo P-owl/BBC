@@ -1,429 +1,274 @@
-"""재능 카드 그림 14장 (84x52 도트, 1픽셀 = GUI 1칸 = 아이템 텍스처와 같은 밀도).
-효과가 한눈에 보이게: 인물(스티브 비슷한 플레이어 / 좀비) + 하트·번개·숫자 같은 기호.
-배경은 make_ui_textures.py 의 분류별 배경을 어둡게 깐 것.
-python3 tools/make_card_art.py  (city-ability 폴더에서, make_ui_textures.py 다음에)"""
+"""재능 카드 그림 14장 — Deepwoken 카드처럼 '흰 종이 위 먹선으로 그린 상징 하나'를 도트로.
+(그림은 직접 만든 상징이고 Deepwoken 그림을 베끼지 않음)
+4배 크기에 거친 붓질로 그린 뒤 84x52 로 줄이고, 진하기에 따라 먹 / 회색 / 종이 세 단계로 나눠 픽셀을 딱 떨어지게.
+붓 자국 느낌: 먹 픽셀 일부를 회색으로 (마른 붓), 주변에 먹 점 몇 개.
+python3 tools/make_card_art.py  (city-ability 폴더에서)"""
 import math, os, random
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 
 GUI = 'src/main/resources/assets/bbc/textures/gui'
 W, H = 84, 52
-GROUND = 40
-OUTLINE = (16, 12, 14, 255)
+K = 4                       # 그릴 때 배율
+INK = (34, 30, 28, 255)
+GREY = (110, 104, 96, 255)
+PAPER = (246, 243, 236, 255)
+PAPER_M = (228, 223, 212, 255)
+PAPER_D = (204, 198, 186, 255)
+BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
 
-def hx(h, a=255):
-    h = h.lstrip('#')
-    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a)
+class Ink:
+    """가운데 기준 좌표 (-1..1, 1 = 22픽셀) 로 그리는 붓"""
 
+    def __init__(self):
+        self.im = Image.new('L', (W * K, H * K), 0)
+        self.d = ImageDraw.Draw(self.im)
+        self.cx, self.cy, self.R = W * K / 2, H * K / 2 + K, 22 * K
 
-def layer():
-    return Image.new('RGBA', (W, H))
+    def P(self, x, y):
+        return (self.cx + x * self.R, self.cy + y * self.R)
 
+    def dot(self, x, y, r, v=255):
+        X, Y = self.P(x, y)
+        rr = r * self.R
+        self.d.ellipse([X - rr, Y - rr, X + rr, Y + rr], fill=v)
 
-def px(l, x, y, c):
-    if 0 <= x < l.width and 0 <= y < l.height:
-        l.putpixel((int(x), int(y)), c)
+    def stroke(self, pts, w0=0.07, w1=None, jitter=0.012, v=255, steps=8):
+        """붓질: 점들을 이은 선을 굵기를 바꿔 가며 동그라미로 찍음 (살짝 떨림)"""
+        w1 = w0 if w1 is None else w1
+        w0, w1 = w0 * 1.25, w1 * 1.25
+        seg = []
+        for i in range(len(pts) - 1):
+            (x0, y0), (x1, y1) = pts[i], pts[i + 1]
+            n = max(2, int(math.hypot(x1 - x0, y1 - y0) * steps * 6))
+            for k in range(n):
+                t = k / n
+                seg.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
+        seg.append(pts[-1])
+        N = len(seg)
+        for i, (x, y) in enumerate(seg):
+            t = i / max(1, N - 1)
+            w = w0 + (w1 - w0) * t
+            w *= 1 + random.uniform(-0.15, 0.15)
+            self.dot(x + random.uniform(-jitter, jitter), y + random.uniform(-jitter, jitter), max(0.012, w / 2), v)
 
+    def taper(self, pts, w=0.1, **kw):
+        """양끝이 가늘고 가운데가 굵은 붓질"""
+        n = len(pts)
+        for i in range(n - 1):
+            t0, t1 = i / (n - 1), (i + 1) / (n - 1)
+            self.stroke([pts[i], pts[i + 1]], w * math.sin(math.pi * t0) + 0.02, w * math.sin(math.pi * t1) + 0.02, **kw)
 
-def rect(l, x0, y0, x1, y1, c):
-    """x0..x1, y0..y1 포함"""
-    for y in range(int(y0), int(y1) + 1):
-        for x in range(int(x0), int(x1) + 1):
-            px(l, x, y, c)
+    def curve(self, f, t0, t1, n=24):
+        return [f(t0 + (t1 - t0) * i / n) for i in range(n + 1)]
 
+    def poly(self, pts, v=255):
+        self.d.polygon([self.P(x, y) for x, y in pts], fill=v)
 
-def line(l, x0, y0, x1, y1, c):
-    n = int(max(abs(x1 - x0), abs(y1 - y0)))
-    for i in range(n + 1):
-        t = i / max(1, n)
-        px(l, round(x0 + (x1 - x0) * t), round(y0 + (y1 - y0) * t), c)
+    def outline(self, pts, w=0.06, closed=True, **kw):
+        self.stroke(pts + ([pts[0]] if closed else []), w, **kw)
 
+    def ellipse(self, x, y, rx, ry, w=0.06, a0=0, a1=360, rot=0, **kw):
+        pts = []
+        for i in range(33):
+            a = math.radians(a0 + (a1 - a0) * i / 32)
+            px, py = math.cos(a) * rx, math.sin(a) * ry
+            c, s = math.cos(rot), math.sin(rot)
+            pts.append((x + px * c - py * s, y + px * s + py * c))
+        self.stroke(pts, w, **kw)
 
-def grid(l, x0, y0, rows, pal):
-    for j, r in enumerate(rows):
-        for i, ch in enumerate(r):
-            if ch in pal:
-                px(l, x0 + i, y0 + j, pal[ch])
-
-
-def outline(l, c=OUTLINE):
-    out = l.copy()
-    a = l.load()
-    o = out.load()
-    for y in range(l.height):
-        for x in range(l.width):
-            if a[x, y][3] == 0:
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                    xx, yy = x + dx, y + dy
-                    if 0 <= xx < l.width and 0 <= yy < l.height and a[xx, yy][3] > 0:
-                        o[x, y] = c
-                        break
-    return out
-
-
-def comp(base, l, alpha=1.0, ol=True):
-    if ol:
-        l = outline(l)
-    if alpha < 1:
-        r, g, b, a = l.split()
-        l = Image.merge('RGBA', (r, g, b, a.point(lambda v: int(v * alpha))))
-    base.alpha_composite(l)
-    return base
-
-
-# ── 기호
-HEART = [".RR.RR.", "RWRRRRR", "RRRRRRR", ".RRRRR.", "..RRR..", "...R..."]
-BOLT = ["..YY", ".YY.", "YYYY", ".YY.", "YY..", "Y..."]
-NOTE = ["..KK", "..KK", "..K.", "..K.", "KKK.", "KKK."]
-SPARK = ["..W..", ".W.W.", "W...W", ".W.W.", "..W.."]
-STAR4 = [".W.", "WYW", ".W."]
-ORB = [".GG.", "GLGG", "GGGG", ".GG."]
-DIG = {
-    '0': ["XXX", "X.X", "X.X", "X.X", "XXX"], '1': [".X.", "XX.", ".X.", ".X.", "XXX"],
-    '2': ["XXX", "..X", "XXX", "X..", "XXX"], '3': ["XXX", "..X", ".XX", "..X", "XXX"],
-    '5': ["XXX", "X..", "XXX", "..X", "XXX"], '4': ["X.X", "X.X", "XXX", "..X", "..X"],
-    '8': ["XXX", "X.X", "XXX", "X.X", "XXX"], 'x': ["...", "X.X", ".X.", "X.X", "..."],
-    '+': ["...", ".X.", "XXX", ".X.", "..."], '%': ["X.X", "..X", ".X.", "X..", "X.X"],
-    '!': ["X", "X", "X", ".", "X"], '-': ["...", "...", "XXX", "...", "..."],
-}
-
-
-def text(l, x, y, s, c, scale=1):
-    for ch in s:
-        g = DIG[ch]
-        for j, r in enumerate(g):
-            for i, v in enumerate(r):
-                if v == 'X':
-                    rect(l, x + i * scale, y + j * scale, x + i * scale + scale - 1, y + j * scale + scale - 1, c)
-        x += (len(g[0]) + 1) * scale
-    return x
-
-
-def heart(l, x, y, gold=False, half=False):
-    pal = {'R': hx('ffb020') if gold else hx('e0202a'), 'W': hx('ffffff')}
-    grid(l, x, y, HEART, pal)
-    if half:
-        for j in range(6):
-            for i in range(4, 7):
-                px(l, x + i, y + j, (0, 0, 0, 0))
-
-
-# ── 인물 (오른쪽 보는 옆모습, 발바닥 = y)
-STEVE = dict(hair=hx('4a2f1e'), skin=hx('c89a72'), eye=hx('3a2a6a'), shirt=hx('16a5a5'), pants=hx('3a3aa0'), shoe=hx('5a5a5a'))
-ZOMBIE = dict(hair=hx('3c6a28'), skin=hx('5f9a40'), eye=hx('101010'), shirt=hx('2a8a8a'), pants=hx('42328a'), shoe=hx('3a3a3a'))
-
-
-def figure(l, x, y, pose='stand', p=STEVE, flip=False):
-    """x = 몸 왼쪽, y = 발 아래. 크기 약 8x22"""
-    f = layer()
-    bx, by = 20, 40      # 임시 위치에 그린 뒤 옮김
-    hd, sk = p['hair'], p['skin']
-
-    def head(hx0, hy0):
-        rect(f, hx0, hy0, hx0 + 5, hy0 + 5, sk)
-        rect(f, hx0, hy0, hx0 + 5, hy0 + 1, hd)
-        rect(f, hx0, hy0, hx0 + 1, hy0 + 3, hd)
-        px(f, hx0 + 4, hy0 + 3, p['eye'])
-
-    if pose == 'lie':     # 누운 자세 (머리 왼쪽)
-        head(bx - 6, by - 6)
-        rect(f, bx, by - 5, bx + 7, by - 1, p['shirt'])
-        rect(f, bx + 8, by - 5, bx + 15, by - 1, p['pants'])
-        rect(f, bx + 16, by - 5, bx + 17, by - 1, p['shoe'])
-    else:
-        lean = 2 if pose in ('dash', 'punch', 'kick') else 0
-        head(bx + lean, by - 22)
-        rect(f, bx + 1 + lean // 2, by - 16, bx + 4 + lean // 2, by - 8, p['shirt'])
-        # 다리
-        if pose in ('dash', 'run'):
-            line(f, bx + 2, by - 8, bx - 2, by - 1, p['pants']); line(f, bx + 3, by - 8, bx - 1, by - 1, p['pants'])
-            line(f, bx + 3, by - 8, bx + 7, by - 2, p['pants']); line(f, bx + 4, by - 8, bx + 8, by - 2, p['pants'])
-            rect(f, bx - 3, by - 1, bx - 1, by - 1, p['shoe']); rect(f, bx + 7, by - 2, bx + 9, by - 2, p['shoe'])
-        elif pose == 'kneel':
-            rect(f, bx + 1, by - 8, bx + 6, by - 6, p['pants']); rect(f, bx + 5, by - 6, bx + 6, by - 1, p['pants'])
-            rect(f, bx, by - 6, bx + 2, by - 1, p['pants'])
-        else:
-            rect(f, bx + 1, by - 8, bx + 2, by - 2, p['pants']); rect(f, bx + 3, by - 8, bx + 4, by - 2, p['pants'])
-            rect(f, bx + 1, by - 1, bx + 2, by - 1, p['shoe']); rect(f, bx + 3, by - 1, bx + 4, by - 1, p['shoe'])
-        # 팔
-        ax, ay = bx + 2 + lean // 2, by - 15
-        if pose in ('punch', 'zombie'):
-            rect(f, ax, ay, ax + 3, ay + 1, p['shirt']); rect(f, ax + 4, ay, ax + 7, ay + 1, sk)
-            if pose == 'zombie':
-                rect(f, ax, ay + 2, ax + 7, ay + 3, sk)
-        elif pose == 'sword_up':
-            rect(f, ax + 1, ay - 5, ax + 2, ay + 1, sk); rect(f, ax + 1, ay, ax + 2, ay + 1, p['shirt'])
-        elif pose == 'dash':
-            line(f, ax, ay, ax - 4, ay + 4, sk); line(f, ax + 1, ay, ax - 3, ay + 4, sk)
-        elif pose == 'shout':
-            rect(f, ax, ay, ax + 1, ay + 6, sk)
-        else:
-            rect(f, ax + 1, ay, ax + 2, ay + 2, p['shirt']); rect(f, ax + 1, ay + 3, ax + 2, ay + 6, sk)
-    if flip:
-        f = f.transpose(Image.FLIP_LEFT_RIGHT)
-        dx = x - (W - 1 - bx - 8)
-    else:
-        dx = x - bx
-    out = layer()
-    out.alpha_composite(f, (0, 0)) if False else None
-    out.paste(f, (dx, y - by), f)
-    l.alpha_composite(out)
-
-
-def sword(l, x0, y0, x1, y1, blade=hx('dfe6ee'), hilt=hx('6a4a2a')):
-    line(l, x0, y0, x1, y1, blade)
-    n = max(abs(x1 - x0), abs(y1 - y0))
-    ux, uy = (x1 - x0) / n, (y1 - y0) / n
-    gx, gy = x0 + ux * 3, y0 + uy * 3
-    line(l, gx - uy * 2, gy + ux * 2, gx + uy * 2, gy - ux * 2, hx('8a8a8a'))
-    line(l, x0, y0, x0 + ux * 2, y0 + uy * 2, hilt)
-
-
-def speed_lines(l, x0, x1, ys, c=hx('ffffff', 200)):
-    for y in ys:
-        a = random.randint(0, 6)
-        line(l, x0 + a, y, x1 - random.randint(0, 6), y, c)
-
-
-def smoke(l, cx, cy, n=8, r=6):
-    for _ in range(n):
-        x, y, s = cx + random.randint(-r, r), cy + random.randint(-r, r // 2), random.randint(1, 3)
-        rect(l, x, y, x + s, y + s, random.choice([hx('d0d0d0'), hx('a0a0a0'), hx('ffffff')]))
-
-
-def bg(group):
-    b = Image.open(f'{GUI}/art_{group}.png').convert('RGBA')
-    d = b.load()
-    for y in range(H):
+    def render(self, dry=0.07, specks=6):
+        small = self.im.filter(ImageFilter.GaussianBlur(K * 0.35)).resize((W, H), Image.BOX)
+        out = Image.new('RGBA', (W, H), PAPER)
+        # 종이: 가장자리로 갈수록 살짝 어둡게 + 결
+        for y in range(H):
+            for x in range(W):
+                dx, dy = (x - W / 2) / (W / 2), (y - H / 2) / (H / 2)
+                d = max(abs(dx) ** 4, abs(dy) ** 4) ** 0.25          # 네모난 비네트 (가장자리만 어둡게)
+                t = max(0.0, (d - 0.62) / 0.38) * 2                   # 0..2
+                b = BAYER[y % 4][x % 4] / 16
+                c = PAPER if t < b else (PAPER_M if t - 1 < b else PAPER_D)
+                out.putpixel((x, y), c)
+        s = small.load()
+        for y in range(H):
+            for x in range(W):
+                v = s[x, y] / 255
+                if v > 0.55:
+                    out.putpixel((x, y), GREY if random.random() < dry else INK)
+                elif v > 0.28:
+                    out.putpixel((x, y), GREY)
+        for _ in range(specks):   # 튄 먹 점
+            x, y = random.randrange(6, W - 6), random.randrange(4, H - 4)
+            if s[x, y] < 40:
+                out.putpixel((x, y), GREY if random.random() < 0.6 else INK)
+        # 그림 칸 안쪽 어두운 테 (흰 종이가 끼워진 느낌)
         for x in range(W):
-            r, g, bb, a = d[x, y]
-            k = 0.5 if y < GROUND else 0.62
-            d[x, y] = (int(r * k), int(g * k), int(bb * k), 255)
-    return b
+            out.putpixel((x, 0), PAPER_D); out.putpixel((x, H - 1), (190, 184, 172, 255))
+        for y in range(H):
+            out.putpixel((0, y), PAPER_D); out.putpixel((W - 1, y), (190, 184, 172, 255))
+        return out
 
 
-# ═════════ 카드별 장면 ═════════
+# ═════════ 상징 ═════════
 
-def hunter():
-    b = bg('combat')
-    l = layer(); figure(l, 16, GROUND, 'sword_up'); sword(l, 19, 20, 19, 6); comp(b, l)
-    z = layer(); figure(z, 52, GROUND, 'zombie', ZOMBIE, flip=True)
-    zp = z.load()
-    for y in range(H):            # 아래부터 사라지는 좀비 (위쪽만 남기고 점점 흩어짐)
-        for x in range(W):
-            if zp[x, y][3] and (y > 30 or random.random() < (y - 16) / 30):
-                zp[x, y] = (0, 0, 0, 0)
-    comp(b, z, 0.85)
-    s = layer(); smoke(s, 58, 30, 14, 7); comp(b, s, 0.9, ol=False)
-    h = layer(); heart(h, 30, 6); heart(h, 38, 2); text(h, 46, 4, '+', hx('55ff55')); comp(b, h)
-    return b
+def hunter(p):           # 할퀸 자국 세 줄 + 핏방울
+    for k in (-0.45, 0, 0.45):
+        pts = p.curve(lambda t: (0.55 + k - t * 1.15 + 0.12 * math.sin(t * 3), -0.95 + t * 1.85), 0, 1, 14)
+        p.taper(pts, 0.2)
+    for x, y, r in ((-0.55, 0.75, 0.05), (-0.25, 0.88, 0.035), (0.75, -0.75, 0.03)):
+        p.dot(x, y, r)
 
 
-def rhythm():
-    b = bg('combat')
-    l = layer(); figure(l, 10, GROUND, 'punch'); comp(b, l)
-    z = layer(); figure(z, 26, GROUND, 'stand', ZOMBIE, flip=True); comp(b, z, 0.9)
-    s = layer(); grid(s, 23, 22, SPARK, {'W': hx('ffffff')}); comp(b, s, ol=False)
-    t = layer(); x = text(t, 40, 6, '5', hx('ffdd33'), 3); comp(b, t)
-    for i, (nx, ny) in enumerate(((52, 4), (60, 10), (48, 18))):
-        n = layer(); grid(n, nx, ny, NOTE, {'K': hx('ffffff')}); comp(b, n)
-    bo = layer(); grid(bo, 66, 22, BOLT, {'Y': hx('ffe040')}); grid(bo, 71, 26, BOLT, {'Y': hx('ffe040')})
-    text(bo, 64, 32, '+', hx('55ff55')); comp(b, bo)
-    return b
+def rhythm(p):           # 이어진 음표 둘 + 울림
+    p.ellipse(-0.45, 0.55, 0.2, 0.13, 0.05, rot=-0.4)
+    p.ellipse(0.3, 0.35, 0.2, 0.13, 0.05, rot=-0.4)
+    p.dot(-0.45, 0.55, 0.12); p.dot(0.3, 0.35, 0.12)
+    p.stroke([(-0.28, 0.5), (-0.28, -0.6)], 0.06)
+    p.stroke([(0.47, 0.3), (0.47, -0.8)], 0.06)
+    p.stroke([(-0.28, -0.6), (0.47, -0.8)], 0.16, 0.14)
+    p.stroke([(-0.28, -0.38), (0.47, -0.58)], 0.09, 0.08)
+    for r in (0.25, 0.4):
+        p.ellipse(0.85, -0.1, r * 0.6, r, 0.035, a0=-60, a1=60)
+        p.ellipse(-0.95, 0.0, r * 0.6, r, 0.035, a0=120, a1=240)
 
 
-def heavy_finish():
-    b = bg('combat')
-    l = layer(); figure(l, 6, GROUND, 'punch'); comp(b, l)
-    s = layer(); grid(s, 18, 21, SPARK, {'W': hx('ffe080')}); comp(b, s, ol=False)
-    sp = layer(); speed_lines(sp, 22, 60, [14, 18, 22, 26, 30], hx('ffffff', 170)); comp(b, sp, ol=False)
-    z = layer(); figure(z, 30, GROUND + 4, 'stand', ZOMBIE, flip=True)
-    z = z.rotate(-35, resample=Image.NEAREST, center=(36, 30))
-    sh = layer(); sh.paste(z, (34, -12), z); comp(b, sh)
-    a = layer(); line(a, 22, 46, 76, 46, hx('ffffff')); grid(a, 74, 44, ["X..", "XX.", "XXX", "XX.", "X.."], {'X': hx('ffffff')})
-    comp(b, a)
-    return b
+def heavy_finish(p):     # 쥔 주먹 + 충격선
+    p.outline([(-0.75, -0.45), (0.25, -0.62), (0.45, -0.45), (0.5, 0.25), (0.25, 0.48), (-0.55, 0.48), (-0.8, 0.2)], 0.07)
+    for y in (-0.2, 0.05, 0.28):
+        p.stroke([(-0.05, y - 0.08), (0.42, y - 0.04)], 0.045)
+    p.stroke([(-0.75, -0.1), (-0.35, -0.2), (-0.1, -0.05), (-0.25, 0.2)], 0.06)   # 엄지
+    p.stroke([(-0.8, 0.2), (-1.0, 0.75)], 0.07); p.stroke([(-0.55, 0.48), (-0.6, 0.85)], 0.07)   # 손목
+    for a in (-0.5, -0.15, 0.2, 0.55):
+        p.taper([(0.7 + math.cos(a) * 0.05, math.sin(a) * 0.5), (1.15 + math.cos(a) * 0.3, math.sin(a) * 0.9)], 0.08)
 
 
-def sharp_switch():
-    b = bg('combat')
-    l = layer()
-    sword(l, 22, 44, 50, 8, hx('dfe6ee'))
-    sword(l, 62, 44, 34, 8, hx('6ff0e0'))
-    comp(b, l)
-    r = layer()
-    for i in range(28):           # 둥근 화살표 (스위치)
-        a = math.pi * 2 * i / 36 - math.pi * 0.9
-        px(r, 42 + math.cos(a) * 18, 26 + math.sin(a) * 14, hx('ffdd33'))
-    grid(r, 56, 32, ["XXX", ".XX", "..X"], {'X': hx('ffdd33')})
-    comp(b, r)
-    t = layer(); text(t, 64, 4, 'x3' if False else 'x', hx('ffffff'), 2); text(t, 72, 4, '3', hx('ffdd33'), 2); comp(b, t)
-    return b
+def sharp_switch(p):     # 엇갈린 칼 두 자루 + 돌아가는 화살표
+    for sgn in (-1, 1):
+        a = sgn * 0.75
+        c, s = math.cos(a), math.sin(a)
+        R = lambda x, y: (x * c - y * s, x * s + y * c)
+        p.outline([R(-0.06, 0.5), R(-0.06, -0.85), R(0, -1.05), R(0.06, -0.85), R(0.06, 0.5)], 0.04)
+        p.stroke([R(-0.25, 0.5), R(0.25, 0.5)], 0.07)
+        p.stroke([R(0, 0.55), R(0, 0.85)], 0.08)
+        p.dot(*R(0, 0.92), 0.06)
+    p.ellipse(0, 0, 0.95, 0.75, 0.04, a0=200, a1=330)
+    p.ellipse(0, 0, 0.95, 0.75, 0.04, a0=20, a1=150)
+    for (x, y), d in (((0.5, -0.65), 1), ((-0.5, 0.65), -1)):
+        p.stroke([(x, y), (x - 0.18 * d, y - 0.1 * d)], 0.05); p.stroke([(x, y), (x - 0.12 * d, y + 0.12 * d)], 0.05)
 
 
-def provoker():
-    b = bg('combat')
-    l = layer(); figure(l, 8, GROUND, 'shout'); comp(b, l)
-    s = layer()
-    for i, (dx, dy) in enumerate(((0, -3), (2, 0), (0, 3))):
-        line(s, 18, 19 + dy * 2, 24, 17 + dy * 3, hx('ffffff'))
-    comp(b, s, ol=False)
-    z = layer(); figure(z, 54, GROUND, 'stand', ZOMBIE, flip=True); comp(b, z)
-    sh = layer()                  # 방패 (금 간)
-    grid(sh, 44, 18, ["WWWWWWW", "WBBBBBW", "WBBBBBW", "WBBBBBW", "WBBBBBW", ".WBBBW.", "..WBW..", "...W..."],
-         {'W': hx('8a6a3a'), 'B': hx('b08a50')})
-    comp(b, sh)
-    c = layer(); line(c, 46, 18, 48, 21, hx('101010')); line(c, 48, 21, 46, 23, hx('101010')); line(c, 46, 23, 49, 26, hx('101010'))
-    comp(b, c, ol=False)
-    st = layer(); grid(st, 38, 14, SPARK, {'W': hx('ffe060')}); comp(b, st, ol=False)
-    t = layer(); text(t, 30, 3, '+', hx('ff5555'), 2); text(t, 38, 3, '3', hx('ff5555'), 2); text(t, 46, 3, '0', hx('ff5555'), 2); text(t, 54, 3, '%', hx('ff5555'), 2)
-    comp(b, t)
-    return b
+def provoker(p):         # 금 간 방패 + 충격
+    right = [(0.62, -0.78), (0.64, -0.2)] + p.curve(lambda t: (0.64 * (1 - t ** 1.6), -0.2 + t * 1.15), 0, 1, 10)[1:]
+    left = [(-x, y) for x, y in reversed(right)]
+    p.outline([(-0.62, -0.78), (0.62, -0.78)] + right[1:] + left[1:-1], 0.07)
+    p.stroke([(0.1, -0.78), (-0.06, -0.45), (0.14, -0.15), (-0.08, 0.2), (0.04, 0.5)], 0.05)
+    for a in (-2.5, -1.57, -0.65):
+        p.taper([(math.cos(a) * 0.95, -0.15 + math.sin(a) * 0.85), (math.cos(a) * 1.2, -0.15 + math.sin(a) * 1.05)], 0.07)
 
 
-def breath():
-    b = bg('survival')
-    l = layer(); figure(l, 36, GROUND, 'stand'); comp(b, l)
-    w = layer()
-    for cx, cy, r in ((26, 26, 5), (54, 22, 5), (30, 12, 4)):
-        for i in range(20):
-            a = math.pi * 2 * i / 26
-            px(w, cx + math.cos(a) * r, cy + math.sin(a) * r * 0.6, hx('e8f8ff', 200))
-        line(w, cx - r - 6, cy, cx - r, cy, hx('e8f8ff', 200))
-    comp(b, w, ol=False)
-    h = layer(); heart(h, 52, 6); text(h, 62, 6, '+', hx('55ff55')); heart(h, 20, 2); comp(b, h)
-    return b
+def breath(p):           # 소용돌이 바람
+    pts = p.curve(lambda t: (math.cos(t) * (0.08 + t * 0.07), math.sin(t) * (0.08 + t * 0.07) - 0.05), 0, 4.2 * math.pi, 60)
+    p.stroke(pts, 0.06)
+    for y, x0, x1 in ((-0.55, -1.1, -0.2), (0.15, 0.55, 1.15), (0.65, -0.9, -0.1)):
+        pts = p.curve(lambda t: (x0 + (x1 - x0) * t, y + 0.08 * math.sin(t * 6)), 0, 1, 12)
+        p.taper(pts, 0.09)
 
 
-def thick_skin():
-    b = bg('survival')
-    h = layer()
-    for i in range(4):
-        heart(h, 6 + i * 9, 26)
-    comp(b, h)
-    g = layer(); heart(g, 42, 26, gold=True); comp(b, g)
-    gl = layer()
-    for x, y in ((40, 21), (50, 22), (47, 33), (39, 32)):
-        grid(gl, x, y, STAR4, {'W': hx('ffffff'), 'Y': hx('ffe060')})
-    comp(b, gl, ol=False)
-    t = layer(); text(t, 54, 25, '+', hx('55ff55'), 2); text(t, 62, 25, '8', hx('55ff55'), 2); text(t, 70, 25, '%', hx('55ff55'), 2)
-    comp(b, t)
-    return b
+def thick_skin(p):       # 거북 등딱지
+    p.ellipse(0, 0, 1.0, 0.82, 0.08)
+    hexa = [(math.cos(a) * 0.32, math.sin(a) * 0.27) for a in [i * math.pi / 3 + math.pi / 6 for i in range(6)]]
+    p.outline(hexa, 0.06)
+    for (x, y) in hexa:
+        p.stroke([(x, y), (x * 2.85, y * 2.85)], 0.055)
+    p.ellipse(0, 0, 0.68, 0.56, 0.035, a0=0, a1=360)
 
 
-def leftover():
-    b = bg('survival')
-    for k, a in ((0, 0.25), (6, 0.5)):
-        l = layer(); figure(l, 6 + k, GROUND, 'dash'); comp(b, l, a, ol=False)
-    l = layer(); figure(l, 18, GROUND, 'dash'); comp(b, l)
-    hg = layer()
-    grid(hg, 50, 8, ["WWWWWWWWW", ".G.....G.", ".GSSSSSG.", "..GSSSG..", "...GSG...", "....G....", "...G.G...", "..G...G..",
-                     ".G..S..G.", ".G.SSS.G.", "WWWWWWWWW"], {'W': hx('8a6a3a'), 'G': hx('cfe8f0'), 'S': hx('e0c070')})
-    comp(b, hg)
-    t = layer(); x = text(t, 44, 26, '3', hx('aaaaaa'), 2); x = text(t, x, 26, '0', hx('aaaaaa'), 2)
-    line(t, x, 30, x + 5, 30, hx('ffffff')); px(t, x + 4, 29, hx('ffffff')); px(t, x + 4, 31, hx('ffffff'))
-    x = text(t, x + 8, 26, '2', hx('55ff55'), 2); text(t, x, 26, '2', hx('55ff55'), 2)
-    comp(b, t)
-    return b
+def leftover(p):         # 모래시계
+    p.stroke([(-0.55, -0.95), (0.55, -0.95)], 0.1)
+    p.stroke([(-0.55, 0.95), (0.55, 0.95)], 0.1)
+    for s in (-1, 1):
+        p.stroke(p.curve(lambda t: (s * (0.42 - 0.36 * math.sin(t * math.pi / 2)), -0.88 + t * 0.88), 0, 1, 10), 0.05)
+        p.stroke(p.curve(lambda t: (s * (0.06 + 0.36 * math.sin(t * math.pi / 2)), t * 0.88), 0, 1, 10), 0.05)
+        p.stroke([(s * 0.62, -0.95), (s * 0.62, 0.95)], 0.05)
+    p.poly([(-0.3, -0.4), (0.3, -0.4), (0.05, -0.08), (-0.05, -0.08)])
+    p.poly([(-0.36, 0.86), (0.36, 0.86), (0.15, 0.6), (-0.15, 0.6)])
+    p.stroke([(0, -0.05), (0, 0.55)], 0.025)
 
 
-def tumbler():
-    b = bg('survival')
-    d = layer(); figure(d, 18, GROUND, 'lie'); comp(b, d, 0.3, ol=False)
-    l = layer(); figure(l, 40, GROUND, 'stand'); comp(b, l)
-    au = layer()
-    for i in range(40):
-        a = math.pi * 2 * i / 40
-        px(au, 44 + math.cos(a) * 10, 28 + math.sin(a) * 14, hx('ffe060'))
-    comp(b, au, ol=False)
-    a = layer(); grid(a, 60, 12, ["..X..", ".XXX.", "XXXXX", "..X..", "..X..", "..X..", "..X.."], {'X': hx('55ff55')}); comp(b, a)
-    s = layer(); smoke(s, 30, 38, 8, 6); comp(b, s, 0.8, ol=False)
-    return b
+def tumbler(p):          # 오뚝이 + 흔들림
+    p.ellipse(0, 0.35, 0.55, 0.52, 0.07)
+    p.ellipse(0, -0.5, 0.32, 0.3, 0.065)
+    p.dot(-0.11, -0.53, 0.05); p.dot(0.11, -0.53, 0.05)
+    p.ellipse(0, -0.42, 0.1, 0.06, 0.035, a0=20, a1=160)
+    p.ellipse(0, 0.25, 0.32, 0.18, 0.04, a0=10, a1=170)
+    for s in (-1, 1):
+        p.ellipse(s * 0.2, 0.35, 0.95, 0.75, 0.04, a0=(70 if s > 0 else 95), a1=(85 if s > 0 else 110))
+        p.taper(p.curve(lambda t: (s * (0.75 + t * 0.15), 0.1 + t * 0.6), 0, 1, 6), 0.06)
 
 
-def shadow_step():
-    b = bg('survival')
-    for k, a in ((0, 0.15), (8, 0.3), (16, 0.45)):
-        l = layer(); figure(l, 8 + k, GROUND, 'dash'); comp(b, l, a, ol=False)
-    l = layer(); figure(l, 34, GROUND, 'dash')
-    comp(b, l, 0.6)
-    sp = layer(); speed_lines(sp, 4, 30, [22, 28, 34], hx('ffffff', 140)); comp(b, sp, ol=False)
-    for x, y in ((56, 10), (64, 18), (60, 30)):
-        s = layer(); grid(s, x, y, STAR4, {'W': hx('d0b0ff'), 'Y': hx('ffffff')}); comp(b, s, ol=False)
-    return b
-
-
-def once_more():
-    b = bg('survival')
-    h = layer()
-    big = ["..RRR...RRR..", ".RWWRR.RRRRR.", "RRWRRRRRRRRRR", "RRRRRRRRRRRRR", "RRRRRRRRRRRRR", ".RRRRRRRRRRR.",
-           "..RRRRRRRRR..", "...RRRRRRR...", "....RRRRR....", ".....RRR.....", "......R......"]
-    grid(h, 20, 14, [r.replace('R', 'R') for r in big], {'R': hx('e0202a'), 'W': hx('ffffff')})
-    h = h.resize((W * 2, H * 2), Image.NEAREST).crop((20, 14, 20 + W, 14 + H))
-    comp(b, h)
-    c = layer(); line(c, 33, 15, 30, 21, hx('101010')); line(c, 30, 21, 35, 27, hx('101010')); line(c, 35, 27, 32, 33, hx('101010'))
-    comp(b, c, ol=False)
-    g = layer()
-    for x, y in ((14, 10), (52, 8), (50, 30), (16, 32), (34, 4)):
-        grid(g, x, y, STAR4, {'W': hx('ffe060'), 'Y': hx('ffffff')})
-    comp(b, g, ol=False)
-    t = layer(); text(t, 62, 18, '1', hx('ffdd33'), 3); comp(b, t)
-    return b
-
-
-def lumberjack():
-    b = bg('life')
-    lg = layer()
-    for y in range(18, 40):
-        for x in range(30, 46):
-            c = hx('6b5030') if (x - 30) % 4 else hx('4f3a22')
-            px(lg, x, y, c)
-    rect(lg, 30, 18, 45, 19, hx('b0884e'))
-    comp(b, lg)
-    l = layer(); figure(l, 10, GROUND, 'punch'); comp(b, l)
-    ax = layer()
-    line(ax, 18, 28, 28, 18, hx('6a4a2a'))
-    grid(ax, 25, 13, [".XXX", "XXXX", "XXX.", "XX.."], {'X': hx('cfd6de')})
-    comp(b, ax)
-    ch = layer()
-    for x, y in ((48, 14), (52, 20), (47, 24)):
-        rect(ch, x, y, x + 1, y + 1, hx('b0884e'))
-    comp(b, ch, ol=False)
-    o = layer(); grid(o, 58, 8, ORB, {'G': hx('7ad83a'), 'L': hx('e0ff80')}); grid(o, 64, 14, ORB, {'G': hx('7ad83a'), 'L': hx('e0ff80')})
-    comp(b, o)
-    t = layer(); text(t, 60, 24, 'x', hx('ffffff'), 2); text(t, 68, 24, '2', hx('55ff55'), 2); comp(b, t)
-    return b
-
-
-def self_taught():
-    b = bg('life')
-    bk = layer()
-    grid(bk, 14, 22, ["PPPPPPPPPP.PPPPPPPPPP", "PLLLLLLLPP.PPLLLLLLLP", "PPPPPPPPPP.PPPPPPPPPP", "PLLLLLLPPP.PPPLLLLLLP",
-                      "PPPPPPPPPP.PPPPPPPPPP", "PLLLLLLLPP.PPLLLLLLP.", "PPPPPPPPPPBPPPPPPPPPP", "BBBBBBBBBBBBBBBBBBBBB"],
-         {'P': hx('f0e6c8'), 'L': hx('8a7a60'), 'B': hx('7a3a22')})
-    rect(bk, 22, 30, 26, 39, hx('6a4a2a'))
-    comp(b, bk)
-    g = layer()
-    for x, y in ((18, 12), (26, 6), (34, 14), (40, 8), (22, 2)):
-        grid(g, x, y, ["X.X", ".X.", "X.X"] if (x // 2) % 2 else [".X.", "XXX", ".X."], {'X': hx('c080ff')})
-    comp(b, g, ol=False)
-    t = layer(); x = text(t, 50, 24, '+', hx('55ffff'), 2); x = text(t, x, 24, '5', hx('55ffff'), 2); x = text(t, x, 24, '0', hx('55ffff'), 2)
-    text(t, x, 24, '%', hx('55ffff'), 2)
-    comp(b, t)
-    return b
-
-
-def i_am_ahead():
-    b = bg('combat')
-    l = layer(); figure(l, 8, GROUND, 'sword_up'); sword(l, 11, 20, 11, 6); comp(b, l)
-    s = layer()
+def shadow_step(p):      # 발자국 셋 (뒤로 갈수록 흐려짐)
+    def foot(x, y, a, v):
+        c, s_ = math.cos(a), math.sin(a)
+        R = lambda px, py: (x + px * c - py * s_, y + px * s_ + py * c)
+        p.outline([R(math.cos(t) * 0.17, math.sin(t) * 0.3 + 0.08) for t in [i * math.pi / 10 for i in range(20)]], 0.05, v=v)
+        p.stroke([R(-0.08, 0.15), R(0.08, 0.15)], 0.03, v=v)
+        for tx, tr in ((-0.12, 0.05), (-0.03, 0.055), (0.06, 0.05), (0.14, 0.04)):
+            X, Y = R(tx, -0.32 + abs(tx) * 0.45)
+            p.dot(X, Y, tr, v)
+    foot(-0.85, 0.42, -0.35, 120)
+    foot(-0.25, -0.02, -0.15, 185)
+    foot(0.35, -0.45, 0.1, 255)
     for k in range(3):
-        line(s, 22 + k * 4, 36, 34 + k * 4, 14, hx('ffffff', 210))
-    comp(b, s, ol=False)
-    t = layer(); x = text(t, 42, 16, '1', hx('ffdd33'), 4); text(t, x, 16, '5', hx('ffdd33'), 4); comp(b, t)
-    cr = layer(); grid(cr, 50, 4, ["X..X..X", "XX.X.XX", "XXXXXXX", "XRXGXRX", "XXXXXXX"], {'X': hx('ffd030'), 'R': hx('e02020'), 'G': hx('30c0ff')})
-    comp(b, cr)
-    return b
+        p.taper([(0.7, -0.15 + k * 0.25), (1.15, -0.2 + k * 0.25)], 0.06)
+
+
+def once_more(p):        # 금 간 하트를 꿰맨 자국
+    pts = []
+    for t in [i * 2 * math.pi / 60 for i in range(61)]:
+        x = 16 * math.sin(t) ** 3
+        y = -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+        pts.append((x / 17 * 1.05, y / 17 * 1.05 + 0.05))
+    p.stroke(pts, 0.08)
+    crack = [(0.05, -0.55), (-0.12, -0.25), (0.1, 0.0), (-0.1, 0.3), (0.02, 0.62)]
+    p.stroke(crack, 0.05)
+    for (x, y) in ((-0.02, -0.4), (0.0, -0.12), (0.0, 0.15), (-0.04, 0.45)):
+        p.stroke([(x - 0.16, y - 0.05), (x + 0.16, y + 0.05)], 0.035)
+
+
+def lumberjack(p):       # 그루터기에 박힌 도끼
+    p.ellipse(0, 0.4, 0.8, 0.26, 0.06)
+    p.ellipse(0, 0.4, 0.48, 0.15, 0.035)
+    p.ellipse(0, 0.4, 0.2, 0.06, 0.03)
+    p.stroke([(-0.8, 0.4), (-0.84, 0.9)], 0.06); p.stroke([(0.8, 0.4), (0.84, 0.9)], 0.06)
+    p.stroke(p.curve(lambda t: (-0.84 + 1.68 * t, 0.9 + 0.08 * math.sin(t * math.pi)), 0, 1, 10), 0.06)
+    p.stroke([(0.05, 0.25), (0.75, -0.95)], 0.09)                     # 자루
+    head = [(0.1, 0.28), (-0.55, 0.05), (-0.62, -0.42), (-0.3, -0.3), (0.28, -0.05)]
+    p.poly(head, 255)
+    p.poly([(x * 0.7 + 0.02, y * 0.7 - 0.02) for x, y in head], 120)
+    for x, y in ((-0.85, -0.55), (-0.95, -0.2), (-0.6, -0.75)):
+        p.stroke([(x, y), (x - 0.1, y - 0.07)], 0.05)
+
+
+def self_taught(p):      # 펼친 책 + 빛
+    for s in (-1, 1):
+        p.outline([(0, -0.25), (s * 0.95, -0.4), (s * 0.95, 0.55), (0, 0.7)], 0.06, closed=False)
+        p.stroke([(0, 0.7), (0, -0.25)], 0.05)
+        for k in range(4):
+            y = -0.15 + k * 0.18
+            p.stroke([(s * 0.18, y + 0.02), (s * 0.78, y - 0.08)], 0.035)
+        p.stroke(p.curve(lambda t: (s * 0.95 * t, 0.62 + 0.12 * math.sin(t * math.pi) + 0.1), 0, 1, 8), 0.04)
+    for a in (-2.3, -1.9, -1.57, -1.25, -0.85):
+        p.taper([(math.cos(a) * 0.45, -0.3 + math.sin(a) * 0.25), (math.cos(a) * 0.8, -0.3 + math.sin(a) * 0.6)], 0.06)
+
+
+def i_am_ahead(p):       # 왕관
+    p.outline([(-0.8, 0.55), (0.8, 0.55), (0.8, 0.2), (-0.8, 0.2)], 0.07)
+    p.stroke([(-0.8, 0.2), (-0.95, -0.55), (-0.45, -0.05), (0, -0.75), (0.45, -0.05), (0.95, -0.55), (0.8, 0.2)], 0.07)
+    for x, y in ((-0.95, -0.55), (0, -0.75), (0.95, -0.55)):
+        p.dot(x, y - 0.12, 0.09)
+    for x in (-0.45, 0, 0.45):
+        p.ellipse(x, 0.37, 0.08, 0.08, 0.035)
+    p.dot(0, 0.37, 0.05)
 
 
 ART = {
@@ -435,10 +280,12 @@ ART = {
 
 def main():
     os.makedirs(f'{GUI}/card', exist_ok=True)
-    sheet = Image.new('RGBA', (7 * 88, 2 * 56), (20, 20, 24, 255))
+    sheet = Image.new('RGBA', (7 * 88, 2 * 56), (40, 40, 46, 255))
     for i, (k, fn) in enumerate(ART.items()):
         random.seed(k)
-        im = fn()
+        p = Ink()
+        fn(p)
+        im = p.render()
         im.save(f'{GUI}/card/{k}.png')
         sheet.alpha_composite(im, ((i % 7) * 88 + 2, (i // 7) * 56 + 2))
     os.makedirs('/tmp/pv', exist_ok=True)
