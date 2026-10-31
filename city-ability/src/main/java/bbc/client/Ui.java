@@ -21,15 +21,20 @@ import java.util.List;
 final class Ui {
     private Ui() {}
 
-    // 바닐라 GUI 색
-    static final int BG = 0xFFC6C6C6, HL = 0xFFFFFFFF, SH = 0xFF555555, DARK = 0xFF373737, SLOT = 0xFF8B8B8B, BLACK = 0xFF000000,
-            TEXT = 0xFF404040, TEXT_DIM = 0xFF707070, GREEN = 0xFF80FF20, YELLOW = 0xFFFFFF55, GOLD = 0xFFFFAA00, AQUA = 0xFF55FFFF,
+    // 색: 어두운 심층암(딥슬레이트) 창 + 금색 포인트 (바닐라 창 모양은 그대로, 색만 어둡게)
+    static final int BG = 0xFF2E2E34, HL = 0xFF50505A, SH = 0xFF141418, BLACK = 0xFF000000,
+            SLOT = 0xFF1C1C21, SLOT_D = 0xFF0C0C0E, SLOT_L = 0xFF5A5A64, DARK = 0xFF141418,
+            TEXT = 0xFFE6E6E6, TEXT_DIM = 0xFF9A9AA4, TITLE = 0xFFF0C850, GOLD_D = 0xFF8C6A1E,
+            GREEN = 0xFF80FF20, LIME = 0xFF55FF55, YELLOW = 0xFFFFFF55, GOLD = 0xFFFFAA00, AQUA = 0xFF55FFFF,
             RED = 0xFFFF5555, WHITE = 0xFFFFFFFF, GRAY = 0xFFAAAAAA;
 
     // ═════════ 바닐라 모양 ═════════
 
-    /** 보관함 창 같은 회색 상자: 검은 외곽(모서리 깎음) + 위왼쪽 흰 줄 + 아래오른쪽 어두운 줄 */
-    static void panel(DrawContext ctx, int x, int y, int w, int h) {
+    /** 보관함 창 모양 상자: 검은 외곽(모서리 깎음) + 위왼쪽 밝은 줄 + 아래오른쪽 어두운 줄 */
+    static void panel(DrawContext ctx, int x, int y, int w, int h) { box(ctx, x, y, w, h, HL, BG, SH, 2); }
+
+    /** 같은 모양, 색 지정 (bevel = 밝은/어두운 줄 두께) */
+    static void box(DrawContext ctx, int x, int y, int w, int h, int hl, int bg, int sh, int bevel) {
         ctx.fill(x + 2, y, x + w - 2, y + 1, BLACK);
         ctx.fill(x + 2, y + h - 1, x + w - 2, y + h, BLACK);
         ctx.fill(x, y + 2, x + 1, y + h - 2, BLACK);
@@ -38,29 +43,55 @@ final class Ui {
         ctx.fill(x + w - 2, y + 1, x + w - 1, y + 2, BLACK);
         ctx.fill(x + 1, y + h - 2, x + 2, y + h - 1, BLACK);
         ctx.fill(x + w - 2, y + h - 2, x + w - 1, y + h - 1, BLACK);
-        ctx.fill(x + 1, y + 2, x + w - 1, y + h - 2, BG);
-        ctx.fill(x + 2, y + 1, x + w - 2, y + h - 1, BG);
-        ctx.fill(x + 2, y + 1, x + w - 3, y + 3, HL);
-        ctx.fill(x + 1, y + 2, x + 3, y + h - 3, HL);
-        ctx.fill(x + 3, y + h - 3, x + w - 2, y + h - 1, SH);
-        ctx.fill(x + w - 3, y + 3, x + w - 1, y + h - 2, SH);
+        ctx.fill(x + 1, y + 2, x + w - 1, y + h - 2, bg);
+        ctx.fill(x + 2, y + 1, x + w - 2, y + h - 1, bg);
+        ctx.fill(x + 2, y + 1, x + w - 3, y + 1 + bevel, hl);
+        ctx.fill(x + 1, y + 2, x + 1 + bevel, y + h - 3, hl);
+        ctx.fill(x + 3, y + h - 1 - bevel, x + w - 2, y + h - 1, sh);
+        ctx.fill(x + w - 1 - bevel, y + 3, x + w - 1, y + h - 2, sh);
     }
 
-    /** 움푹한 칸 (슬롯): 위왼쪽 어둡게, 아래오른쪽 희게 */
+    /** 움푹한 칸 (슬롯): 위왼쪽 어둡게, 아래오른쪽 밝게 */
     static void inset(DrawContext ctx, int x, int y, int w, int h, int fill) {
         ctx.fill(x, y, x + w, y + h, fill);
-        ctx.fill(x, y, x + w - 1, y + 1, DARK);
-        ctx.fill(x, y, x + 1, y + h - 1, DARK);
-        ctx.fill(x + 1, y + h - 1, x + w, y + h, HL);
-        ctx.fill(x + w - 1, y + 1, x + w, y + h, HL);
+        ctx.fill(x, y, x + w - 1, y + 1, SLOT_D);
+        ctx.fill(x, y, x + 1, y + h - 1, SLOT_D);
+        ctx.fill(x + 1, y + h - 1, x + w, y + h, SLOT_L);
+        ctx.fill(x + w - 1, y + 1, x + w, y + h, SLOT_L);
     }
 
     static void slot(DrawContext ctx, int x, int y) { inset(ctx, x, y, 18, 18, SLOT); }
 
-    /** 새긴 가로줄 (회색 바탕 위) */
+    /** 새긴 가로줄 */
     static void groove(DrawContext ctx, int x, int y, int w) {
-        ctx.fill(x, y, x + w, y + 1, SLOT);
+        ctx.fill(x, y, x + w, y + 1, SH);
         ctx.fill(x, y + 1, x + w, y + 2, HL);
+    }
+
+    /** 금색 구분선: 가운데 마름모 픽셀 + 양끝 점 */
+    static void goldLine(DrawContext ctx, int x, int y, int w, int col) {
+        int cx = x + w / 2;
+        ctx.fill(x + 3, y, cx - 4, y + 1, col);
+        ctx.fill(cx + 5, y, x + w - 3, y + 1, col);
+        ctx.fill(cx, y - 2, cx + 1, y + 3, col);
+        ctx.fill(cx - 2, y, cx + 3, y + 1, col);
+        ctx.fill(cx - 1, y - 1, cx + 2, y + 2, col);
+        ctx.fill(x, y, x + 1, y + 1, col);
+        ctx.fill(x + w - 1, y, x + w, y + 1, col);
+    }
+
+    /** 창 제목줄: 어두운 띠 + 금색 글자 */
+    static void titleBar(DrawContext ctx, TextRenderer tr, int x, int y, int w, String title) {
+        ctx.fill(x, y, x + w, y + 12, 0xFF1E1E23);
+        ctx.fill(x, y + 12, x + w, y + 13, GOLD_D);
+        ctx.drawText(tr, title, x + 4, y + 2, TITLE, true);
+    }
+
+    /** 왼쪽 탭 (창과 같은 색, 고른 탭은 창에 붙어 보이게) */
+    static void sideTab(DrawContext ctx, boolean selected, int x, int y) {
+        int w = selected ? 34 : 30;
+        box(ctx, x, y, w, 26, HL, selected ? BG : 0xFF222227, SH, 1);
+        if (selected) ctx.fill(x + w - 3, y + 1, x + w + 1, y + 25, BG);   // 창 테두리와 이어지게
     }
 
     private static Identifier mc(String sprite) { return Identifier.ofVanilla(sprite); }
@@ -98,12 +129,6 @@ final class Ui {
         ctx.drawGuiTexture(mc("boss_bar/" + color + "_background"), x, y, 182, 5);
         int fw = (int) (182 * Math.max(0, Math.min(1, frac)));
         if (fw > 0) ctx.drawGuiTexture(mc("boss_bar/" + color + "_progress"), 182, 5, 0, 0, x, y, fw, 5);
-    }
-
-    /** 레시피 책 탭 (왼쪽 탭, 35x27) */
-    static void tab(DrawContext ctx, boolean selected, int x, int y) {
-        RenderSystem.enableBlend();
-        ctx.drawGuiTexture(mc(selected ? "recipe_book/tab_selected" : "recipe_book/tab"), x, y, 35, 27);
     }
 
     /** 경험치 레벨 숫자처럼: 검은 테두리 + 색 글자 (scale 은 정수 권장) */
@@ -178,11 +203,15 @@ final class Ui {
 
     /** 줄바꿈해서 가운데 정렬, 그린 줄 수를 돌려줌 */
     static int wrapCentered(DrawContext ctx, TextRenderer tr, String s, int cx, int y, int width, int col, int maxLines) {
+        return wrapCentered(ctx, tr, s, cx, y, width, col, maxLines, false);
+    }
+
+    static int wrapCentered(DrawContext ctx, TextRenderer tr, String s, int cx, int y, int width, int col, int maxLines, boolean shadow) {
         List<OrderedText> lines = tr.wrapLines(StringVisitable.plain(s), width);
         int n = Math.min(maxLines, lines.size());
         for (int i = 0; i < n; i++) {
             OrderedText l = lines.get(i);
-            ctx.drawText(tr, l, cx - tr.getWidth(l) / 2, y + i * 9, col, false);
+            ctx.drawText(tr, l, cx - tr.getWidth(l) / 2, y + i * 10, col, shadow);
         }
         return n;
     }

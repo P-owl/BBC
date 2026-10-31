@@ -82,7 +82,7 @@ def art(kind):
 def card_back():
     W, H = 100, 136
     im = Image.new('RGBA', (W, H))
-    blk, hl, base, sh = hx('000000'), hx('a0a0a0'), hx('555555'), hx('2b2b2b')
+    blk, hl, base, sh = hx('000000'), hx('6a6a74'), hx('3a3a42'), hx('18181c')
     # 바닐라식 테두리: 검은 외곽(모서리 깎음) → 밝은 위왼쪽/어두운 아래오른쪽 → 바탕색 고리
     for x in range(1, W - 1):
         im.putpixel((x, 0), blk); im.putpixel((x, H - 1), blk)
@@ -99,8 +99,8 @@ def card_back():
         im.putpixel((x, H - 2), sh)
     for y in range(2, H - 1):
         im.putpixel((W - 2, y), sh)
-    # 안쪽: 보라 무늬 (마법부여대 느낌)
-    in0, in1, line, dot = hx('1e1430'), hx('261a3c'), hx('4a3478'), hx('7a5ab8')
+    # 안쪽: 어두운 심층암 + 금색 격자
+    in0, in1, line, dot = hx('1a1a1f'), hx('222228'), hx('5a4a1e'), hx('d9a62a')
     for x in range(4, W - 4):
         for y in range(4, H - 4):
             im.putpixel((x, y), in1 if (x + y) % 2 == 0 and random.random() < 0.3 else in0)
@@ -111,20 +111,18 @@ def card_back():
             if (x - 4) % 10 == 5 and (y - 4) % 10 == 0:
                 im.putpixel((x, y), dot)
     for x in range(3, W - 3):
-        im.putpixel((x, 3), hx('111111')); im.putpixel((x, H - 4), hx('6a6a6a'))
+        im.putpixel((x, 3), hx('0a0a0c')); im.putpixel((x, H - 4), hx('4a4a52'))
     for y in range(3, H - 3):
-        im.putpixel((3, y), hx('111111')); im.putpixel((W - 4, y), hx('6a6a6a'))
+        im.putpixel((3, y), hx('0a0a0c')); im.putpixel((W - 4, y), hx('4a4a52'))
     return im
 
 
 def main():
     # 예전 매끈한 텍스처 정리
-    if os.path.isdir(OUT):
-        for root, _, files in os.walk(OUT):
-            for f in files:
-                os.remove(os.path.join(root, f))
-        if os.path.isdir(OUT + '/art'):
-            os.rmdir(OUT + '/art')
+    if os.path.isdir(OUT + '/art'):   # 예전 매끈한 카드 그림 폴더
+        for f in os.listdir(OUT + '/art'):
+            os.remove(os.path.join(OUT + '/art', f))
+        os.rmdir(OUT + '/art')
     os.makedirs(OUT, exist_ok=True)
     for k in ('combat', 'survival', 'life', 'other'):
         art(k).save(f'{OUT}/art_{k}.png')

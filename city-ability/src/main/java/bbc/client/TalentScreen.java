@@ -243,38 +243,35 @@ public class TalentScreen extends Screen {
         Ui.item(ctx, new ItemStack(Items.ENDER_EYE), x + CW / 2 - 16, y + CH / 2 - 16, 2);
     }
 
-    /** 등급 테두리: 위왼쪽 밝게 · 아래오른쪽 어둡게 · 바탕색 한 줄 (바닐라 상자와 같은 깎은 모서리) */
+    /** 등급 색: {밝은, 바탕, 어두운, 글자} — 일반 = 철, 희귀 = 다이아몬드, 전설 = 금 */
+    static int[] rarityCols(int r) {
+        return switch (r) {
+            case 2 -> new int[]{0xFFFFFFA0, 0xFFFCDB43, 0xFF9C6A10, 0xFFFFD84A};
+            case 1 -> new int[]{0xFFC8FFF8, 0xFF4AEDD9, 0xFF1A7A72, 0xFF55FFFF};
+            default -> new int[]{0xFFF0F0F0, 0xFFB4B4B4, 0xFF5A5A5A, 0xFFE6E6E6};
+        };
+    }
+
+    static int groupCol(String g) {
+        return switch (g) { case "전투" -> 0xFFFF6A5A; case "생존" -> 0xFF6AE06A; case "생활" -> 0xFFF0C050; default -> 0xFFC080FF; };
+    }
+
+    /** 카드 틀: 바닐라 상자 모양, 등급 색 테두리 3줄 + 어두운 몸통 + 네 귀퉁이 리벳 */
     static void cardFrame(DrawContext ctx, int x, int y, int r) {
-        int hl = r == 2 ? 0xFFFFFFA0 : r == 1 ? 0xFFB5FFF6 : 0xFFFFFFFF;
-        int base = r == 2 ? 0xFFFCDB43 : r == 1 ? 0xFF4AEDD9 : Ui.BG;
-        int sh = r == 2 ? 0xFFA06A10 : r == 1 ? 0xFF1F8A80 : Ui.SH;
-        int w = CW, h = CH;
-        ctx.fill(x + 2, y, x + w - 2, y + 1, Ui.BLACK);
-        ctx.fill(x + 2, y + h - 1, x + w - 2, y + h, Ui.BLACK);
-        ctx.fill(x, y + 2, x + 1, y + h - 2, Ui.BLACK);
-        ctx.fill(x + w - 1, y + 2, x + w, y + h - 2, Ui.BLACK);
-        ctx.fill(x + 1, y + 1, x + 2, y + 2, Ui.BLACK); ctx.fill(x + w - 2, y + 1, x + w - 1, y + 2, Ui.BLACK);
-        ctx.fill(x + 1, y + h - 2, x + 2, y + h - 1, Ui.BLACK); ctx.fill(x + w - 2, y + h - 2, x + w - 1, y + h - 1, Ui.BLACK);
-        ctx.fill(x + 1, y + 2, x + w - 1, y + h - 2, base);
-        ctx.fill(x + 2, y + 1, x + w - 2, y + h - 1, base);
-        ctx.fill(x + 2, y + 1, x + w - 3, y + 2, hl);
-        ctx.fill(x + 1, y + 2, x + 2, y + h - 3, hl);
-        ctx.fill(x + 3, y + h - 2, x + w - 2, y + h - 1, sh);
-        ctx.fill(x + w - 2, y + 3, x + w - 1, y + h - 2, sh);
-        ctx.fill(x + 3, y + 3, x + w - 3, y + h - 3, Ui.BG);
-        if (r > 0) {   // 안쪽 한 줄: 회색 상자처럼 위왼쪽 흰색 · 아래오른쪽 어두운색
-            ctx.fill(x + 3, y + 3, x + w - 4, y + 4, Ui.HL);
-            ctx.fill(x + 3, y + 3, x + 4, y + h - 4, Ui.HL);
-            ctx.fill(x + 4, y + h - 4, x + w - 3, y + h - 3, Ui.SH);
-            ctx.fill(x + w - 4, y + 4, x + w - 3, y + h - 3, Ui.SH);
+        int[] c = rarityCols(r);
+        Ui.box(ctx, x, y, CW, CH, c[0], c[1], c[2], 1);
+        ctx.fill(x + 3, y + 3, x + CW - 3, y + CH - 3, c[2]);           // 안쪽 그림자 줄
+        ctx.fill(x + 4, y + 4, x + CW - 3, y + CH - 3, 0xFF26262C);       // 몸통
+        for (int[] p : new int[][]{{5, 5}, {CW - 7, 5}, {5, CH - 7}, {CW - 7, CH - 7}}) {
+            ctx.fill(x + p[0], y + p[1], x + p[0] + 2, y + p[1] + 2, c[1]);
+            ctx.fill(x + p[0], y + p[1], x + p[0] + 1, y + p[1] + 1, c[0]);
         }
         if (r == 2) {   // 전설: 테두리에 반짝이는 점
-            long tk = System.currentTimeMillis() / 120;
-            Random rnd = new Random(tk);
+            Random rnd = new Random(System.currentTimeMillis() / 120);
             for (int k = 0; k < 3; k++) {
                 boolean side = rnd.nextBoolean();
-                int px = side ? x + 1 + rnd.nextInt(w - 2) : (rnd.nextBoolean() ? x + 1 : x + w - 2);
-                int py = side ? (rnd.nextBoolean() ? y + 1 : y + h - 2) : y + 1 + rnd.nextInt(h - 2);
+                int px = side ? x + 1 + rnd.nextInt(CW - 2) : (rnd.nextBoolean() ? x + 1 : x + CW - 2);
+                int py = side ? (rnd.nextBoolean() ? y + 1 : y + CH - 2) : y + 1 + rnd.nextInt(CH - 2);
                 ctx.fill(px, py, px + 1, py + 1, 0xFFFFFFFF);
             }
         }
@@ -283,30 +280,44 @@ public class TalentScreen extends Screen {
     /** 카드 앞면 (성장 창의 카드 탭에서도 씀) */
     static void drawCard(DrawContext ctx, TextRenderer tr, JsonObject c, int x, int y, boolean burnHover, boolean hover, float alpha) {
         int r = c.get("rarity").getAsInt();
+        int[] rc = rarityCols(r);
         String id = c.get("id").getAsString(), group = c.get("group").getAsString();
         cardFrame(ctx, x, y, r);
-        // 이름
+        // 이름 띠
+        ctx.fill(x + 8, y + 5, x + CW - 8, y + 16, 0xFF18181C);
         String name = c.get("name").getAsString();
-        Ui.centered(ctx, tr, name, x + CW / 2, y + 5, r == 2 ? 0xFF7A4A00 : r == 1 ? 0xFF006A6A : Ui.TEXT, false);
-        // 그림 칸: 움푹한 칸 + 분류별 도트 배경 + 아이템 3배
-        Ui.inset(ctx, x + 7, y + 15, 86, 54, Ui.SLOT);
-        Ui.tex(ctx, artOf(group), x + 8, y + 16, 84, 52);
-        Ui.item(ctx, icon(id, r), x + CW / 2 - 24, y + 18, 3);
-        if (hover && !burnHover) ctx.fill(x + 8, y + 16, x + 92, y + 68, 0x40FFFFFF);
-        // 분류·등급
-        String g = group + " · " + (r == 2 ? "전설" : r == 1 ? "희귀" : "일반");
-        Ui.centered(ctx, tr, g, x + CW / 2, y + 72, r == 2 ? 0xFFB07800 : r == 1 ? 0xFF008B8B : Ui.TEXT_DIM, false);
-        Ui.groove(ctx, x + 7, y + 82, CW - 14);
-        // 효과 (최대 3줄) + 조건 (아래)
-        Ui.wrapCentered(ctx, tr, c.get("effect").getAsString(), x + CW / 2, y + 87, CW - 12, Ui.TEXT, 3);
+        Ui.centered(ctx, tr, name, x + CW / 2, y + 7, rc[3], true);
+        // 그림: 등급 색 1줄 테두리 + 효과 도트 그림 (tools/make_card_art.py)
+        ctx.fill(x + 7, y + 18, x + CW - 7, y + 72, rc[2]);
+        ctx.fill(x + 7, y + 18, x + CW - 8, y + 19, rc[1]);
+        ctx.fill(x + 7, y + 18, x + 8, y + 71, rc[1]);
+        Ui.tex(ctx, "card/" + id, x + 8, y + 19, 84, 52);
+        if (hover && !burnHover) ctx.fill(x + 8, y + 19, x + 92, y + 71, 0x30FFFFFF);
+        // 분류 · 등급
+        String gs = group, sep = " · ", rs = r == 2 ? "전설" : r == 1 ? "희귀" : "일반";
+        int tw = tr.getWidth(gs + sep + rs), tx = x + CW / 2 - tw / 2;
+        ctx.drawText(tr, gs, tx, y + 75, groupCol(group), true);
+        ctx.drawText(tr, sep, tx + tr.getWidth(gs), y + 75, Ui.TEXT_DIM, true);
+        ctx.drawText(tr, rs, tx + tr.getWidth(gs + sep), y + 75, rc[3], true);
+        Ui.goldLine(ctx, x + 10, y + 87, CW - 20, rc[2] == 0xFF5A5A5A ? 0xFF6A6A72 : rc[2]);
+        // 효과 (최대 3줄)
+        Ui.wrapCentered(ctx, tr, c.get("effect").getAsString(), x + CW / 2, y + 91, CW - 14, Ui.TEXT, 3, true);
+        // 조건 (아래 띠)
+        ctx.fill(x + 6, y + CH - 16, x + CW - 6, y + CH - 5, 0xFF1A1A1F);
         String cond = c.get("cond").getAsString();
-        int cl = Math.min(2, Ui.lines(tr, cond, CW - 12));
-        Ui.wrapCentered(ctx, tr, cond, x + CW / 2, y + CH - 13 - (cl - 1) * 9, CW - 12, Ui.TEXT_DIM, 2);
+        int cw = tr.getWidth(cond);
+        if (cw <= CW - 16) Ui.centered(ctx, tr, cond, x + CW / 2, y + CH - 14, Ui.TEXT_DIM, false);
+        else {   // 너무 길면 반으로 줄여서
+            var m = ctx.getMatrices();
+            m.push(); m.translate(x + CW / 2f, y + CH - 12, 0); m.scale(0.5f, 0.5f, 1);
+            ctx.drawText(tr, cond, -cw / 2, 0, Ui.TEXT_DIM, false);
+            m.pop();
+        }
         if (burnHover) {   // 태울 카드: 붉게 + 아래에서 일렁이는 도트 불
             ctx.fill(x + 1, y + 1, x + CW - 1, y + CH - 1, 0x50FF2000);
             long tk = System.currentTimeMillis() / 80;
             for (int k = 0; k < CW / 4; k++) {
-                int fh = 4 + (int) (Math.abs(Math.sin(k * 1.7 + tk * 0.6)) * 10) & ~1;
+                int fh = (4 + (int) (Math.abs(Math.sin(k * 1.7 + tk * 0.6)) * 10)) & ~1;
                 int fx = x + 2 + k * 4;
                 ctx.fill(fx, y + CH - 2 - fh, fx + 4, y + CH - 2, 0xC0FF5500);
                 ctx.fill(fx + 1, y + CH - 2 - fh / 2, fx + 3, y + CH - 2, 0xE0FFAA00);
