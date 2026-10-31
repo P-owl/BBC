@@ -22,6 +22,8 @@ public record KeyPayload(int action) implements CustomPayload {
     public static final int DASH_BASE = 50;
     /** + 0~4 = 숫자 칸을 뗌 (꾹 누르는 기술 끝내기) */
     public static final int SKILL_UP_BASE = 60;
+    /** 성장 창 (K, 전투 모드와 상관없이) */
+    public static final int GROWTH = 70;
 
     public static final CustomPayload.Id<KeyPayload> ID = new CustomPayload.Id<>(Identifier.of(Bbc.MOD_ID, "key"));
     public static final PacketCodec<RegistryByteBuf, KeyPayload> CODEC =

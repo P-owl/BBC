@@ -36,7 +36,7 @@ public class BbcClient implements ClientModInitializer {
     private static final boolean[] skillDown = new boolean[5];
     private static long lastM1 = 0;
 
-    private static KeyBinding toggle, awaken, eye, implant, relic;
+    private static KeyBinding toggle, awaken, eye, implant, relic, grow;
     private static final KeyBinding[] SKILL = new KeyBinding[5];
     private static final String[] SKILL_NAMES = {"z", "x", "c", "v", "b"};
 
@@ -53,6 +53,7 @@ public class BbcClient implements ClientModInitializer {
         eye = key("eye", KEY_R);
         implant = key("implant", KEY_H);
         relic = key("relic", KEY_T);
+        grow = key("grow", 75);   // K
 
         if (ANIM) Anim.init();
         CombatHud.init();
@@ -92,6 +93,7 @@ public class BbcClient implements ClientModInitializer {
             if (ANIM) Anim.tick(client);
             if (client.player == null) return;
             while (toggle.wasPressed()) send(KeyPayload.TOGGLE);
+            while (grow.wasPressed()) send(KeyPayload.GROWTH);
             for (int i = 0; i < 5; i++) while (SKILL[i].wasPressed()) if (combat) send(KeyPayload.SKILL_BASE + i);
             while (awaken.wasPressed()) if (combat) send(KeyPayload.AWAKEN);
             while (eye.wasPressed()) if (combat) send(KeyPayload.EYE);

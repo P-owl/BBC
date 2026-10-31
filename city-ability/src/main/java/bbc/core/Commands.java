@@ -18,6 +18,8 @@ import net.minecraft.util.Formatting;
 
 /**
  * /bbc skills                      기술 장착 창
+ * /bbc grow                        성장 창 (키: K)
+ * /bbc admin ep <플레이어> <양>      존재치 주기 · admin stat <플레이어> <스탯> <점> 확정 대기 점수 주기 · admin tool <스탯> [개수] 수련 도구
  * /bbc combat                      전투 모드 켜기/끄기 (키: `)
  * /bbc info [플레이어]             직업·등급 보기
  * /bbc admin job <플레이어> <직업>  직업 주기 (관리자)
@@ -32,6 +34,7 @@ public final class Commands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((d, reg, env) -> d.register(CommandManager.literal("bbc")
                 .then(CommandManager.literal("skills").executes(c -> { SkillMenu.open(c.getSource().getPlayerOrThrow()); return 1; }))
+                .then(CommandManager.literal("grow").executes(c -> { bbc.grow.GrowthMenu.open(c.getSource().getPlayerOrThrow()); return 1; }))
                 .then(CommandManager.literal("combat").executes(c -> { CombatMode.toggle(c.getSource().getPlayerOrThrow()); return 1; }))
                 .then(CommandManager.literal("info")
                         .executes(c -> info(c, c.getSource().getPlayerOrThrow()))
@@ -46,6 +49,21 @@ public final class Commands {
                         .then(CommandManager.literal("quit")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .executes(c -> { ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player"); CombatMode.set(p, false); Jobs.quit(p); ok(c, p.getName().getString() + " 직업 없앰"); return 1; })))
+                        .then(CommandManager.literal("ep")
+                                .then(CommandManager.argument("player", EntityArgumentType.player())
+                                        .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 1000000))
+                                                .executes(c -> { ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player"); bbc.grow.Growth.gainEp(p, IntegerArgumentType.getInteger(c, "amount"), "관리자"); ok(c, "존재치 지급"); return 1; }))))
+                        .then(CommandManager.literal("stat")
+                                .then(CommandManager.argument("player", EntityArgumentType.player())
+                                        .then(CommandManager.argument("stat", StringArgumentType.word())
+                                                .suggests((c, b) -> { for (bbc.grow.Stat s : bbc.grow.Stat.values()) b.suggest(s.id); return b.buildFuture(); })
+                                                .then(CommandManager.argument("points", IntegerArgumentType.integer(1, 100))
+                                                        .executes(Commands::giveStat)))))
+                        .then(CommandManager.literal("tool")
+                                .then(CommandManager.argument("stat", StringArgumentType.word())
+                                        .suggests((c, b) -> { for (bbc.grow.Stat s : bbc.grow.Stat.values()) b.suggest(s.id); return b.buildFuture(); })
+                                        .executes(c -> giveTool(c, 16))
+                                        .then(CommandManager.argument("count", IntegerArgumentType.integer(1, 64)).executes(c -> giveTool(c, IntegerArgumentType.getInteger(c, "count"))))))
                         .then(CommandManager.literal("dummy").executes(c -> { bbc.combat.Combat.spawnDummy(c.getSource().getPlayerOrThrow()); return 1; }))
                         .then(CommandManager.literal("opponent")
                                 .then(CommandManager.literal("grunt").executes(c -> { bbc.combat.MobAI.spawnOpponent(c.getSource().getPlayerOrThrow(), bbc.combat.MobAI.Tier.GRUNT); return 1; }))
@@ -61,6 +79,26 @@ public final class Commands {
         PlayerData.Entry e = Jobs.entry(p);
         JobType t = Jobs.type(e);
         ok(c, p.getName().getString() + ": " + (t == null ? "무직" : t.name() + " · " + t.rankName(Jobs.rank(e)) + " (등급 " + Jobs.rank(e) + ")"));
+        return 1;
+    }
+
+    private static int giveStat(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
+        ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player");
+        bbc.grow.Stat s = bbc.grow.Stat.byId(StringArgumentType.getString(c, "stat"));
+        if (s == null) { c.getSource().sendError(Text.literal("없는 스탯")); return 0; }
+        int n = IntegerArgumentType.getInteger(c, "points");
+        PlayerData.Entry e = Jobs.entry(p);
+        e.addNum("g.p." + s.id, n);
+        Jobs.dirty(p);
+        ok(c, p.getName().getString() + " " + s.name + " 확정 대기 +" + n);
+        return 1;
+    }
+
+    private static int giveTool(CommandContext<ServerCommandSource> c, int count) throws CommandSyntaxException {
+        ServerPlayerEntity p = c.getSource().getPlayerOrThrow();
+        bbc.grow.Stat s = bbc.grow.Stat.byId(StringArgumentType.getString(c, "stat"));
+        if (s == null) { c.getSource().sendError(Text.literal("없는 스탯")); return 0; }
+        p.giveItemStack(bbc.grow.GrowthEvents.tool(s, count));
         return 1;
     }
 

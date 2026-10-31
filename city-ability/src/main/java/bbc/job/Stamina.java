@@ -30,12 +30,12 @@ public final class Stamina {
 
     public static double max(ServerPlayerEntity p) {
         int rank = Jobs.rank(Jobs.entry(p));
-        return 150 + rank * 30;
+        return 150 + rank * 30 + bbc.grow.Growth.staminaBonus(p);
     }
 
     public static double regenPerSecond(ServerPlayerEntity p) {
         int rank = Jobs.rank(Jobs.entry(p));
-        return 5 + rank * 1.2;
+        return (5 + rank * 1.2) * bbc.grow.Growth.staminaRegenMul(p);
     }
 
     public static double get(ServerPlayerEntity p) {
@@ -49,6 +49,11 @@ public final class Stamina {
         CUR.put(p.getUuid(), cur - amount);
         updateBar(p);
         return true;
+    }
+
+    /** 회복 (카드 효과 등) */
+    public static void give(ServerPlayerEntity p, double amount) {
+        CUR.put(p.getUuid(), Math.min(max(p), get(p) + amount));
     }
 
     public static void refill(ServerPlayerEntity p) {

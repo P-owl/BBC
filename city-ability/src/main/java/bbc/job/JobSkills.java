@@ -75,7 +75,8 @@ public final class JobSkills {
             if (k < 0 || k >= skills.length || skills[k] == null) { n.add(""); st.add(2); l.add(0); m.add(1); continue; }
             Skill s = skills[k];
             int left = cooldownLeftTenths(p.getUuid(), k);
-            n.add(s.name()); l.add(left); m.add(Math.max(1, s.cooldown() * 10));
+            boolean ms = bbc.grow.Growth.mastered(e, k);
+            n.add(s.name() + (ms ? "★" : "")); l.add(left); m.add(Math.max(1, (int) Math.round(s.cooldown() * (ms ? 8 : 10))));
             st.add(left > 0 ? 1 : (s.rank() > rank || res + 1e-6 < s.cost()) ? 2 : 0);
         }
         return new bbc.net.SkillHudPayload(title, n, st, l, m, ultName(e));
@@ -131,6 +132,8 @@ public final class JobSkills {
         Skill[] skills = set.skills(p, e);
         if (skill < 0 || skill >= skills.length || skills[skill] == null) return false;
         Skill s = skills[skill];
+        if (bbc.grow.Growth.mastered(e, skill))   // 숙달: 재사용·비용 −20%
+            s = new Skill(s.name(), s.shortName(), s.rank(), s.cost() * 0.8, Math.max(1, (int) Math.round(s.cooldown() * 0.8)), s.desc());
         if (Jobs.rank(e) < s.rank()) { bar(p, s.name() + " — " + Jobs.type(e).rankName(s.rank()) + "부터 쓸 수 있습니다", Formatting.RED); return false; }
         int left = cooldownLeft(p.getUuid(), skill);
         if (left > 0) { bar(p, s.name() + " 재사용까지 " + left + "초", Formatting.GRAY); return false; }
@@ -143,6 +146,7 @@ public final class JobSkills {
         if (!set.use(p, e, skill)) return false;
         set.pay(p, e, s);
         setCooldown(p.getUuid(), skill, System.currentTimeMillis() + s.cooldown() * 1000L);
+        bbc.grow.Growth.onSkillUsed(p, skill, s.name());
         Jobs.dirty(p);
         return true;
     }

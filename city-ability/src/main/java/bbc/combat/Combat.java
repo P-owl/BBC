@@ -375,7 +375,7 @@ public final class Combat {
         if (v.guardHeld && v.state == Fighter.State.IDLE && now >= v.recoveryUntil && front(t, atk.getPos())) {
             if (now <= v.parryUntil && parryable(h)) { parry(v, atk); return Result.PARRIED; }
             v.guardUsedAt = now;
-            v.guardGauge -= h.guardDmg();
+            v.guardGauge -= h.guardDmg() * (bbc.grow.Growth.has(atk, bbc.grow.Talent.PROVOKER) ? 1.3 : 1.0);
             if (h.guardBreak() || v.guardGauge <= 0) {
                 breakGuard(v);
                 ServerWorld bw = (ServerWorld) t.getWorld();
@@ -389,6 +389,7 @@ public final class Combat {
             if (!deal(atk, t, h.damage() * Tuning.GUARD_DAMAGE_TAKEN)) return Result.MISS;
             setVel(t, away(atk, t).multiply(0.15).add(0, t.getVelocity().y, 0));
             sound(t, SoundEvents.ITEM_SHIELD_BLOCK, 0.8f, 1.1f);
+            if (t instanceof ServerPlayerEntity gp) bbc.grow.Growth.gainExp(gp, bbc.grow.Stat.END, 2);   // 가드로 막기 → 내구
             return Result.BLOCKED;
         }
 
@@ -406,17 +407,19 @@ public final class Combat {
         v.comboHits++;
         float scale = v.comboHits <= Tuning.SCALE_FREE_HITS ? 1f
                 : Math.max(Tuning.SCALE_MIN, 1f - Tuning.SCALE_PER_HIT * (v.comboHits - Tuning.SCALE_FREE_HITS));
+        if (v.comboHits >= 15 && bbc.grow.Growth.has(atk, bbc.grow.Talent.I_AM_AHEAD)) scale = 1f;   // 카드 '내가 우위다'
         int stun = h.stun();
         if (h.kind() == Hit.Kind.HIT || h.kind() == Hit.Kind.AIR)
             stun = Math.max(Tuning.STUN_MIN, stun - (v.comboHits - 1) / Tuning.STUN_DECAY_EVERY);
         // 땅에서 기술(평타 말고)로 맞힌 경직은 기술 후딜 + 평타 선딜보다 길게 → 기술 뒤 평타가 이어짐 (지상 익스텐더)
         boolean groundSkill = !FROM_M1.get() && h.kind() == Hit.Kind.HIT;
         if (groundSkill) stun = Math.max(stun, Tuning.SKILL_MIN_STUN);
-        float dmg = h.damage() * scale;
+        float dmg = h.damage() * scale * bbc.grow.Growth.damageMul(atk, FROM_M1.get(), Weapon.current(atk));   // 성장 스탯·특성·종족
         if (FROM_M1.get() && now < a.awakenUntil) dmg *= Awaken.M1_BONUS; // 각성 중 평타 강화
 
         if (!deal(atk, t, dmg)) { v.comboHits--; return Result.MISS; }
         Awaken.onHit(atk, t, dmg);
+        bbc.grow.Growth.onHit(atk, FROM_M1.get(), v.comboHits);
         v.comboDamage += dmg;
         v.lastHitAt = now;
         v.lastAttacker = atk.getUuid();
@@ -430,7 +433,7 @@ public final class Combat {
         Vec3d dir = away(atk, t);
         Vec3d vel = switch (h.kind()) {
             case HIT -> new Vec3d(dir.x * h.push(), Math.min(t.getVelocity().y, 0.0), dir.z * h.push());
-            case AIR, KNOCK, DOWN -> new Vec3d(dir.x * h.push(), h.lift(), dir.z * h.push());
+            case AIR, KNOCK, DOWN -> { double pu = h.push() * (h.kind() == Hit.Kind.KNOCK && bbc.grow.Growth.has(atk, bbc.grow.Talent.HEAVY_FINISH) ? 1.25 : 1); yield new Vec3d(dir.x * pu, h.lift(), dir.z * pu); }
         };
         boolean atkInAir = !atk.isOnGround();
         if (h.kind() == Hit.Kind.AIR && atkInAir && h.lift() < 0.3) {
@@ -623,6 +626,7 @@ public final class Combat {
             return;
         }
         if (f.guardHeld) return;
+        if (bbc.grow.Growth.reversal(p)) { if (p instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "반전 중엔 가드할 수 없다", Formatting.RED); return; }
         f.guardHeld = true;
         if (!f.stunned()) Motion.play(p, guardMotion(p));
         if (now >= f.parryLockUntil) {
@@ -650,6 +654,10 @@ public final class Combat {
         f.dashChase = false;
         f.dashTicks = Tuning.DASH_TICKS;
         f.lastDashAt = now;
+        if (p instanceof ServerPlayerEntity gp) {
+            bbc.grow.Growth.gainExp(gp, bbc.grow.Stat.AGI, 2);
+            if (bbc.grow.Growth.has(gp, bbc.grow.Talent.SHADOW_STEP)) gp.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.INVISIBILITY, 6, 0, false, false));
+        }
         f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
         f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
         Motion.play(p, switch (dir) { case 1 -> "dash_b"; case 2 -> "dash_l"; case 3 -> "dash_r"; default -> "dash_f"; });
@@ -687,7 +695,8 @@ public final class Combat {
         if (left > 0) { if (p instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "회피기 재사용까지 " + (left / 20 + 1) + "초", Formatting.GRAY); return; }
         setState(f, Fighter.State.IDLE, 0);
         f.invulnUntil = now + Tuning.EVADE_INVULN;
-        f.evadeCdUntil = now + Tuning.EVADE_COOLDOWN;
+        f.evadeCdUntil = now + (bbc.grow.Growth.has(p, bbc.grow.Talent.LEFTOVER) ? Tuning.EVADE_COOLDOWN * 22 / 30 : Tuning.EVADE_COOLDOWN);
+        if (p instanceof ServerPlayerEntity gp) bbc.grow.Growth.gainExp(gp, bbc.grow.Stat.AGI, 4);
         Entity from = f.lastAttacker == null ? null : ((ServerWorld) p.getWorld()).getEntity(f.lastAttacker);
         Vec3d away = from != null ? horizontal(p.getPos().subtract(from.getPos())) : p.getRotationVec(1f).negate().multiply(1, 0, 1).normalize();
         setVel(p, away.multiply(Tuning.EVADE_PUSH).add(0, 0.3, 0));
@@ -756,7 +765,7 @@ public final class Combat {
                 if (now >= f.stateUntil) {
                     Fighter.State was = f.state;
                     setState(f, Fighter.State.IDLE, 0);
-                    if (was == Fighter.State.DOWN) { f.invulnUntil = now + Tuning.WAKEUP_INVULN; Motion.play(e, "getup"); }
+                    if (was == Fighter.State.DOWN) { f.invulnUntil = now + Tuning.WAKEUP_INVULN + (bbc.grow.Growth.has(e, bbc.grow.Talent.TUMBLER) ? 6 : 0); Motion.play(e, "getup"); }
                     else if (f.guardHeld) Motion.play(e, guardMotion(e));
                     if (was == Fighter.State.GUARD_BROKEN) f.guardGauge = Tuning.GUARD_MAX;
                 }

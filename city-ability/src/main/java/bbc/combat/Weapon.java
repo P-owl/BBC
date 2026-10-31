@@ -112,7 +112,7 @@ public final class Weapon {
         // 스위치 캔슬: 후딜 중이면 후딜을 지움 (콤보당 2번, 스태미나 15)
         if (now < f.recoveryUntil) {
             if (now > f.switchCancelResetAt) f.switchCancels = 0;
-            if (f.switchCancels >= 2) { JobSkills.bar(p, "이번 콤보에선 스위치 캔슬을 다 썼습니다", Formatting.GRAY); return; }
+            if (f.switchCancels >= (bbc.grow.Growth.has(p, bbc.grow.Talent.SHARP_SWITCH) ? 3 : 2)) { JobSkills.bar(p, "이번 콤보에선 스위치 캔슬을 다 썼습니다", Formatting.GRAY); return; }
             if (!Stamina.spend(p, 15)) { JobSkills.bar(p, "스태미나 부족", Formatting.RED); return; }
             f.switchCancels++;
             f.switchCancelResetAt = now + 60;

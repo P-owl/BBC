@@ -58,6 +58,7 @@ public final class CombatMode {
     /** 클라이언트 키 입력 처리 (서버 스레드에서 호출) */
     public static void onKey(ServerPlayerEntity p, int action) {
         if (action == KeyPayload.TOGGLE) { toggle(p); return; }
+        if (action == KeyPayload.GROWTH) { bbc.grow.GrowthMenu.open(p); return; }
         if (!active(p)) return;
         switch (action) {
             case KeyPayload.M1 -> { Combat.m1(p, false); return; }
