@@ -195,15 +195,16 @@ public final class Combat {
             return;
         }
         a.m1Index = 0;
-        if (air && up) {
-            swing(p, a, "launch", Tuning.M1_STARTUP, Tuning.M1_RECOVERY + 2, SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, () -> {
-                if (hitArea(p, Tuning.LADDER, true) > 0) {
-                    a.airComboUntil = now + 40;
-                    setVel(p, new Vec3d(0, Tuning.LADDER_VY, 0));
-                } else { // 래더를 이미 썼으면 슬램으로
-                    hitArea(p, Tuning.SLAM, false);
-                    a.airComboUntil = 0;
-                }
+        if (air && up) { // 드롭킥: 스페이스를 누른 채 공중 막타 → 상대를 수평으로 날림 (ABA)
+            swing(p, a, "dropkick", Tuning.DROPKICK_STARTUP, Tuning.DROPKICK_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
+                Vec3d fw = horizontal(p.getRotationVec(1f));
+                STRAIGHT = true;
+                int n;
+                try { n = hitArea(p, Tuning.DROPKICK, false); } finally { STRAIGHT = false; }
+                a.airComboUntil = 0;
+                Vec3d lunge = new Vec3d(fw.x * Tuning.DROPKICK_LUNGE, 0.08, fw.z * Tuning.DROPKICK_LUNGE);
+                setVel(p, lunge);
+                if (n > 0 && now < a.freezeUntil) a.resumeVel = lunge;
             });
         } else if (air) {
             swing(p, a, weapon ? pr.motion() + "slam" : "slam", Tuning.SLAM_STARTUP, Tuning.SLAM_RECOVERY, SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, () -> {
@@ -278,6 +279,9 @@ public final class Combat {
     }
 
     /** 평타 판정 안의 대상들을 때림. 맞힌 수를 돌려줌 */
+    /** 드롭킥 판정 중: 맞은 상대는 수평으로 날아감 */
+    private static boolean STRAIGHT;
+
     private static int hitArea(LivingEntity p, Hit h, boolean ladder) {
         int n = 0;
         Weapon.M1Profile pr = Weapon.profile(p);
@@ -436,6 +440,7 @@ public final class Combat {
         }
         setVel(t, vel);
 
+        if (STRAIGHT) { v.tetherUntil = 0; v.straightUntil = now + 3 + Tuning.DROPKICK_STRAIGHT; }   // 드롭킥: 묶임 풀고 수평 비행
         // 띄우기 정렬: 크게 띄운 공격(올려치기·뛰어 띄우기·래더·튕김 띄우기)은 잠깐 상대를 내 앞에 묶음
         if (h.kind() == Hit.Kind.AIR && h.lift() >= Tuning.TETHER_LIFT) { v.tetherUntil = now + Tuning.TETHER_TICKS; v.tetherBy = atk; }
         else if (h.kind() == Hit.Kind.DOWN) v.tetherUntil = 0;   // 내리찍으면 풀림
@@ -755,6 +760,7 @@ public final class Combat {
 
             // 히트스톱: 멈춘 동안 제자리
             if (now < f.tetherUntil) tether(e, f);
+            if (now < f.straightUntil && now >= f.freezeUntil && !e.isOnGround()) { Vec3d sv = e.getVelocity(); setVel(e, new Vec3d(sv.x, Math.max(sv.y, 0.0), sv.z)); }
             if (now < f.freezeUntil) setVel(e, Vec3d.ZERO);
             else if (f.resumeVel != null) { setVel(e, f.resumeVel); f.resumeVel = null; }
 

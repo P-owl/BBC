@@ -38,6 +38,12 @@ public final class Tuning {
     public static final double BOUNCE_VY = 0.32;
     public static final int BOUNCE_WINDOW = 22;
     /** 공중 래더: 공중에서 스페이스를 누른 채 5타째 → 둘 다 다시 띄우고 사슬 처음부터 (상대당 콤보 1번) */
+    /** 드롭킥 (ABA): 공중에서 스페이스를 누른 채 5타째 → 두 발로 차서 상대를 거의 수평으로 멀리 날림 (날아가는 동안 중력 무시 STRAIGHT 틱).
+     *  나도 앞으로 조금 날아감. 대시로 쫓아가 이을 수 있음 */
+    public static final Hit DROPKICK = new Hit(2.0f, Hit.Kind.KNOCK, 16, 1.35, 0.12, 25, false, false);
+    public static final int DROPKICK_STARTUP = 4, DROPKICK_RECOVERY = 8, DROPKICK_STRAIGHT = 8;
+    public static final double DROPKICK_LUNGE = 0.55;
+    /** (예전 래더, 지금은 안 씀) */
     public static final Hit LADDER = new Hit(1.0f, Hit.Kind.AIR, 24, 0.05, 0.7, 12, false, false);
     public static final double LADDER_VY = 0.62;
     /** 넉백으로 날아간 상대가 땅에 떨어진 뒤 다운 */
