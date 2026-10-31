@@ -149,8 +149,12 @@ public class AlchemyMenu extends GenericContainerScreenHandler {
                         "대연금술사만 · 이 연성진 근처에서", "대가: 연성 에너지 " + Alchemy.fmt(Alch.GATE_ENERGY) + " E + 경험치 " + Alch.GATE_LEVELS + "레벨",
                         "+ 팔·다리·심장 중 하나 (영구)", "클릭해서 통행료 고르기")
                 : Alch.isAlchemist(e)
-                ? ButtonMenu.icon(Items.BREWING_STAND, "직업: " + Alch.rankName(e), Formatting.GOLD,
-                        "숙련도 " + Alchemy.fmt(e.xp) + " E (연성에 쓴 에너지)", "다음 등급은 /alchemy 로 확인")
+                ? (Alch.rank(e) == 4
+                        ? ButtonMenu.icon(Items.ENDER_EYE, "진리의 문 열기", Formatting.DARK_PURPLE,
+                                "대연금술사만 · 연성 에너지 " + Alchemy.fmt(Alch.GATE_ENERGY) + " E + 경험치 " + Alch.GATE_LEVELS + "레벨",
+                                "+ 팔·다리·심장 중 하나를 통행료로 (영구)", "클릭해서 통행료 고르기")
+                        : ButtonMenu.icon(Items.BREWING_STAND, "직업: " + Alch.rankName(e), Formatting.GOLD,
+                                "숙련도 " + Alchemy.fmt(e.xp) + " E (연성에 쓴 에너지)", "다음 등급은 /alchemy 로 확인"))
                 : ButtonMenu.icon(Items.BREWING_STAND, "연금술사 되기", Formatting.GOLD,
                         "조건: 이해한 아이템 " + Alch.JOIN_KNOWN + "종 (지금 " + e.known.size() + ")",
                         "누적 분해 " + Alchemy.fmt(Alch.JOIN_DEPOSITED) + " E (지금 " + Alchemy.fmt(e.depositedTotal) + ")",
