@@ -223,12 +223,12 @@ final class CombatHud {
     }
 
     /**
-     * HUD 크기: 마인크래프트 'GUI 크기'가 커도 우리 HUD 는 GUI 크기 2 일 때 크기로 고정 (화면을 덜 가림).
+     * HUD 크기: 마인크래프트 'GUI 크기'가 커도 우리 HUD 는 GUI 크기 3 일 때 크기로 고정 (2는 너무 작았음).
      * 그리는 동안 이 배율로 줄이고, 좌표는 줄인 화면 기준(가상 W·H)으로 계산
      */
     static float hudScale(MinecraftClient c) {
         double g = c.getWindow().getScaleFactor();
-        return (float) Math.min(1.0, 2.0 / Math.max(1.0, g));
+        return (float) Math.min(1.0, 3.0 / Math.max(1.0, g));
     }
 
     /** 색의 투명도만 f 배 */
@@ -245,7 +245,7 @@ final class CombatHud {
         m.push();
         m.scale(k, k, 1);
         int Wv = (int) (ctx.getScaledWindowWidth() / k);
-        int w = 140, h = 6, x = (Wv - w) / 2, y = 4;
+        int w = 160, h = 8, x = (Wv - w) / 2, y = 4;
         ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xCC000000);
         ctx.fill(x, y, x + w, y + h, 0xAA3A0A0A);
         String label;
@@ -261,8 +261,8 @@ final class CombatHud {
             if (!full) text = 0xFFDDDDDD;
         }
         m.push();
-        m.translate(x + w / 2f, y + 0.5f, 0);
-        m.scale(0.6f, 0.6f, 1);
+        m.translate(x + w / 2f, y + 0.8f, 0);
+        m.scale(0.75f, 0.75f, 1);
         ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), 0, 0, text);
         m.pop();
         m.pop();
@@ -320,10 +320,10 @@ final class CombatHud {
         m.scale(k, k, 1);
         float Wr = ctx.getScaledWindowWidth(), Hr = ctx.getScaledWindowHeight();
         int Wv = (int) (Wr / k), Hv = (int) (Hr / k);
-        int n = skNames.size(), cw = 34, ch = 20, gap = 2;
+        int n = skNames.size(), cw = 40, ch = 22, gap = 3;
         int total = n * cw + (n - 1) * gap;
-        int x0 = (int) ((Wr / 2 + 91) / k) + 6, y0 = Hv - ch - 3;
-        if (x0 + total > Wv - 3) { x0 = Wv - 3 - total; y0 = (int) ((Hr - 22) / k) - ch - 14; }   // 자리가 모자라면 핫바 위 오른쪽
+        // ABA 처럼 화면 아래 가운데: 하트·배고픔·스태미나 줄 바로 위
+        int x0 = Wv / 2 - total / 2, y0 = (int) ((Hr - 22 - 40) / k) - ch - 2;
         boolean anyCd = skState.contains(1);
         boolean idle = !anyCd && clock - comboAt > 100 && clock - targetAt > 100 && !guardHeldHud;
         float f = idle ? 0.45f : 1f;
@@ -333,8 +333,8 @@ final class CombatHud {
         if (parryLeft > 0) sb.append("  패링 ").append(parryLeft / 20 + 1).append("s");
         if (guardHeldHud || guard < 100) sb.append("  가드 ").append(guard);
         m.push();
-        m.translate(x0, y0 - 7, 0);
-        m.scale(0.6f, 0.6f, 1);
+        m.translate(x0, y0 - 8, 0);
+        m.scale(0.75f, 0.75f, 1);
         ctx.drawTextWithShadow(tr, sb.toString(), 0, 0, fade(guard < 30 ? 0xFFFF7060 : 0xFFFFD27A, f));
         m.pop();
         for (int i = 0; i < n; i++) {
@@ -348,11 +348,11 @@ final class CombatHud {
             if (!empty && st != 2) ctx.fill(x, y, x + cw, y + ch / 2, fade(0x22FFFFFF, f));
             m.push();
             m.translate(x + 1.5f, y + 1.5f, 0);
-            m.scale(0.6f, 0.6f, 1);
+            m.scale(0.75f, 0.75f, 1);
             ctx.drawTextWithShadow(tr, String.valueOf(i + 1), 0, 0, fade(0xFFFFFFFF, f));
             m.pop();
             if (empty) continue;
-            float sc = Math.min(0.6f, (cw - 3) / (float) Math.max(1, tr.getWidth(name)));
+            float sc = Math.min(0.8f, (cw - 3) / (float) Math.max(1, tr.getWidth(name)));
             m.push();
             m.translate(x + cw / 2f, y + ch / 2f + 2, 0);
             m.scale(sc, sc, 1);
@@ -364,8 +364,8 @@ final class CombatHud {
                 ctx.fill(x, y, x + cw, y + hgt, 0xB0000000);
                 String sec = left >= 100 ? String.valueOf((left + 9) / 10) : String.format("%.1f", left / 10f);
                 m.push();
-                m.translate(x + cw / 2f, y + ch - 6, 0);
-                m.scale(0.6f, 0.6f, 1);
+                m.translate(x + cw / 2f, y + ch - 7.5f, 0);
+                m.scale(0.75f, 0.75f, 1);
                 ctx.drawCenteredTextWithShadow(tr, sec, 0, 0, 0xFFFFE070);
                 m.pop();
             }
@@ -382,8 +382,8 @@ final class CombatHud {
         var m = ctx.getMatrices();
         m.push();
         m.scale(k, k, 1);
-        int Wv = (int) (ctx.getScaledWindowWidth() / k), w = 110, h = 4;
-        int x = Wv / 2 - w / 2, y = 15;
+        int Wv = (int) (ctx.getScaledWindowWidth() / k), w = 130, h = 5;
+        int x = Wv / 2 - w / 2, y = 17;
         float hp = Math.max(0, t.getHealth()), max = Math.max(1, t.getMaxHealth());
         if (targetShownHp < 0 || targetShownHp < hp) targetShownHp = hp;
         else targetShownHp = Math.max(hp, targetShownHp - max * 0.01f);
@@ -395,7 +395,7 @@ final class CombatHud {
         for (int q = 1; q < 10; q++) ctx.fill(x + w * q / 10, y, x + w * q / 10 + 1, y + h, 0x55000000);
         m.push();
         m.translate(Wv / 2f, y + h + 1.5f, 0);
-        m.scale(0.55f, 0.55f, 1);
+        m.scale(0.7f, 0.7f, 1);
         ctx.drawCenteredTextWithShadow(tr, t.getDisplayName().getString() + (stunned ? "  경직" : ""), 0, 0, stunned ? 0xFFFF6A5A : 0xFFE0E0E0);
         m.pop();
         m.pop();
