@@ -33,8 +33,8 @@ public final class Tuning {
     public static final int SLAM_M1_LOCK = 12;
     /** 슬램 맞힌 뒤 내 몸: 살짝 떠올랐다가 상대보다 늦게 착지 */
     public static final double SLAM_HANG_VY = 0.18;
-    /** 튕김: 꽂힌 상대가 이만큼 튀어 오르고, 이 틱 동안은 쓰러진 상대도 맞음.
-     *  기술 = 다시 띄움(익스텐더), 평타 = 일으켜 세우며 지상 경직 (평타 막힘 12틱이 풀린 뒤라 빠듯하게만 들어감) */
+    /** 튕김: 꽂힌 상대가 이만큼 튀어 오르고, 이 틱 동안은 기술(익스텐더)만 들어가 다시 띄움.
+     *  평타는 안 들어감 (평타만으로 슬램 → 평타 → 띄우기 → 슬램 무한 콤보가 됐었음) → 평타 콤보는 슬램에서 끝, 기술 쿨타임이 콤보 길이를 정함 */
     public static final double BOUNCE_VY = 0.32;
     public static final int BOUNCE_WINDOW = 22;
     /** 공중 래더: 공중에서 스페이스를 누른 채 5타째 → 둘 다 다시 띄우고 사슬 처음부터 (상대당 콤보 1번) */

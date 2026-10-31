@@ -353,9 +353,10 @@ public final class Combat {
         if (t == atk || !t.isAlive() || t.isRemoved()) return Result.MISS;
         Fighter v = of(t);
         if (now < v.invulnUntil) return Result.MISS;
-        // 쓰러진 상대: 슬램 착지 뒤 튕김 창 안이면 무엇이든 맞음 (기술 = 다시 띄움, 평타 = 일으켜 세움)
-        boolean downOpen = v.state == Fighter.State.DOWN && now < v.bounceUntil;
-        boolean bounce = downOpen && !FROM_M1.get();
+        // 쓰러진 상대: 슬램 착지 뒤 튕김 창 안이면 기술(익스텐더)만 들어가 다시 띄움.
+        // 평타로 일으켜 세우는 건 막음 — 평타만으로 슬램 → 평타 → 띄우기 → 공중 → 슬램 이 무한히 돌았음 (ABA 도 슬램 뒤엔 기술로만 이음)
+        boolean downOpen = v.state == Fighter.State.DOWN && now < v.bounceUntil && !FROM_M1.get();
+        boolean bounce = downOpen;
         if (v.state == Fighter.State.DOWN && !h.downHit() && !downOpen) return Result.MISS;
 
         // 가드·패링 (앞에서 온 공격만, 평상 상태이고 후딜이 아닐 때)
