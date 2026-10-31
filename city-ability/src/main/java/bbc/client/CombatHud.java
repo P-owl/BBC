@@ -245,7 +245,7 @@ final class CombatHud {
         m.push();
         m.scale(k, k, 1);
         int Wv = (int) (ctx.getScaledWindowWidth() / k);
-        int w = 160, h = 8, x = (Wv - w) / 2, y = 4;
+        int w = 220, h = 11, x = (Wv - w) / 2, y = 4;
         ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xCC000000);
         ctx.fill(x, y, x + w, y + h, 0xAA3A0A0A);
         String label;
@@ -261,8 +261,8 @@ final class CombatHud {
             if (!full) text = 0xFFDDDDDD;
         }
         m.push();
-        m.translate(x + w / 2f, y + 0.8f, 0);
-        m.scale(0.75f, 0.75f, 1);
+        m.translate(x + w / 2f, y + 1.5f, 0);
+        m.scale(1.0f, 1.0f, 1);
         ctx.drawCenteredTextWithShadow(tr, net.minecraft.text.Text.literal(label).formatted(Formatting.BOLD), 0, 0, text);
         m.pop();
         m.pop();
@@ -320,10 +320,11 @@ final class CombatHud {
         m.scale(k, k, 1);
         float Wr = ctx.getScaledWindowWidth(), Hr = ctx.getScaledWindowHeight();
         int Wv = (int) (Wr / k), Hv = (int) (Hr / k);
-        int n = skNames.size(), cw = 40, ch = 22, gap = 3;
+        int n = skNames.size(), cw = 48, ch = 26, gap = 3;
         int total = n * cw + (n - 1) * gap;
-        // ABA 처럼 화면 아래 가운데: 하트·배고픔·스태미나 줄 바로 위
-        int x0 = Wv / 2 - total / 2, y0 = (int) ((Hr - 22 - 40) / k) - ch - 2;
+        // ABA 처럼 화면 아래 가운데: 스태미나 막대(하트 위, 갑옷 있으면 한 줄 더 위) 바로 위에 붙임
+        int stamY = (int) Hr - 39 - 10 - (c.player != null && c.player.getArmor() > 0 ? 10 : 0) + 4;
+        int x0 = Wv / 2 - total / 2, y0 = (int) ((stamY - 3) / k) - ch;
         boolean anyCd = skState.contains(1);
         boolean idle = !anyCd && clock - comboAt > 100 && clock - targetAt > 100 && !guardHeldHud;
         float f = idle ? 0.45f : 1f;
@@ -333,8 +334,8 @@ final class CombatHud {
         if (parryLeft > 0) sb.append("  패링 ").append(parryLeft / 20 + 1).append("s");
         if (guardHeldHud || guard < 100) sb.append("  가드 ").append(guard);
         m.push();
-        m.translate(x0, y0 - 8, 0);
-        m.scale(0.75f, 0.75f, 1);
+        m.translate(x0, y0 - 9, 0);
+        m.scale(0.85f, 0.85f, 1);
         ctx.drawTextWithShadow(tr, sb.toString(), 0, 0, fade(guard < 30 ? 0xFFFF7060 : 0xFFFFD27A, f));
         m.pop();
         for (int i = 0; i < n; i++) {
@@ -347,12 +348,12 @@ final class CombatHud {
             ctx.fill(x, y, x + cw, y + ch, fade(bg, f));
             if (!empty && st != 2) ctx.fill(x, y, x + cw, y + ch / 2, fade(0x22FFFFFF, f));
             m.push();
-            m.translate(x + 1.5f, y + 1.5f, 0);
-            m.scale(0.75f, 0.75f, 1);
+            m.translate(x + 2f, y + 2f, 0);
+            m.scale(0.85f, 0.85f, 1);
             ctx.drawTextWithShadow(tr, String.valueOf(i + 1), 0, 0, fade(0xFFFFFFFF, f));
             m.pop();
             if (empty) continue;
-            float sc = Math.min(0.8f, (cw - 3) / (float) Math.max(1, tr.getWidth(name)));
+            float sc = Math.min(0.95f, (cw - 4) / (float) Math.max(1, tr.getWidth(name)));
             m.push();
             m.translate(x + cw / 2f, y + ch / 2f + 2, 0);
             m.scale(sc, sc, 1);
@@ -364,8 +365,8 @@ final class CombatHud {
                 ctx.fill(x, y, x + cw, y + hgt, 0xB0000000);
                 String sec = left >= 100 ? String.valueOf((left + 9) / 10) : String.format("%.1f", left / 10f);
                 m.push();
-                m.translate(x + cw / 2f, y + ch - 7.5f, 0);
-                m.scale(0.75f, 0.75f, 1);
+                m.translate(x + cw / 2f, y + ch - 9f, 0);
+                m.scale(0.85f, 0.85f, 1);
                 ctx.drawCenteredTextWithShadow(tr, sec, 0, 0, 0xFFFFE070);
                 m.pop();
             }
@@ -382,8 +383,8 @@ final class CombatHud {
         var m = ctx.getMatrices();
         m.push();
         m.scale(k, k, 1);
-        int Wv = (int) (ctx.getScaledWindowWidth() / k), w = 130, h = 5;
-        int x = Wv / 2 - w / 2, y = 17;
+        int Wv = (int) (ctx.getScaledWindowWidth() / k), w = 150, h = 6;
+        int x = Wv / 2 - w / 2, y = 21;
         float hp = Math.max(0, t.getHealth()), max = Math.max(1, t.getMaxHealth());
         if (targetShownHp < 0 || targetShownHp < hp) targetShownHp = hp;
         else targetShownHp = Math.max(hp, targetShownHp - max * 0.01f);
