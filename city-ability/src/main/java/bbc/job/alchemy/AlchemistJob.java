@@ -312,7 +312,7 @@ public final class AlchemistJob implements JobType {
 
     // ①' 창조의 기둥 (ABA Pillars of Creation, 99.2~101.2초): 웅크렸다 뛰어오르며 빠르게 뒤로 반 바퀴 → 머리가 아래로 거꾸로 뜬 채 잠깐 멈춰
     //    연성 — 1차로 바위 기둥 셋이 땅에서 비스듬히 솟아 상대에게 꽂힘(8) → 나머지 반 바퀴 돌아 착지하며 땅을 짚음 —
-    //    2차로 기둥 셋(가운데 큰 기둥이 날려보냄 + 가드 깨기)과 앞을 막는 바위 기둥들(20). 기둥 벽의 느린 백덤블링과 다른 동작
+    //    2차로 기둥 셋(가운데 큰 기둥이 날려보냄 + 가드 깨기)과 앞을 막는 바위 기둥들(20). 덤블링 동안 뒤로 약 5칸 이동 (거리를 벌리며 쏨)
     private static boolean creation(ServerPlayerEntity p) {
         LivingEntity t = pickTarget(p, 22, 18);
         Vec3d look = Combat.horizontal(p.getRotationVec(1f));
@@ -326,16 +326,15 @@ public final class AlchemistJob implements JobType {
         Vec3d side = d.crossProduct(new Vec3d(0, 1, 0)).normalize();
         Tasks.later(3, () -> {
             if (p.isDisconnected() || !p.isAlive()) return;
-            Combat.move(p, new Vec3d(-d.x * 0.15, 0.62, -d.z * 0.15));
+            Combat.move(p, new Vec3d(-d.x * 0.55, 0.62, -d.z * 0.55));   // 덤블링하며 뒤로 크게 이동
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 1.5f);
         });
-        for (int i = 7; i <= 15; i++) Tasks.later(i, () -> {   // 거꾸로 뜬 채 멈춤
+        for (int i = 7; i <= 15; i++) Tasks.later(i, () -> {   // 거꾸로 뜬 채 뒤로 미끄러지듯 (높이는 유지)
             if (p.isDisconnected() || !p.isAlive()) return;
-            Vec3d v = p.getVelocity();
-            Combat.move(p, new Vec3d(v.x * 0.5, 0.0, v.z * 0.5));
+            Combat.move(p, new Vec3d(-d.x * 0.3, 0.0, -d.z * 0.3));
             p.fallDistance = 0;
         });
-        Tasks.later(16, () -> { if (!p.isDisconnected()) { Combat.move(p, new Vec3d(0, -0.7, 0)); p.fallDistance = 0; } });
+        Tasks.later(16, () -> { if (!p.isDisconnected()) { Combat.move(p, new Vec3d(-d.x * 0.25, -0.7, -d.z * 0.25)); p.fallDistance = 0; } });
         // 1차: 공중에서
         Tasks.later(8, () -> {
             if (p.isDisconnected() || !p.isAlive()) return;
