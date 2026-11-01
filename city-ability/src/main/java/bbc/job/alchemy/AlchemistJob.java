@@ -89,20 +89,43 @@ public final class AlchemistJob implements JobType {
     /** 무기 연성(공중) 중: 오토메일 칼날 평타 (빠르고 조금 셈, 사거리 조금 김) */
     private static final bbc.combat.Weapon.M1Profile BLADE_M1 = new bbc.combat.Weapon.M1Profile(4, 3, 2, 1.3f, 0.5, "ab_", 5);
 
+    /** 의족이면 평타가 발차기 위주 (alk_*). 의족 칼날을 연성하면 더 세고 길게 */
+    private static final bbc.combat.Weapon.M1Profile LEG_M1 = new bbc.combat.Weapon.M1Profile(5, 4, 2, 1.05f, 0.4, "alk_", 6);
+    private static final bbc.combat.Weapon.M1Profile LEG_BLADE_M1 = new bbc.combat.Weapon.M1Profile(5, 4, 2, 1.35f, 0.6, "alk_", 6);
+    /** 강철 심장 과부하 중: 같은 평타가 후딜이 짧고 셈 */
+    private static final bbc.combat.Weapon.M1Profile HEART_M1 = new bbc.combat.Weapon.M1Profile(5, 4, 1, 1.2f, 0.2, "al_", 6);
+
+    /** 단 오토메일 종류: "arm"(의수) · "leg"(의족) · "heart"(강철 심장) · ""(없음) */
+    static String mail(ServerPlayerEntity p) {
+        AlchemyData.Entry e = Alch.entry(p);
+        return AutomailSkill.available(e) ? e.automail : "";
+    }
+
     @Override public bbc.combat.Weapon.M1Profile m1() { return M1; }
-    @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { return spearOn(p) ? SPEAR_M1 : bladeOn(p) ? BLADE_M1 : M1; }
+    @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) {
+        if (spearOn(p)) return SPEAR_M1;
+        String m = mail(p);
+        if (m.equals("leg")) return bladeOn(p) ? LEG_BLADE_M1 : LEG_M1;
+        if (bladeOn(p)) return m.equals("heart") ? HEART_M1 : BLADE_M1;
+        return M1;
+    }
     @Override public String stance() { return "stance_al"; }
 
     /** 다운 슬램: 공중에서 손뼉 → 그 순간 손(오토메일·장갑)에 칼을 연성해 내리찍고 사라짐 */
     @Override
     public void m1Start(ServerPlayerEntity p, String motion) {
-        if (!motion.equals("al_slam")) return;   // 칼날 평타 중(ab_slam)이면 이미 칼이 있음
+        if (!motion.equals("al_slam") && !motion.equals("alk_slam")) return;   // 칼날 평타 중(ab_slam)이면 이미 칼이 있음
+        if (bladeOn(p) && motion.equals("alk_slam")) return;
         ServerWorld w = p.getServerWorld();
         UUID id = p.getUuid();
+        if (mail(p).equals("heart")) {   // 강철 심장: 칼 대신 심장을 한 번 펌핑하고 그 힘으로 내리침
+            Tasks.later(1, () -> { if (!p.isDisconnected()) { clapFx(p); heartbeat(p, 0.8f); } });
+            return;
+        }
         Tasks.later(1, () -> {
             if (p.isDisconnected()) return;
             clapFx(p);
-            AutomailSkill.setForgedBlade(p, true);
+            AutomailSkill.setForgedBlade(p, true);   // 의족이면 다리에, 아니면 손에
             Vec3d r = rightSide(p, 0.4);
             w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, r.x, p.getY() + 1.2, r.z, 10, 0.15, 0.3, 0.15, 0.15);
         });
@@ -123,6 +146,25 @@ public final class AlchemistJob implements JobType {
                 default -> { }
             }
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.6f, 1.5f);
+        }
+        if (motion.startsWith("alk_")) {   // 발차기: 찬 방향으로 흰 줄기
+            Vec3d f = Combat.horizontal(p.getRotationVec(1f));
+            Fx.kickStreak(w, p.getPos().add(f.multiply(1.6)).add(0, motion.equals("alk_rise") ? 1.6 : 1.0, 0), f);
+            Vec3d at = p.getPos().add(f.multiply(1.8));
+            Double gy = AlchemyFx.ground(w, at);
+            if (motion.equals("alk_5") && gy != null) { Alchemy.fx(w, BlockPos.ofFloored(at), false); AlchemyFx.pillar(w, at.x, gy, at.z, 0.9f, 2.2f, 14); Fx.debris(w, at, 10, 0.9); }
+            if (motion.equals("alk_rise") && gy != null) AlchemyFx.spike(w, at.x, gy, at.z, 0.6f, 2.0f, 12);
+            if (motion.equals("alk_slam")) Fx.debris(w, at, 10, 0.9);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, SoundCategory.PLAYERS, 0.7f, 1.2f);
+            return;
+        }
+        if (motion.equals("al_slam") && mail(p).equals("heart")) {   // 강철 심장 슬램: 붉은 충격파
+            Vec3d f = Combat.horizontal(p.getRotationVec(1f));
+            Vec3d c = p.getPos().add(f.multiply(1.6)).add(0, 0.6, 0);
+            Fx.wave(w, c, 0.3, 2.6, Fx.RED, 6);
+            w.spawnParticles(HEART_RED, c.x, c.y, c.z, 20, 0.6, 0.4, 0.6, 0.1);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.PLAYERS, 1.4f, 1.2f);
+            return;
         }
         if (motion.equals("al_slam") || motion.equals("ab_slam")) {   // 다운 슬램: 연성한 칼로 내리찍은 자리에 하얀 세로 베기 + 흙먼지
             Fx.slash(w, p, 2.8, 90, true, Fx.WHITE);
@@ -268,39 +310,71 @@ public final class AlchemistJob implements JobType {
         return true;
     }
 
-    // ①' 창조의 기둥 (ABA Pillars of Creation): 뒤로 백덤블링 → 공중에서 손뼉, 착지하며 땅을 짚는 순간 발 앞 땅에서 거대한 바위 기둥 다섯 개가
-    //    부채꼴 자리에서 비스듬히 솟아 상대에게 연달아 꽂힘 (1~4번: 묶어 두는 타격, 5번: 크게 날려보냄 + 가드 깨기)
+    // ①' 창조의 기둥 (ABA Pillars of Creation, 99.2~101.2초): 웅크렸다 뛰어오르며 빠르게 뒤로 반 바퀴 → 머리가 아래로 거꾸로 뜬 채 잠깐 멈춰
+    //    연성 — 1차로 바위 기둥 셋이 땅에서 비스듬히 솟아 상대에게 꽂힘(8) → 나머지 반 바퀴 돌아 착지하며 땅을 짚음 —
+    //    2차로 기둥 셋(가운데 큰 기둥이 날려보냄 + 가드 깨기)과 앞을 막는 바위 기둥들(20). 기둥 벽의 느린 백덤블링과 다른 동작
     private static boolean creation(ServerPlayerEntity p) {
         LivingEntity t = pickTarget(p, 22, 18);
         Vec3d look = Combat.horizontal(p.getRotationVec(1f));
         Vec3d dir = t != null ? Combat.horizontal(t.getPos().subtract(p.getPos())) : look;
         if (dir.lengthSquared() < 1e-4) dir = look;
         final Vec3d d = dir.normalize();
-        Motion.play(p, "al_backflip");
-        Combat.afterSkill(p, 22);
+        Motion.play(p, "al_flip");
+        Combat.afterSkill(p, 26);
         ServerWorld w = p.getServerWorld();
         AlchemySounds.play(p, AlchemySounds.ATTACK, 1.0f);
-        backflipJump(p, d, 0.38, 0.5);
-        Tasks.later(BACKFLIP_LAND, () -> {
+        Vec3d side = d.crossProduct(new Vec3d(0, 1, 0)).normalize();
+        Tasks.later(3, () -> {
+            if (p.isDisconnected() || !p.isAlive()) return;
+            Combat.move(p, new Vec3d(-d.x * 0.15, 0.62, -d.z * 0.15));
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 1.5f);
+        });
+        for (int i = 7; i <= 15; i++) Tasks.later(i, () -> {   // 거꾸로 뜬 채 멈춤
+            if (p.isDisconnected() || !p.isAlive()) return;
+            Vec3d v = p.getVelocity();
+            Combat.move(p, new Vec3d(v.x * 0.5, 0.0, v.z * 0.5));
+            p.fallDistance = 0;
+        });
+        Tasks.later(16, () -> { if (!p.isDisconnected()) { Combat.move(p, new Vec3d(0, -0.7, 0)); p.fallDistance = 0; } });
+        // 1차: 공중에서
+        Tasks.later(8, () -> {
+            if (p.isDisconnected() || !p.isAlive()) return;
+            AlchemySounds.play(p, AlchemySounds.SPARK, 1.0f);
+            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, p.getX(), p.getY() + 0.5, p.getZ(), 20, 0.4, 0.4, 0.4, 0.2);
+            Double g = AlchemyFx.ground(w, p.getPos());
+            if (g == null) g = AlchemyFx.ground(w, p.getPos().add(0, -5, 0));
+            double gy = g == null ? p.getY() - 2 : g;
+            Alchemy.fx(w, BlockPos.ofFloored(p.getX(), gy, p.getZ()), Alch.entry(p).truth);
+            for (int k = 0; k < 3; k++) {
+                final int kk = k;
+                Tasks.later(k * 2, () -> creationPillar(p, w, t, d, side, gy, (kk - 1) * 1.8, 1.3f, CREATION, 30));
+            }
+        });
+        // 2차: 착지하며
+        Tasks.later(20, () -> {
             if (p.isDisconnected() || !p.isAlive()) return;
             clapFx(p);
             Double g = AlchemyFx.ground(w, p.getPos());
             double gy = g == null ? p.getY() : g;
-            Vec3d side = d.crossProduct(new Vec3d(0, 1, 0)).normalize();
             w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_DIG, SoundCategory.PLAYERS, 1.4f, 1.1f);
-            for (int k = 0; k < 5; k++) {
-                final int kk = k;
-                Tasks.later(k * 3, () -> {
-                    if (p.isDisconnected()) return;
-                    Vec3d aim = t != null && t.isAlive() ? t.getPos().add(0, 1.0, 0) : p.getPos().add(d.multiply(12)).add(0, 1.0, 0);
-                    double off = (kk == 4 ? 0 : (kk - 1.5) * 1.6);
-                    Vec3d base = new Vec3d(p.getX() + d.x * 1.6 + side.x * off, gy - 1.0, p.getZ() + d.z * 1.6 + side.z * off);
-                    Vec3d end = aim.add(Combat.horizontal(aim.subtract(base)).multiply(1.6));
-                    growPillar(p, w, base, end, kk == 4 ? 1.9f : 1.3f, kk == 4 ? CREATION_END : CREATION, 34 - kk * 3);
-                });
+            creationPillar(p, w, t, d, side, gy, -2.4, 1.3f, CREATION, 26);
+            Tasks.later(2, () -> creationPillar(p, w, t, d, side, gy, 2.4, 1.3f, CREATION, 26));
+            Tasks.later(4, () -> creationPillar(p, w, t, d, side, gy, 0, 1.9f, CREATION_END, 26));
+            for (int i = -2; i <= 2; i++) {   // 앞을 막는 바위 기둥 (ABA 착지 뒤 솟는 판)
+                Vec3d q = p.getPos().add(d.multiply(2.2)).add(side.multiply(i * 1.1));
+                Double gq = AlchemyFx.ground(w, q);
+                if (gq != null) AlchemyFx.pillar(w, q.x, gq, q.z, 1.0f, 2.4f + Math.abs(i) * 0.3f, 40);
             }
         });
         return true;
+    }
+
+    private static void creationPillar(ServerPlayerEntity p, ServerWorld w, LivingEntity t, Vec3d d, Vec3d side, double gy, double off, float width, Hit h, int life) {
+        if (p.isDisconnected()) return;
+        Vec3d aim = t != null && t.isAlive() ? t.getPos().add(0, 1.0, 0) : p.getPos().add(d.multiply(12)).add(0, 1.0, 0);
+        Vec3d base = new Vec3d(p.getX() + d.x * 1.4 + side.x * off, gy - 1.0, p.getZ() + d.z * 1.4 + side.z * off);
+        Vec3d end = aim.add(Combat.horizontal(aim.subtract(base)).multiply(1.6));
+        growPillar(p, w, base, end, width, h, life);
     }
 
     /** 백덤블링 (al_backflip 과 맞춤): 3틱 웅크렸다가 뒤로·위로 솟구침, 16틱에 착지하며 땅을 짚음 */
@@ -424,7 +498,9 @@ public final class AlchemistJob implements JobType {
 
     /** 공중 무기 연성: 손뼉 → 오른 아래팔을 세우면 칼날이 솟음 (오토메일이면 의수에서, 아니면 장갑 낀 팔에) */
     private static boolean bladeForge(ServerPlayerEntity p) {
-        Motion.play(p, "al_bladeforge");
+        String m = mail(p);
+        if (m.equals("heart")) return heartPump(p);
+        Motion.play(p, m.equals("leg") ? "alk_bladeforge" : "al_bladeforge");
         Combat.afterSkill(p, 8);
         ServerWorld w = p.getServerWorld();
         UUID id = p.getUuid();
@@ -434,15 +510,70 @@ public final class AlchemistJob implements JobType {
         Tasks.later(6, () -> {
             if (p.isDisconnected() || !p.isAlive()) return;
             BLADE_UNTIL.put(id, Combat.now() + BLADE_TICKS);
-            AutomailSkill.setForgedBlade(p, true);
-            Vec3d r = rightSide(p, 0.4);
-            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, r.x, p.getY() + 1.1, r.z, 16, 0.15, 0.3, 0.15, 0.2);
+            AutomailSkill.setForgedBlade(p, true);   // 의족이면 왼다리 정강이에
+            Vec3d r = m.equals("leg") ? rightSide(p, -0.2) : rightSide(p, 0.4);
+            double ry = m.equals("leg") ? 0.5 : 1.1;
+            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, r.x, p.getY() + ry, r.z, 16, 0.15, 0.3, 0.15, 0.2);
             w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.IRON_BLOCK.getDefaultState()), r.x, p.getY() + 1.1, r.z, 10, 0.15, 0.3, 0.15, 0.1);
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_ANVIL_USE, SoundCategory.PLAYERS, 0.6f, 1.7f);
             w.playSound(null, p.getBlockPos(), SoundEvents.ITEM_ARMOR_EQUIP_IRON.value(), SoundCategory.PLAYERS, 1.0f, 1.2f);
             Tasks.later(BLADE_TICKS, () -> { if (BLADE_UNTIL.containsKey(id) && BLADE_UNTIL.get(id) <= Combat.now() + 1) endBlade(p); });
         });
         Tasks.later(1, () -> JobSkills.clearCooldown(id, WEAPON_SKILL));
+        return true;
+    }
+
+    // ── 강철 심장: 공중 무기 연성 = 심장 펌핑 (20초 과부하: 평타 후딜 짧고 ×1.2), 다시 = 심장 폭주 (붉은 충격파, 가드 깨기) ──
+    private static final net.minecraft.particle.DustParticleEffect HEART_RED = new net.minecraft.particle.DustParticleEffect(new org.joml.Vector3f(0.85f, 0.08f, 0.1f), 1.4f);
+    private static final Hit HEART_BURST = new Hit(3.6f, Hit.Kind.KNOCK, 26, 2.2, 0.6, 50, true, false);
+
+    /** 심장이 한 번 뜀: 가슴에서 붉은 고리 + 심장 소리 */
+    private static void heartbeat(ServerPlayerEntity p, float strength) {
+        ServerWorld w = p.getServerWorld();
+        Vec3d c = p.getPos().add(0, 1.2, 0);
+        Fx.wave(w, c, 0.2, 1.2 + 1.4 * strength, Fx.RED, 5);
+        w.spawnParticles(HEART_RED, c.x, c.y, c.z, (int) (14 * strength) + 4, 0.25, 0.25, 0.25, 0.05);
+        w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.PLAYERS, 1.2f + strength, 1.0f + 0.2f * strength);
+    }
+
+    private static boolean heartPump(ServerPlayerEntity p) {
+        Motion.play(p, "al_pump");
+        Combat.afterSkill(p, 8);
+        UUID id = p.getUuid();
+        Vec3d v = p.getVelocity();
+        Combat.move(p, new Vec3d(v.x * 0.5, Math.max(v.y, 0.18), v.z * 0.5));
+        Tasks.later(5, () -> {
+            if (p.isDisconnected() || !p.isAlive()) return;
+            BLADE_UNTIL.put(id, Combat.now() + BLADE_TICKS);
+            heartbeat(p, 1f);
+            Tasks.later(BLADE_TICKS, () -> { if (BLADE_UNTIL.containsKey(id) && BLADE_UNTIL.get(id) <= Combat.now() + 1) endBlade(p); });
+            for (int t = 20; t < BLADE_TICKS; t += 20) Tasks.later(t, () -> { if (bladeOn(p)) heartbeat(p, 0.2f); });   // 과부하 동안 1초마다 뜀
+        });
+        Tasks.later(1, () -> JobSkills.clearCooldown(id, WEAPON_SKILL));
+        return true;
+    }
+
+    private static boolean heartBurst(ServerPlayerEntity p) {
+        ServerWorld w = p.getServerWorld();
+        Motion.play(p, "al_pump_burst");
+        Combat.afterSkill(p, 20);
+        BLADE_UNTIL.put(p.getUuid(), Combat.now() + 30);
+        Tasks.later(5, () -> { if (!p.isDisconnected()) heartbeat(p, 0.6f); });
+        Tasks.later(8, () -> { if (!p.isDisconnected()) heartbeat(p, 1.0f); });
+        Tasks.later(10, () -> {
+            if (p.isDisconnected() || !p.isAlive()) return;
+            Vec3d c = p.getPos().add(0, 1.0, 0);
+            for (Entity en : w.getOtherEntities(p, new Box(c, c).expand(3.6, 2.4, 3.6), x -> Targets.canHit(p, x)))
+                Combat.hit(p, (LivingEntity) en, HEART_BURST);
+            Fx.wave(w, c, 0.4, 5.0, Fx.RED, 9);
+            Fx.wave(w, p.getPos().add(0, 0.1, 0), 0.4, 4.0, Fx.RED, 8);
+            Fx.rings(w, c, new Vec3d(0, 1, 0), 4f, 3);
+            Fx.word(w, c.add(0, 1.6, 0), Fx.Sfx.DOGOOON, 1.5f);
+            w.spawnParticles(HEART_RED, c.x, c.y, c.z, 60, 1.2, 0.8, 1.2, 0.3);
+            Fx.shakeAround(w, c, 12, 0.9f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.9f, 1.3f);
+            endBlade(p);
+        });
         return true;
     }
 
@@ -458,9 +589,10 @@ public final class AlchemistJob implements JobType {
 
     /** 칼날 마무리 (ABA 무기 연성 공중 마무리): 발밑에서 기둥이 솟아 나를 띄움 → 꼭대기에서 칼날을 아래로 꽂으며 내리꽂힘 → 착지 충격 */
     private static boolean pillarPlunge(ServerPlayerEntity p) {
+        if (mail(p).equals("heart")) return heartBurst(p);
         ServerWorld w = p.getServerWorld();
         UUID id = p.getUuid();
-        Motion.play(p, "ab_plunge");
+        Motion.play(p, mail(p).equals("leg") ? "alk_plunge" : "ab_plunge");   // 의족: 칼날 단 왼발로 드롭킥
         Combat.afterSkill(p, 28);
         BLADE_UNTIL.put(id, Combat.now() + 60);   // 낙하하는 동안 칼날 유지
         Tasks.later(3, () -> {
@@ -913,7 +1045,7 @@ public final class AlchemistJob implements JobType {
         Combat.invuln(p, AWAKEN_SCENE);
         Combat.afterSkill(p, AWAKEN_SCENE - 6);
         Awaken.extend(p, AWAKEN_SCENE);
-        AlchemySounds.play(p, AlchemySounds.AWAKEN, 1.2f);
+        AlchemySounds.voice(p, AlchemySounds.AWAKEN, List.of(p));   // 컷신 카메라가 멀어도 크게
         startTheme(p);
         for (int t = 0; t <= 28; t += 4) Tasks.later(t, () -> { if (!p.isDisconnected()) Fx.smoke(w, p.getPos().add(0, 0.1, 0), 8, 1.0); });
         Tasks.later(40, () -> {
@@ -1056,11 +1188,11 @@ public final class AlchemistJob implements JobType {
         Combat.invuln(p, ULT_SCENE);
         Combat.afterSkill(p, ULT_SCENE - 8);
         Awaken.extend(p, ULT_SCENE);
-        AlchemySounds.play(p, AlchemySounds.GROUND, 1.3f);
         List<ServerPlayerEntity> viewers = new ArrayList<>();
         viewers.add(p);
         for (LivingEntity t : ts) { hold(t, 74); if (t instanceof ServerPlayerEntity sp) viewers.add(sp); }
         cutscene(p, "al_ult", ts.get(0), viewers);
+        AlchemySounds.voice(p, AlchemySounds.GROUND, viewers);
         w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_EMERGE, SoundCategory.PLAYERS, 1.0f, 0.8f);
         for (int i = 8; i < 50; i += 3) {
             final int ii = i;

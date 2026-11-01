@@ -35,7 +35,7 @@ public class AutomailRender extends FeatureRenderer<AbstractClientPlayerEntity, 
         public boolean legMetal() { return legGone() && "leg".equals(automail); }
         /** 오토메일 연성(의수 칼날) 또는 무기 연성(공중) 칼날 */
         public boolean armBlade() { return (buff & 7) == 1 || (buff & 8) != 0; }
-        public boolean legBlade() { return (buff & 7) == 2; }
+        public boolean legBlade() { return (buff & 7) == 2 || (buff & 16) != 0; }
     }
 
     public static final Map<UUID, Body> BODIES = new HashMap<>();

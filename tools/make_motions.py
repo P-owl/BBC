@@ -655,17 +655,17 @@ anim("al_awaken", 170, P(0, LIN, **STAND) + P(30, LIN, **STAND)
      + P(138, EX, rightArm=(-92, -14, 0, 0), leftArm=(-12, 0, -12, -24), body=(-4, 22, 0), head=(-2, 22, 0), **DEEP_R)
      + P(160, LIN, rightArm=(-92, -14, 0, -2), body=(-4, 22, 0), head=(-2, 22, 0))
      + P(170, IO, **AL_STANCE))
-# 각성기 '대지의 심판' (컷신 100틱, 대사에 맞춤): 두 팔을 머리 위로 들고 버팀(연성 에너지가 모임) → 크게 손뼉(50) →
+# 각성기 '대지의 심판' (컷신 100틱, 대사에 맞춤): 가슴 앞에 손을 모으고 낮게 버팀(연성 에너지가 모임) → 크게 손뼉(50) →
 #   한쪽 무릎 꿇고 두 손바닥으로 땅을 내리침(60) → 버팀 → 일어섬
 anim("al_ult", 100, al(60, 100, [
-    (8, IO, dict(**CLAP_UP, body=(10, -6, 0), head=(-24, -6, 0), **SUMO)),
-    (46, LIN, dict(rightArm=(-172, -10, -4, -24), leftArm=(-172, 10, 4, -24), body=(12, -6, 0), head=(-26, -6, 0))),
-    (50, EX, dict(CLAP, body=(-6, -6, 0), head=(0, -6, 0), **SUMO)),
-    (57, LIN, dict(CLAP, body=(-8, -6, 0))),
+    (6, IO, dict(CLAP, body=(-4, -6, 0), head=(2, -6, 0), **SUMO)),                 # 가슴 앞에 손을 모으고 낮게 버팀 (에너지가 모임)
+    (44, LIN, dict(rightArm=(-46, -43, 26, -86), leftArm=(-46, 43, -26, -86), body=(-6, -6, 0), head=(2, -6, 0))),
+    (47, IO, dict(rightArm=(-60, -10, 50, -70), leftArm=(-60, 10, -50, -70), body=(4, -6, 0))),   # 손을 살짝 벌렸다가
+    (50, EX, dict(CLAP, body=(-8, -6, 0), head=(0, -6, 0), **SUMO)),               # 크게 손뼉
+    (57, LIN, dict(CLAP, body=(-10, -6, 0))),
     (60, EX, PLANT2),
     (88, LIN, dict(PLANT2, body=(-46, -14, 0))),
 ], hold=0))
-
 # 백덤블링 (기둥 벽 · 창조의 기둥, ABA Spike·Pillars of Creation): 낮게 웅크렸다(3) 뒤로 솟구쳐 → 다리를 벌린 채 무릎을 당기고
 #   몸 전체가 뒤로 한 바퀴(12틱에 걸쳐 천천히) → 공중에서 손뼉 → 착지하며 한쪽 무릎 꿇고 땅을 짚음 (판정 16틱: 기둥들이 솟음)
 anim("al_backflip", 28, P(0, LIN, **AL_STANCE)
@@ -721,6 +721,99 @@ anim("ab_plunge", 30, P(0, LIN, **AL_STANCE)
          rightLeg=(36, 0, 24, 40), leftLeg=(18, 0, -24, 60))
      + P(24, LIN, body=(-72, 0, 0), rightArm=(-26, -6, 4, 0))
      + P(30, IO, **AL_STANCE))
+
+# 창조의 기둥 (각성 1, ABA Pillars of Creation 99.2~101.2초 프레임): 웅크렸다 뛰어오르며 빠르게 뒤로 반 바퀴 →
+#   머리가 아래로 거꾸로 뜬 채(두 손은 땅 쪽, 다리는 하늘로 벌림) 잠깐 멈춰 연성 — 이때 1차 기둥 →
+#   나머지 반 바퀴 돌아 착지하며 한쪽 무릎 꿇고 땅을 짚음 — 2차 기둥 (판정 8 · 20틱)
+FLIP_INV = dict(rightArm=(-168, -8, 14, -10), leftArm=(-168, 8, -14, -10), head=(-30, 0, 0),
+                rightLeg=(-14, 0, 22, 30), leftLeg=(10, 0, -22, 20))
+anim("al_flip", 34, P(0, LIN, **AL_STANCE)
+     + P(2, IO, body=(-16, -10, 0), head=(-8, -10, 0), rightArm=(24, 0, 20, -20), leftArm=(24, 0, -20, -20), **SUMO)
+     + P(3, LIN, body=(0, 0, 0), bodyPos=(0, 0, 0))
+     + P(6, OQ, body=(180, 0, 0), **FLIP_INV)
+     + P(12, LIN, body=(186, 0, 6))
+     + P(16, IO, body=(182, 0, 0), rightArm=(-160, -10, 20, -20), leftArm=(-160, 10, -20, -20))
+     + P(19, IQ, body=(352, 0, 0), rightLeg=(-40, 0, 24, 60), leftLeg=(-24, 0, -24, 50))
+     + P(20, CONST, body=(0, 0, 0))
+     + P(20, EX, **PLANT1)
+     + P(27, LIN, **dict(PLANT1, body=(-36, -18, 0)))
+     + P(34, IO, **AL_STANCE))
+
+# ── 의족(왼다리 오토메일)이면 평타가 발차기 위주 (alk_*). 칼날은 왼다리(의족)에 → 마무리는 왼발 ──
+LK_ARMS = dict(rightArm=(-60, -20, 20, -100), leftArm=(-40, 30, -40, -60))   # 차는 동안 팔은 균형 (가드)
+anim("alk_1", 10, al(4, 10, [   # 왼발 앞차기: 무릎을 당겼다가 쭉 뻗음
+    (2, IO, dict(body=(4, -30, 0), head=(0, -30, 0), leftLeg=(-70, 0, -10, 100), rightLeg=(10, 0, 16, 26), bodyPos=(0, -0.08, 0), **LK_ARMS)),
+    (4, EX, dict(body=(14, -28, 0), head=(-6, -28, 0), leftLeg=(-96, 0, -6, 0), rightLeg=(12, 0, 16, 22), bodyPos=(0, -0.05, 0))),
+]))
+anim("alk_2", 10, al(4, 10, [   # 오른발 돌려차기 (옆구리 높이): 몸을 감았다가 왼쪽으로 크게 돌며 정강이로 후림
+    (2, IO, dict(body=(0, -60, 0), head=(0, -50, 0), rightLeg=(-30, 0, 40, 80), leftLeg=(-6, 0, -16, 30), bodyPos=(0, -0.08, 0), **LK_ARMS)),
+    (4, EX, dict(body=(10, 40, -16), head=(-4, 36, 0), rightLeg=(-78, 0, 58, 6), leftLeg=(6, 0, -14, 24), bodyPos=(0, -0.04, 0),
+                 rightArm=(-20, 0, 60, -20), leftArm=(-60, 20, -50, -40))),
+]))
+anim("alk_3", 10, al(4, 10, [   # 왼발 옆차기: 몸을 옆으로 눕히듯 기울이며 발바닥으로 밀어 참
+    (2, IO, dict(body=(0, -70, 10), head=(0, -60, 0), leftLeg=(-60, 0, -30, 110), rightLeg=(8, 0, 18, 30), bodyPos=(0, -0.1, 0), **LK_ARMS)),
+    (4, EX, dict(body=(0, -78, 26), head=(0, -64, -14), leftLeg=(-84, 0, -46, 0), rightLeg=(10, 0, 20, 20), bodyPos=(0, -0.08, 0))),
+]))
+anim("alk_4", 11, al(4, 11, [   # 뒤돌려차기: 등을 보이며 한 바퀴 가까이 돌고 오른발 뒤꿈치로 머리 높이를 후림
+    (1, IO, dict(body=(0, -40, 0), head=(0, -30, 0), rightLeg=(-20, 0, 20, 60), leftLeg=(-10, 0, -16, 30), bodyPos=(0, -0.1, 0), **LK_ARMS)),
+    (3, IQ, dict(body=(10, 100, -10), head=(0, 60, 0))),
+    (4, EX, dict(body=(18, 150, -20), head=(-10, 90, 0), rightLeg=(-110, 0, 40, 0), leftLeg=(6, 0, -14, 20), bodyPos=(0, 0, 0),
+                 rightArm=(-30, 0, 70, -20), leftArm=(-40, 0, -70, -20))),
+    (6, OQ, dict(body=(14, 180, -10), head=(-6, 100, 0))),
+    (7, CONST, dict(body=(14, -180, -10), head=(-6, -100, 0))),
+], hold=0))
+anim("alk_5", 17, al(6, 17, [   # 마무리 (선딜 6): 손뼉 → 왼발을 머리 위까지 차올렸다가 발뒤꿈치로 내리찍음 (찍은 자리에 연성진 + 기둥)
+    (2, OQ, dict(**CLAP, **COIL)),
+    (4, IO, dict(body=(16, -30, 0), head=(-10, -30, 0), leftLeg=(-160, 0, -10, 10), rightLeg=(14, 0, 18, 30), bodyPos=(0, -0.06, 0),
+                 rightArm=(-40, 0, 50, -40), leftArm=(-40, 0, -50, -40))),
+    (6, EX, dict(body=(-24, -30, 0), head=(-20, -30, 0), leftLeg=(-50, 0, -16, 20), rightLeg=(30, 0, 20, 40), bodyPos=(0, -0.22, 0))),
+], hold=6))
+anim("alk_rise", 11, al(4, 11, [   # 띄우기: 몸을 숙였다가 왼발로 하늘 높이 올려참 (초승달 차기)
+    (2, IO, dict(body=(-16, -20, 0), head=(-10, -20, 0), leftLeg=(10, 0, -24, 40), rightLeg=(-30, 0, 20, 60), bodyPos=(0, -0.2, 0), **LK_ARMS)),
+    (4, EX, dict(body=(26, -20, -10), head=(-20, -20, 0), leftLeg=(-170, 0, -20, 0), rightLeg=(14, 0, 16, 20), bodyPos=(0, 0, 0),
+                 rightArm=(-30, 0, 60, -20), leftArm=(-30, 0, -60, -20))),
+], hold=3))
+# 다운 슬램 (의족): 공중에서 손뼉 → 왼다리에 칼날 연성 → 몸 전체를 뒤로 젖혀 왼다리를 머리 위로 → 고꾸라지며 발뒤꿈치 칼날로 내리찍음
+anim("alk_slam", 15, P(0, LIN, **AL_ARMS, **AIRL)
+     + P(1, OQ, **CLAP)
+     + P(3, IO, body=(30, -20, 0), head=(-24, -20, 0), leftLeg=(-170, 0, -14, 10), rightLeg=(10, 0, 20, 50),
+         rightArm=(-30, 0, 60, -30), leftArm=(-30, 0, -60, -30))
+     + P(4, EX, body=(-40, -20, 0), head=(-30, -20, 0), leftLeg=(-40, 0, -16, 6), rightLeg=(40, 0, 22, 60))
+     + P(9, LIN, body=(-38, -20, 0))
+     + P(15, IO, **AL_STANCE))
+# 칼날 연성 (의족·공중): 손뼉 → 왼무릎을 가슴까지 당겨 세움 (정강이에서 칼날이 솟음)
+anim("alk_bladeforge", 12, al(6, 12, [
+    (3, EX, dict(**CLAP, **AIRL)),
+    (6, EX, dict(rightArm=(-40, 0, 50, -40), leftArm=(-40, 0, -50, -40), body=(6, -30, 0), head=(0, -30, 0),
+                 leftLeg=(-110, 0, -16, 120), rightLeg=(10, 0, 20, 40))),
+], hold=3))
+# 기둥 낙하 (의족): 발밑 기둥에 튕겨 솟구침 → 공중에서 몸을 웅크렸다가 → 몸 전체를 앞으로 기울이며 칼날 단 왼발을 앞·아래로 쭉 뻗고 내리꽂힘 (드롭킥)
+anim("alk_plunge", 30, P(0, LIN, **AL_STANCE)
+     + P(3, IO, body=(-18, -20, 0), head=(-8, -20, 0), rightArm=(10, 0, 14, -30), leftArm=(10, 0, -14, -30), **SUMO)
+     + P(5, OQ, body=(14, 0, 0), head=(-16, 0, 0), rightArm=(-150, 0, 20, -20), leftArm=(-150, 0, -20, -20), **AIRL)
+     + P(9, IO, body=(20, 0, 0), head=(-20, 0, 0), **TUCK)
+     + P(11, EX, body=(-40, -20, 0), head=(-36, -20, 0), leftLeg=(-60, 0, -8, 0), rightLeg=(-20, 0, 24, 100),
+         rightArm=(-150, 0, 30, -20), leftArm=(-150, 0, -30, -20))
+     + P(24, LIN, body=(-38, -20, 0))
+     + P(30, IO, **AL_STANCE))
+
+# ── 강철 심장 ──
+# 심장 펌핑 (공중 무기 연성): 오른 주먹으로 왼가슴을 쾅 — 심장이 뛰며 붉은 파동 (20초 과부하)
+PUMP = dict(rightArm=(-70, -60, -10, -110), leftArm=(-30, 20, -40, -40), body=(-10, -10, 0), head=(10, -10, 0))
+anim("al_pump", 14, al(5, 14, [
+    (3, IO, dict(rightArm=(-60, -10, 40, -100), body=(6, -20, 0), head=(-6, -20, 0), **AIRL)),
+    (5, EX, dict(**PUMP, **AIRL)),
+    (8, LIN, dict(PUMP, body=(-14, -10, 0))),
+], hold=0))
+# 심장 폭주 (마무리): 몸을 웅크려 심장을 두 번 펌핑 → 두 팔을 벌리고 가슴을 펴며 붉은 충격파를 터뜨림 (판정 10틱)
+anim("al_pump_burst", 22, al(10, 22, [
+    (3, IO, dict(**PUMP, **COIL)),
+    (5, EX, dict(PUMP, body=(-20, -10, 0))),
+    (7, IO, dict(PUMP, body=(-8, -10, 0))),
+    (8, EX, dict(PUMP, body=(-24, -10, 0), **SUMO)),
+    (10, EX, dict(rightArm=(-40, 0, 80, -10), leftArm=(-40, 0, -80, -10), body=(16, 0, 0), head=(-24, 0, 0),
+                  rightLeg=(-10, 0, 24, 20), leftLeg=(-10, 0, -24, 20), bodyPos=(0, -0.1, 0))),
+], hold=5))
 
 # ── 달리기 (전투 모드 중 달릴 때 자세 층에 깔림) ──
 # 다리·팔 흔들기는 바닐라(걸음 속도에 맞춰 흔들림)를 그대로 두고, 몸만 앞으로 숙이고 팔꿈치를 굽혀 달리는 모양만 잡음

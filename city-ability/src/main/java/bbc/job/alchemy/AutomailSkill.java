@@ -89,12 +89,13 @@ public final class AutomailSkill {
 
     static BodyPayload payload(ServerPlayerEntity p) {
         AlchemyData.Entry e = Alch.entry(p);
-        int buff = BUFF.getOrDefault(p.getUuid(), 0) | (FORGED.contains(p.getUuid()) ? FORGED_BIT : 0);
+        int buff = BUFF.getOrDefault(p.getUuid(), 0)
+                | (FORGED.contains(p.getUuid()) ? (available(e) && "leg".equals(e.automail) ? FORGED_LEG_BIT : FORGED_BIT) : 0);   // 의족이면 다리 칼날
         return new BodyPayload(p.getUuid(), e.toll, e.automail, buff);
     }
 
     /** 무기 연성(공중) 칼날: 오토메일 의수(없으면 장갑 낀 팔) 바깥에 칼날을 그림. buff 의 8 비트 */
-    public static final int FORGED_BIT = 8;
+    public static final int FORGED_BIT = 8, FORGED_LEG_BIT = 16;
     private static final java.util.Set<UUID> FORGED = new java.util.HashSet<>();
 
     public static void setForgedBlade(ServerPlayerEntity p, boolean on) {

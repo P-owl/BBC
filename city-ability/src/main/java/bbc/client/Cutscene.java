@@ -60,12 +60,12 @@ public final class Cutscene {
                 k(136, 2.2, 1.45, 0.25, 0, 1.45, 0),
                 k(160, 1.6, 1.5, 0.15, 0, 1.45, 0)));
         // 연금술사 각성기 '대지의 심판' (100틱, 대사 두 토막에 맞춤): 아래에서 두 팔을 든 모습을 천천히 돌아봄 → 손뼉 클로즈업 →
-        //   높이 올라가 대상 위로 바위 손이 덮치는 장면. 기술 이름 대신 대사 자막
+        //   높이 올라가 대상 위로 바위 손이 덮치는 장면. 기술 이름 대신 대사 자막 (가슴 앞에 손을 모은 모습부터)
         SHOTS.put("al_ult", new Shot(100, 10, true, null, null, 0,
                 new Line[]{new Line(4, "망할 진리와 함께.."), new Line(57, " 네놈들도 날려주마!")},
-                cut(0, 2.2, 0.6, 0.9, 0, 1.8, 0),
-                k(30, 2.6, 0.8, -0.6, 0, 1.8, 0),
-                k(48, 2.0, 1.2, -0.3, 0, 1.5, 0),
+                cut(0, 2.2, 0.6, 0.9, 0, 1.3, 0),
+                k(30, 2.6, 0.8, -0.6, 0, 1.25, 0),
+                k(48, 2.0, 1.1, -0.3, 0, 1.2, 0),
                 cut(50, 1.4, 1.5, 0.2, 0, 1.3, 0),
                 k(59, 1.5, 1.4, 0.3, 0, 1.0, 0),
                 cutT(60, -3.2, 6.5, 2.4, 0.6),
@@ -86,6 +86,7 @@ public final class Cutscene {
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(CutscenePayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             if (p.shot().startsWith("#music:")) music(ctx.client(), p.shot().substring(7));
+            else if (p.shot().startsWith("#sound:")) voice(ctx.client(), p.shot().substring(7));
             else if (p.shot().equals("#music_stop")) music(ctx.client(), null);
             else play(ctx.client(), p);
         }));
@@ -126,8 +127,18 @@ public final class Cutscene {
         Identifier sid = Identifier.tryParse(id);
         if (sid == null) return;
         c.getMusicTracker().stop();
-        musicNow = net.minecraft.client.sound.PositionedSoundInstance.music(net.minecraft.sound.SoundEvent.of(sid));
+        // '음반' 소리 설정으로 (음악 볼륨을 꺼 둔 사람이 많아 '음악' 으로 틀면 안 들렸음). 화면 기준으로 들림
+        musicNow = new net.minecraft.client.sound.PositionedSoundInstance(sid, net.minecraft.sound.SoundCategory.RECORDS, 0.9f, 1.0f,
+                net.minecraft.client.sound.SoundInstance.createRandom(), false, 0, net.minecraft.client.sound.SoundInstance.AttenuationType.NONE, 0, 0, 0, true);
         c.getSoundManager().play(musicNow);
+    }
+
+    /** 컷신 대사: 카메라가 멀리 있어도 작아지지 않게 화면 기준으로 (서버가 "#sound:<id>" 로 보냄) */
+    private static void voice(MinecraftClient c, String id) {
+        Identifier sid = Identifier.tryParse(id);
+        if (sid == null) return;
+        c.getSoundManager().play(new net.minecraft.client.sound.PositionedSoundInstance(sid, net.minecraft.sound.SoundCategory.PLAYERS, 1.0f, 1.0f,
+                net.minecraft.client.sound.SoundInstance.createRandom(), false, 0, net.minecraft.client.sound.SoundInstance.AttenuationType.NONE, 0, 0, 0, true));
     }
 
     public static boolean active() { return shot != null; }
@@ -223,7 +234,7 @@ public final class Cutscene {
         ctx.fill(W / 2 - lw, H - bar - 13, W / 2 + lw, H - bar - 12, (alpha << 24) | 0x8C6A1E);
     }
 
-    /** 대사 자막: 아래 검은 띠 가운데, 흰 글씨. 토막마다 정해진 틱부터 한 글자씩 (틱당 0.6자) 이어 붙음 */
+    /** 대사 자막: 아이템창·체력칸 위, 흰 글씨. 토막마다 정해진 틱부터 한 글자씩 (틱당 0.6자) 이어 붙음 */
     private static void subtitle(DrawContext ctx, Shot s, double t, int W, int H, int bar, double out) {
         StringBuilder b = new StringBuilder();
         for (Line l : s.lines()) {
@@ -238,7 +249,7 @@ public final class Cutscene {
         Text line = Text.literal(b.toString());
         float sc = 1.5f;
         ctx.getMatrices().push();
-        ctx.getMatrices().translate(W / 2f, H - bar / 2f - 4 * sc, 0);
+        ctx.getMatrices().translate(W / 2f, H - Math.max(bar, 30) - 44, 0);   // 아이템창·체력칸 위
         ctx.getMatrices().scale(sc, sc, 1);
         ctx.drawText(tr, line, -tr.getWidth(line) / 2, 0, (alpha << 24) | 0xFFFFFF, true);
         ctx.getMatrices().pop();

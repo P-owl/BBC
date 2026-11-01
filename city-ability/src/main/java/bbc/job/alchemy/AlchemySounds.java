@@ -32,6 +32,25 @@ public final class AlchemySounds {
     /** 클래스 로딩 = 등록 (모드 초기화에서 부름) */
     public static void register() {}
 
+    /**
+     * 컷신 대사: 컷신을 보는 사람(listeners)에겐 화면 기준으로 크게 (카메라가 멀리 있어도 안 작아짐), 주변 다른 사람에겐 시전자 자리에서
+     */
+    public static void voice(ServerPlayerEntity p, SoundEvent s, java.util.List<ServerPlayerEntity> listeners) {
+        bbc.net.CutscenePayload pl = new bbc.net.CutscenePayload("#sound:" + s.getId(), p.getId(), -1);
+        java.util.Set<java.util.UUID> got = new java.util.HashSet<>();
+        for (ServerPlayerEntity v : listeners) {
+            if (!net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(v, bbc.net.CutscenePayload.ID)) continue;
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(v, pl);
+            got.add(v.getUuid());
+        }
+        var entry = Registries.SOUND_EVENT.getEntry(s);
+        long seed = p.getRandom().nextLong();
+        for (ServerPlayerEntity o : p.getServerWorld().getPlayers()) {
+            if (got.contains(o.getUuid()) || o.squaredDistanceTo(p) > 32 * 32) continue;
+            o.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket(entry, SoundCategory.PLAYERS, p.getX(), p.getY(), p.getZ(), 2.0f, 1.0f, seed));
+        }
+    }
+
     /** 시전자 자리에서 (주변 사람도 들림) */
     public static void play(ServerPlayerEntity p, SoundEvent s, float volume) {
         p.getServerWorld().playSound(null, p.getX(), p.getY(), p.getZ(), s, SoundCategory.PLAYERS, volume, 1.0f);
