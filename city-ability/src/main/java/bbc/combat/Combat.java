@@ -445,6 +445,10 @@ public final class Combat {
         float dmg = h.damage() * scale * bbc.grow.Growth.damageMul(atk, FROM_M1.get(), Weapon.current(atk));   // 성장 스탯·특성·종족
         if (FROM_M1.get() && now < a.awakenUntil) dmg *= Awaken.M1_BONUS; // 각성 중 평타 강화
         if (now < a.dmgBuffUntil) dmg *= a.dmgBuffMul;                      // 직업 버프
+        if (atk instanceof ServerPlayerEntity jp) {                          // 직업 상시 배수 (뱀파이어 밤·포만 / 갈증)
+            bbc.job.JobType jt = bbc.job.Jobs.type(bbc.job.Jobs.entry(jp));
+            if (jt != null) dmg *= jt.damageMul(jp);
+        }
 
         if (!deal(atk, t, dmg)) { v.comboHits--; return Result.MISS; }
         Awaken.onHit(atk, t, dmg);
@@ -462,7 +466,8 @@ public final class Combat {
         Vec3d dir = away(atk, t);
         Vec3d vel = switch (h.kind()) {
             case HIT -> new Vec3d(dir.x * h.push(), Math.min(t.getVelocity().y, 0.0), dir.z * h.push());
-            case AIR, KNOCK, DOWN -> { double pu = h.push() * (h.kind() == Hit.Kind.KNOCK && bbc.grow.Growth.has(atk, bbc.grow.Talent.HEAVY_FINISH) ? 1.25 : 1); yield new Vec3d(dir.x * pu, h.lift(), dir.z * pu); }
+            case AIR, KNOCK, DOWN -> { double pu = h.push() * (h.kind() == Hit.Kind.KNOCK && bbc.grow.Growth.has(atk, bbc.grow.Talent.HEAVY_FINISH) ? 1.25 : 1)
+                    * (h.kind() == Hit.Kind.KNOCK && now < a.pushBuffUntil ? a.pushBuffMul : 1); yield new Vec3d(dir.x * pu, h.lift(), dir.z * pu); }
         };
         boolean atkInAir = !atk.isOnGround();
         if (h.kind() == Hit.Kind.AIR && atkInAir && h.lift() < 0.3) {

@@ -8,7 +8,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 /**
  * 연성 기술이 맞힐 수 있는 대상.
- *  - 몹: 전부 (내가 길들인 동물·갑옷 거치대 제외)
+ *  - 몹: 전부 (내가 길들인 동물·내 하인·갑옷 거치대 제외)
  *  - 플레이어: 서버 PvP 설정을 따름
  */
 public final class Targets {
@@ -18,6 +18,7 @@ public final class Targets {
         if (!(e instanceof LivingEntity) || !e.isAlive() || e == caster) return false;
         if (e.getType() == EntityType.ARMOR_STAND) return false;
         if (e instanceof TameableEntity te && caster.getUuid().equals(te.getOwnerUuid())) return false;
+        if (bbc.job.vampire.Thralls.ownedBy(e, caster)) return false;   // 내 하인
         return !pvpBlocked(caster, e);
     }
 

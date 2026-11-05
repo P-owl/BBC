@@ -42,6 +42,10 @@ public interface JobType {
     default boolean implant(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
     /** 직업 기술 피해의 기준 스탯 (null 이면 직업 숙련만). 예: 연금술사 = 지능 */
     default bbc.grow.Stat skillStat() { return null; }
+    /** 주는 피해 상시 배수 (예: 뱀파이어 밤·피 포만 1.15, 갈증 0.85) */
+    default float damageMul(ServerPlayerEntity p) { return 1f; }
+    /** 전투 HUD 기술 카드 위 제목 (예: 뱀파이어는 피 게이지를 같이) */
+    default String hudTitle(ServerPlayerEntity p, PlayerData.Entry e) { return name(); }
     /** 궁극기 이름 (HUD 기술 목록 맨 아래). 직업 궁극기가 없으면 공통 '난무' */
     default String ultimateName() { return "난무"; }
 }

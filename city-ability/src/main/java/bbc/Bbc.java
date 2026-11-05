@@ -53,6 +53,7 @@ public class Bbc implements ModInitializer {
         bbc.job.alchemy.AlchemyGolem.register();
         bbc.job.alchemy.AutomailSkill.register();
         bbc.job.alchemy.AlchemistJob.register();
+        bbc.job.vampire.VampireJob.register();   // 석가면 뱀파이어 (직업 등록·석가면 아이템·하인)
 
         Tasks.register();
         Stamina.register();

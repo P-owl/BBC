@@ -93,6 +93,7 @@ public final class MobAI {
     private static long clock;
 
     public static Tier tier(LivingEntity e) {
+        if (e.getCommandTags().contains("bbc_thrall")) return null;   // 뱀파이어 하인인 동안은 쉼
         for (String t : e.getCommandTags()) if (t.startsWith("bbc_ai_")) return Tier.byId(t.substring(7));
         return null;
     }

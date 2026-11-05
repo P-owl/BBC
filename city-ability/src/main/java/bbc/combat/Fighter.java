@@ -38,6 +38,9 @@ public final class Fighter {
     // ── 버프 (직업 기술: 예 연금술사 최후의 일격 = 주는 피해 ×1.4) ──
     public long dmgBuffUntil;
     public float dmgBuffMul = 1f;
+    /** 직업 버프: 날려보내는 힘 배수 (뱀파이어 괴력) */
+    public long pushBuffUntil;
+    public float pushBuffMul = 1f;
 
     // ── 각성 ──
     double awakenGauge;   // 0~100
@@ -67,8 +70,8 @@ public final class Fighter {
     long m1ChainUntil;    // 이 틱이 지나면 평타 사슬 처음부터
     long recoveryUntil;   // 후딜이 끝나는 틱 (대시 캔슬 판정)
     long airComboUntil;   // 공중 콤보 중 (나도 낙하가 느려짐)
-    UUID lastTarget;      // 마지막으로 때린 상대 (대시 추격)
-    long lastTargetAt;
+    public UUID lastTarget;      // 마지막으로 때린 상대 (대시 추격, 뱀파이어 하인)
+    public long lastTargetAt;
     int buffered;         // 0 없음, 1 평타, 2 스페이스+평타
     long bufferedAt;
     int token;            // 선딜 중인 공격을 취소할 때 올림
