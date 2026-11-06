@@ -72,9 +72,40 @@ public final class GrowthNet {
                 if (tool == null) { p.sendMessage(net.minecraft.text.Text.literal("가방에 " + s.tool + "이(가) 없습니다").formatted(net.minecraft.util.Formatting.GRAY), true); break; }
                 if (Growth.confirm(p, s)) GrowthEvents.useTool(p, tool);
             }
+            case GrowthActionPayload.EQUIP -> equip(p, arg);
+            case GrowthActionPayload.UNEQUIP -> {
+                try {
+                    int k = Integer.parseInt(arg.trim());
+                    var e = bbc.job.Jobs.entry(p);
+                    int[] eq = JobSkills.equipped(e);
+                    if (k >= 0 && k < JobSkills.SLOTS) { eq[k] = -1; JobSkills.setEquipped(e, eq); bbc.job.Jobs.dirty(p); }
+                } catch (NumberFormatException ignored) {}
+            }
             default -> {}
         }
         sync(p, 0);
+    }
+
+    /** 스탯 창 '기술' 탭: 기술을 칸에 장착. 이미 다른 칸에 있으면 두 칸을 맞바꿈. 등급이 모자라면 안 됨 */
+    private static void equip(ServerPlayerEntity p, String arg) {
+        String[] a = arg.split(",");
+        if (a.length != 2) return;
+        int k, idx;
+        try { k = Integer.parseInt(a[0].trim()); idx = Integer.parseInt(a[1].trim()); } catch (NumberFormatException ex) { return; }
+        var e = bbc.job.Jobs.entry(p);
+        JobSkills.Set set = JobSkills.of(e);
+        if (set == null || k < 0 || k >= JobSkills.SLOTS) return;
+        JobSkills.Skill[] sk = set.skills(p, e);
+        if (idx < 0 || idx >= sk.length || sk[idx] == null) return;
+        if (sk[idx].rank() > bbc.job.Jobs.rank(e)) { p.sendMessage(net.minecraft.text.Text.literal(sk[idx].name() + " — 아직 등급이 모자랍니다").formatted(net.minecraft.util.Formatting.RED), true); return; }
+        int[] eq = JobSkills.equipped(e);
+        int was = -1;
+        for (int i = 0; i < eq.length; i++) if (eq[i] == idx) was = i;
+        if (was == k) return;
+        if (was >= 0) eq[was] = eq[k];   // 맞바꿈
+        eq[k] = idx;
+        JobSkills.setEquipped(e, eq);
+        bbc.job.Jobs.dirty(p);
     }
 
     static ItemStack findTool(ServerPlayerEntity p, Stat s) {
@@ -143,6 +174,26 @@ public final class GrowthNet {
             }
         }
         o.add("mastery", ms);
+        // 기술 장착 (스탯 창 '기술' 탭)
+        JsonArray sks = new JsonArray();
+        JsonArray eqa = new JsonArray();
+        if (set != null) {
+            JobSkills.Skill[] sk = set.skills(p, e);
+            int rank = Jobs.rank(e);
+            for (int i = 0; i < sk.length; i++) {
+                JsonObject m = new JsonObject();
+                if (sk[i] == null) { m.addProperty("name", ""); sks.add(m); continue; }
+                m.addProperty("name", sk[i].name()); m.addProperty("short", sk[i].shortName());
+                m.addProperty("cost", (int) sk[i].cost()); m.addProperty("cd", sk[i].cooldown());
+                m.addProperty("lock", sk[i].rank() > rank); m.addProperty("rankName", Jobs.type(e).rankName(sk[i].rank()));
+                m.addProperty("desc", sk[i].desc()); m.addProperty("m", Growth.mastery(e, i));
+                sks.add(m);
+            }
+            for (int v : JobSkills.equipped(e)) eqa.add(v);
+            o.addProperty("costName", set.costName());
+        }
+        o.add("skills", sks);
+        o.add("equip", eqa);
         return o;
     }
 

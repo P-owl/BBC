@@ -20,12 +20,13 @@ import java.util.List;
  * 성장 창 (K) — 마인크래프트 보관함 창 모양 (회색 상자, 왼쪽 레시피 책 탭, 바닐라 단추·발전과제 테두리·경험치 막대).
  *  상태: 파워(도전과제 테두리 + 경험치 레벨 같은 초록 숫자), 이름·종족·직업, 존재치(경험치 막대), 특성 4개(목표 테두리),
  *        스탯 8개(과제 테두리 안에 그 스탯의 수련 도구, 아래 = 수치 + 다음 1점 경험치 막대, 확정 대기면 노란 테두리 + 초록 +N → 클릭 확정)
- *  재능 카드: 왼쪽 목록 + 오른쪽 카드 / 기술 숙련: 보스 막대
+ *  재능 카드: 왼쪽 목록 + 오른쪽 카드 / 기술: 위 1~5 장착 칸 + 아래 기술 목록(누르면 고른 칸에 장착, 칸 우클릭 = 빼기) · 숙련 막대
  */
 public class GrowthScreen extends Screen {
     private static final int W = 300, H = 212;
     private int tab = 0;
     private int selCard = 0;
+    private int selSlot = -1;   // 기술 탭: 장착할 칸 (-1 = 첫 빈 칸)
     private final Ui.Hits hits = new Ui.Hits();
     private float sc = 1;
     private int ox, oy;
@@ -54,7 +55,7 @@ public class GrowthScreen extends Screen {
         m.scale(sc, sc, 1);
         TextRenderer tr = textRenderer;
         // 왼쪽 탭 (상자 뒤로 들어가게 먼저)
-        String[] names = {"상태", "재능 카드", "기술 숙련"};
+        String[] names = {"상태", "재능 카드", "기술 장착"};
         ItemStack[] icons = {new ItemStack(Items.EXPERIENCE_BOTTLE), new ItemStack(Items.PAPER), new ItemStack(Items.WRITABLE_BOOK)};
         for (int i = 0; i < 3; i++) {
             int ty = 18 + i * 28;
@@ -69,7 +70,7 @@ public class GrowthScreen extends Screen {
         if (GrowthClient.state.size() == 0) Ui.centered(ctx, tr, "불러오는 중...", W / 2, H / 2, Ui.TEXT, true);
         else if (tab == 0) drawStatus(ctx, tr, mx, my);
         else if (tab == 1) drawCards(ctx, tr, mx, my);
-        else drawMastery(ctx, tr);
+        else drawSkills(ctx, tr, mx, my);
         m.pop();
         List<String> tip = hits.tip(mx, my);
         if (tip != null && !tip.isEmpty()) {
@@ -108,7 +109,14 @@ public class GrowthScreen extends Screen {
             Ui.button(ctx, tr, bx, 29, 34, 14, "다시", hov, true);
             hits.add(bx, 29, 34, 14, () -> { click(); GrowthClient.send(GrowthActionPayload.REROLL, ""); }, null, List.of("종족 다시 굴리기", "한 번만 무료"));
         }
-        ctx.drawText(tr, "직업: " + GrowthClient.s("job"), lx, 44, Ui.TEXT, true);
+        String jl = "직업: " + GrowthClient.s("job");
+        ctx.drawText(tr, jl, lx, 44, Ui.TEXT, true);
+        if (st.has("skills") && !st.getAsJsonArray("skills").isEmpty()) {   // 기술 장착 바로 가기
+            int bx = lx + tr.getWidth(jl) + 4;
+            boolean hov = Ui.Hits.inside(mx, my, bx, 41, 52, 14);
+            Ui.button(ctx, tr, bx, 41, 52, 14, "기술 장착", hov, true);
+            hits.add(bx, 41, 52, 14, () -> { click(); tab = 2; }, null, List.of("기술 장착", "1~5 칸에 낄 기술을 바꿈 (왼쪽 세 번째 탭)"));
+        }
         // ── 존재치 = 경험치 막대
         String es = "존재치 " + (long) ep + " / " + (long) to;
         ctx.drawText(tr, es, lx, 56, Ui.TEXT, true);
@@ -259,25 +267,80 @@ public class GrowthScreen extends Screen {
         if (!GrowthClient.state.getAsJsonArray("pick").isEmpty()) pickButton(ctx, tr, cx - 60, cy + TalentScreen.CH + 6, mx, my);
     }
 
-    // ═════════ 숙련 ═════════
+    // ═════════ 기술 (장착 + 숙련) ═════════
 
-    private void drawMastery(DrawContext ctx, TextRenderer tr) {
-        JsonArray ms = GrowthClient.state.getAsJsonArray("mastery");
-        ctx.drawText(tr, "쓸 때마다 +2% · 100% = ★숙달 (재사용 대기·비용 −20%)", 8, 20, Ui.TEXT_DIM, true);
-        Ui.goldLine(ctx, 8, 32, W - 16, Ui.GOLD_D);
-        if (ms.isEmpty()) { ctx.drawText(tr, "직업 기술이 없습니다", 8, 40, Ui.TEXT_DIM, true); return; }
-        for (int i = 0; i < ms.size(); i++) {
-            JsonObject o = ms.get(i).getAsJsonObject();
-            double v = o.get("m").getAsDouble();
-            int y = 38 + i * 24;
-            boolean done = v >= 100;
-            Ui.frame(ctx, "task", done, 8, y - 2, 20);
-            Ui.centered(ctx, tr, done ? "★" : String.valueOf(i + 1), 18, y + 4, done ? 0xFFFFDD00 : Ui.WHITE, true);
-            ctx.drawText(tr, o.get("name").getAsString(), 34, y, Ui.TEXT, true);
-            String ps = done ? "숙달" : (int) v + "%";
-            ctx.drawText(tr, ps, W - 8 - tr.getWidth(ps), y, done ? Ui.GOLD : Ui.TEXT_DIM, true);
-            Ui.bossBar(ctx, done ? "yellow" : "green", 34, y + 11, (float) Math.min(1, v / 100));
+    private void drawSkills(DrawContext ctx, TextRenderer tr, double mx, double my) {
+        JsonObject st = GrowthClient.state;
+        JsonArray sk = st.has("skills") ? st.getAsJsonArray("skills") : new JsonArray();
+        JsonArray eq = st.has("equip") ? st.getAsJsonArray("equip") : new JsonArray();
+        if (sk.isEmpty()) { ctx.drawText(tr, "전투 기술이 있는 직업이 아닙니다", 8, 24, Ui.TEXT_DIM, true); return; }
+        String costName = st.has("costName") ? st.get("costName").getAsString() : "";
+        int n = Math.min(5, eq.size());
+        int target = selSlot;
+        if (target < 0) { for (int k = 0; k < n; k++) if (eq.get(k).getAsInt() < 0) { target = k; break; } }
+        if (target < 0) target = 0;
+        // ── 위: 1~5 장착 칸 (누르면 그 칸을 고름, 우클릭 = 빼기)
+        ctx.drawText(tr, "장착 칸", 8, 18, Ui.TITLE, true);
+        int bw = 54, gap = 3, x0 = 8, y0 = 28;
+        for (int k = 0; k < n; k++) {
+            int x = x0 + k * (bw + gap);
+            int idx = eq.get(k).getAsInt();
+            boolean has = idx >= 0 && idx < sk.size() && !sk.get(idx).getAsJsonObject().get("name").getAsString().isEmpty();
+            boolean sel = k == target, hov = Ui.Hits.inside(mx, my, x, y0, bw, 24);
+            Ui.inset(ctx, x, y0, bw, 24, sel ? 0xFF3A3020 : Ui.SLOT);
+            if (sel) { ctx.fill(x, y0, x + bw, y0 + 1, Ui.TITLE); ctx.fill(x, y0 + 23, x + bw, y0 + 24, Ui.TITLE); ctx.fill(x, y0, x + 1, y0 + 24, Ui.TITLE); ctx.fill(x + bw - 1, y0, x + bw, y0 + 24, Ui.TITLE); }
+            else if (hov) ctx.fill(x + 1, y0 + 1, x + bw - 1, y0 + 23, 0x20FFFFFF);
+            ctx.drawText(tr, String.valueOf(k + 1), x + 3, y0 + 3, sel ? Ui.TITLE : Ui.GRAY, true);
+            String nm = has ? sk.get(idx).getAsJsonObject().get("name").getAsString() : "비어 있음";
+            float s2 = Math.min(1f, (bw - 6) / (float) Math.max(1, tr.getWidth(nm)));
+            var m = ctx.getMatrices();
+            m.push(); m.translate(x + bw / 2f, y0 + 13, 0); m.scale(s2, s2, 1);
+            ctx.drawText(tr, nm, -tr.getWidth(nm) / 2, 0, has ? Ui.TEXT : Ui.TEXT_DIM, true);
+            m.pop();
+            final int kk = k;
+            hits.add(x, y0, bw, 24, () -> { selSlot = kk; click(); },
+                    has ? () -> { click(); GrowthClient.send(GrowthActionPayload.UNEQUIP, String.valueOf(kk)); } : null,
+                    List.of((k + 1) + "번 칸" + (has ? " — " + nm : ""), "클릭: 이 칸을 골라 아래 기술로 바꾸기", has ? "우클릭: 빼기" : ""));
         }
+        ctx.drawText(tr, "아래 기술을 누르면 " + (target + 1) + "번 칸에 장착 (이미 낀 기술이면 맞바꿈)", 8, 56, Ui.TEXT_DIM, true);
+        Ui.goldLine(ctx, 8, 66, W - 16, Ui.GOLD_D);
+        // ── 아래: 기술 목록 (이름 · 비용·재사용 · 숙련 막대)
+        int rows = sk.size(), rh = Math.min(15, (H - 74) / Math.max(1, rows));
+        for (int i = 0; i < rows; i++) {
+            JsonObject o = sk.get(i).getAsJsonObject();
+            String name = o.get("name").getAsString();
+            if (name.isEmpty()) continue;
+            int y = 70 + i * rh;
+            boolean lock = o.get("lock").getAsBoolean();
+            int on = -1;
+            for (int k = 0; k < n; k++) if (eq.get(k).getAsInt() == i) on = k;
+            boolean hov = Ui.Hits.inside(mx, my, 8, y, W - 16, rh - 1);
+            if (hov && !lock) ctx.fill(8, y, W - 8, y + rh - 1, 0x28FFFFFF);
+            double mv = o.get("m").getAsDouble();
+            String tag = lock ? "×" : on >= 0 ? "[" + (on + 1) + "]" : "";
+            ctx.drawText(tr, tag, 10, y + 3, on >= 0 ? Ui.TITLE : Ui.TEXT_DIM, true);
+            ctx.drawText(tr, name + (mv >= 100 ? " ★" : ""), 30, y + 3, lock ? Ui.TEXT_DIM : on >= 0 ? Ui.LIME : Ui.TEXT, true);
+            String info = (o.get("cost").getAsInt() > 0 ? costName + " " + o.get("cost").getAsInt() + " · " : "") + o.get("cd").getAsInt() + "초";
+            int ix = W - 8 - 60 - 6 - tr.getWidth(info);
+            ctx.drawText(tr, info, ix, y + 3, Ui.TEXT_DIM, false);
+            // 숙련 막대
+            int bx = W - 8 - 60, by = y + 5;
+            ctx.fill(bx, by, bx + 60, by + 3, Ui.DARK);
+            ctx.fill(bx, by, bx + (int) (60 * Math.min(1, mv / 100)), by + 3, mv >= 100 ? Ui.YELLOW : Ui.GREEN);
+            final int idx = i, tg = target;
+            List<String> tip = new ArrayList<>();
+            tip.add(name + (lock ? "  (" + o.get("rankName").getAsString() + "부터)" : on >= 0 ? "  (" + (on + 1) + "번 칸)" : ""));
+            for (String line : wrap(tr, o.get("desc").getAsString(), 220)) tip.add(line);
+            tip.add("숙련 " + (mv >= 100 ? "★숙달 (재사용·비용 −20%)" : (int) mv + "% (쓸 때마다 +2%)"));
+            if (!lock) tip.add("§a클릭: " + (tg + 1) + "번 칸에 장착");
+            hits.add(8, y, W - 16, rh - 1, lock ? null : () -> { click(); GrowthClient.send(GrowthActionPayload.EQUIP, tg + "," + idx); selSlot = -1; }, null, tip);
+        }
+    }
+
+    private static List<String> wrap(TextRenderer tr, String s, int width) {
+        List<String> out = new ArrayList<>();
+        for (var line : tr.getTextHandler().wrapLines(s, width, net.minecraft.text.Style.EMPTY)) out.add(line.getString());
+        return out;
     }
 
     @Override

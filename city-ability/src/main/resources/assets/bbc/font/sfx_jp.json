@@ -135,11 +135,47 @@
   },
   {
    "type": "bitmap",
+   "file": "bbc:font/sfx/mekyan.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue01b\ue01c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/gooa.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue01d\ue01e"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/dogusha.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue01f\ue020"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/pikin.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue021\ue022"
+   ]
+  },
+  {
+   "type": "bitmap",
    "file": "bbc:font/sfx/shape_ring.png",
    "height": 32,
    "ascent": 16,
    "chars": [
-    "\ue01b"
+    "\ue023"
    ]
   },
   {
@@ -148,7 +184,7 @@
    "height": 32,
    "ascent": 16,
    "chars": [
-    "\ue01c"
+    "\ue024"
    ]
   },
   {
@@ -157,7 +193,7 @@
    "height": 32,
    "ascent": 16,
    "chars": [
-    "\ue01d"
+    "\ue025"
    ]
   },
   {
@@ -166,7 +202,7 @@
    "height": 32,
    "ascent": 16,
    "chars": [
-    "\ue01e"
+    "\ue026"
    ]
   },
   {
@@ -175,7 +211,7 @@
    "height": 32,
    "ascent": 16,
    "chars": [
-    "\ue01f"
+    "\ue027"
    ]
   }
  ]

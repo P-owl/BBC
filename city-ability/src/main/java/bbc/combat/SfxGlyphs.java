@@ -18,12 +18,16 @@ final class SfxGlyphs {
         "\ue014\uf801\ue015", // DODODO ドドドドッ!!
         "\ue016\uf801\ue017", // BUON ブォン!
         "\ue018\uf801\ue019\uf801\ue01a", // DOGOOON ドゴォォォン!!!
+        "\ue01b\uf801\ue01c", // MEKYAN メキャン!
+        "\ue01d\uf801\ue01e", // GOOA ゴォアッ!
+        "\ue01f\uf801\ue020", // DOGUSHA ドグシャア!!
+        "\ue021\uf801\ue022", // PIKIN ピキィン!
     };
     static final String[] SHAPES = {
-        "\ue01b", // RING
-        "\ue01c", // FLASH
-        "\ue01d", // STAR
-        "\ue01e", // CRESCENT
-        "\ue01f", // SWISH
+        "\ue023", // RING
+        "\ue024", // FLASH
+        "\ue025", // STAR
+        "\ue026", // CRESCENT
+        "\ue027", // SWISH
     };
 }

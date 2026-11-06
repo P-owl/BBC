@@ -134,7 +134,7 @@ public final class Fx {
 
     /** tools/make_sfx_font.py 의 WORDS 와 같은 순서. 단어 하나 = 그림 글꼴 bbc:sfx_jp 의 글자 하나 (U+E000~) */
     public enum Sfx {
-        DON, BAKI, DOGO, GA, ZUDON, DOGON, ZAN, ZUBA, GAGIN, BAKIN, GOGO, DODODO, BUON, DOGOOON;
+        DON, BAKI, DOGO, GA, ZUDON, DOGON, ZAN, ZUBA, GAGIN, BAKIN, GOGO, DODODO, BUON, DOGOOON, MEKYAN, GOOA, DOGUSHA, PIKIN;
         String glyph() { return SfxGlyphs.WORDS[ordinal()]; }
     }
     public static final Sfx[] BLUNT = {Sfx.DON, Sfx.BAKI, Sfx.DOGO, Sfx.GA};   // 주먹·둔기 마무리
@@ -187,7 +187,10 @@ public final class Fx {
      * 타격 순간의 '파열' (만화에서 맞은 자리에 터지는 뾰족한 흰·검은 가시): 가는 가시 판을 사방으로 뻗었다가 3~4틱 만에 바깥으로 날아가며 사라짐.
      * dir = 때린 방향 (가시가 그쪽으로 더 길게 뻗음)
      */
-    public static void burst(ServerWorld w, Vec3d c, Vec3d dir, float size) {
+    public static void burst(ServerWorld w, Vec3d c, Vec3d dir, float size) { burst(w, c, dir, size, PAPER, INK); }
+
+    /** 색을 고른 파열 (예: 금빛 가시 = 올스타 배틀식 타격 줄기) */
+    public static void burst(ServerWorld w, Vec3d c, Vec3d dir, float size, BlockState main, BlockState accent) {
         var rnd = w.getRandom();
         int n = 11;
         for (int i = 0; i < n; i++) {
@@ -198,7 +201,7 @@ public final class Fx {
             side = side.normalize();
             Vec3d up = d.crossProduct(side).normalize();
             float len = size * (0.6f + rnd.nextFloat() * 0.9f);
-            BlockState col = i % 5 == 0 ? INK : PAPER;
+            BlockState col = i % 5 == 0 ? accent : main;
             spike(w, c.add(d.multiply(len * 0.5 + 0.2)), d, up, side, len, size * 0.09f, col, 3 + rnd.nextInt(2));
         }
     }
