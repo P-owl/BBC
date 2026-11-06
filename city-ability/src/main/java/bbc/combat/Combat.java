@@ -121,6 +121,12 @@ public final class Combat {
         return t;
     }
 
+    /** 평타를 치는 중인가 (평타 사슬이 이어지는 동안): 기술이 '평타 중' 판으로 바뀌는 기준 (예: 뱀파이어 손끝 찌르기) */
+    public static boolean inM1Chain(LivingEntity e) {
+        Fighter f = peek(e);
+        return f != null && f.m1Index > 0 && now <= f.m1ChainUntil;
+    }
+
     /** 공중 콤보 중인가 (기술이 공중판으로 바뀌는 기준) */
     public static boolean inAirCombo(ServerPlayerEntity p) {
         Fighter f = peek(p);
@@ -197,7 +203,8 @@ public final class Combat {
         if (idx < pr.hits() - 1) {
             a.m1Index++;
             if (air) {
-                swing(p, a, weapon ? pr.motion() + (idx % 3 + 1) : "air_" + (idx % 3 + 1), pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
+                String am = AIR_SETS.contains(pr.motion()) ? pr.motion() + "a" + (idx % 3 + 1) : weapon ? pr.motion() + (idx % 3 + 1) : "air_" + (idx % 3 + 1);
+                swing(p, a, am, pr.startup(), pr.recovery(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, () -> {
                     hitArea(p, Tuning.AIR_M1, false);
                     a.airComboUntil = now + 24;
                     setVel(p, new Vec3d(p.getVelocity().x * 0.3, 0.12, p.getVelocity().z * 0.3));
@@ -262,6 +269,9 @@ public final class Combat {
                     () -> { if (hitArea(p, Tuning.FINISH, false) > 0) ring(((ServerWorld) p.getWorld()), p.getPos().add(horizontal(p.getRotationVec(1f)).multiply(1.5)).add(0, 1, 0), 1.3, 18); });
         }
     }
+
+    /** 공중 평타를 따로 가진 평타 세트 (모션 이름 = 접두어 + "a" + 1~3) */
+    private static final java.util.Set<String> AIR_SETS = java.util.Set.of("vm_");
 
     /** 평타마다 앞으로 붙기: 앞에 상대가 있으면 그쪽으로 조금 미끄러짐 */
     private static void track(LivingEntity p) {
@@ -559,7 +569,13 @@ public final class Combat {
     /** 가드 자세는 든 무기마다 다름 (맨손 = 하이 가드, 검 = 칼을 눕혀 막기, 대검 = 날을 세워 방패처럼, 창 = 자루를 가로로) */
     static String guardMotion(LivingEntity e) {
         Weapon.Type t = Weapon.current(e);
-        if (t == null) return "guard";
+        if (t == null) {   // 맨손: 직업마다 다른 가드 자세 (예: 뱀파이어 = 젖힌 채 팔뚝 하나로)
+            if (e instanceof net.minecraft.server.network.ServerPlayerEntity sp) {
+                bbc.job.JobType jt = bbc.job.Jobs.type(bbc.job.Jobs.entry(sp));
+                if (jt != null && jt.guardMotion() != null) return jt.guardMotion();
+            }
+            return "guard";
+        }
         return switch (t) { case SWORD -> "guard_sword"; case SPEAR -> "guard_spear"; case GREATSWORD -> "guard_gs"; };
     }
 

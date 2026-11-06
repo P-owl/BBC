@@ -25,6 +25,8 @@ public interface JobType {
     default bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { return m1(); }
     /** 직업 대기 자세 모션 (맨손일 때 전투 모드 아래층). null 이면 공통 'stance' */
     default String stance() { return null; }
+    /** 맨손 가드 자세 모션 (null = 공통 하이 가드) */
+    default String guardMotion() { return null; }
     /** 평타 판정 순간 (모션 이름으로) — 직업별 연출 (예: 연금술사 4·5타 연성) */
     default void m1Fx(ServerPlayerEntity p, String motion) {}
     /** 전투 기술 (없으면 null) */
