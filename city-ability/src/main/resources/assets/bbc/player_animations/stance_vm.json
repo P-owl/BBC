@@ -82,8 +82,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": 7.0,
-     "yaw": 8.5,
-     "roll": -7.7,
+     "yaw": 5.7,
+     "roll": -8.1,
      "bend": -31.8
     }
    },
@@ -102,9 +102,9 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": 5.9,
-     "yaw": 10.3,
-     "roll": -8.9,
+     "pitch": 5.8,
+     "yaw": 2.6,
+     "roll": -9.7,
      "bend": -27.6
     }
    },
@@ -217,8 +217,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": 7.0,
-     "yaw": 8.5,
-     "roll": -7.7,
+     "yaw": 5.7,
+     "roll": -8.1,
      "bend": -31.8
     }
    }

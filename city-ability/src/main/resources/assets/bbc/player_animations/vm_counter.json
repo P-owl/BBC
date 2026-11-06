@@ -82,8 +82,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": 7.0,
-     "yaw": 8.5,
-     "roll": -7.7,
+     "yaw": 5.7,
+     "roll": -8.1,
      "bend": -31.8
     }
    },
@@ -250,8 +250,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": 7.0,
-     "yaw": 8.5,
-     "roll": -7.7,
+     "yaw": 5.7,
+     "roll": -8.1,
      "bend": -31.8
     }
    }

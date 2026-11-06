@@ -40,6 +40,12 @@ public interface JobType {
     default void m1Start(ServerPlayerEntity p, String motion) {}
     /** 평타 입력을 직업이 가로챔 (파생기 등). true 면 보통 평타는 안 나감. up = 스페이스를 누른 채 */
     default boolean m1Override(ServerPlayerEntity p, boolean up) { return false; }
+    /** 기술 칸 키(0~4)를 직업이 가로챔 (ABA 식 선택지 고르기 등). true 면 보통 기술은 안 나감 */
+    default boolean slotOverride(ServerPlayerEntity p, int slot) { return false; }
+    /** 기술 카드 대신 잠깐 보여 줄 HUD (선택지 등). null 이면 보통 카드 */
+    default bbc.net.SkillHudPayload hudOverride(ServerPlayerEntity p) { return null; }
+    /** 직업 공격이 실제로 피해를 줬을 때 (흡혈 등) */
+    default void onDealt(ServerPlayerEntity p, net.minecraft.entity.LivingEntity t, float dmg, boolean m1) {}
     /** 각성기. 썼으면 true. false 를 돌려주면 공통 각성기 ‘난무’가 나간다 */
     default boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
     /** 임플란트 키(H). 썼으면 true (연금술사: 오토메일 칼날) */

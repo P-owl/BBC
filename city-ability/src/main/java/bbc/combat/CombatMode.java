@@ -77,6 +77,8 @@ public final class CombatMode {
         if (action >= KeyPayload.SKILL_BASE && action < KeyPayload.SKILL_BASE + JobSkills.SLOTS) {
             if (!Combat.canAct(p) || Combat.channeling(p)) return; // 경직·다운·꾹 누르는 기술 중엔 기술 못 씀
             int k = action - KeyPayload.SKILL_BASE;
+            bbc.job.JobType jt0 = Jobs.type(Jobs.entry(p));
+            if (jt0 != null && jt0.slotOverride(p, k)) { pushHud(p); return; }   // 선택지 고르기 등
             if (Weapon.current(p) != null) { if (Weapon.useSkill(p, k)) Combat.afterSkill(p, 6); return; } // 무기 칸: 1·2 = 무기 기술
             if (JobSkills.useSlot(p, k)) Combat.afterSkill(p, 6);
             return;
@@ -92,6 +94,15 @@ public final class CombatMode {
         // 유물·마안은 이후에 연결
     }
 
+    /** 기술 카드 HUD 를 지금 보냄 (직업이 잠깐 선택지를 띄우면 그걸) */
+    public static void pushHud(ServerPlayerEntity p) {
+        if (!active(p) || !ServerPlayNetworking.canSend(p, bbc.net.SkillHudPayload.ID)) return;
+        Weapon.Type w = Weapon.current(p);
+        var job = Jobs.type(Jobs.entry(p));
+        bbc.net.SkillHudPayload over = w == null && job != null ? job.hudOverride(p) : null;
+        ServerPlayNetworking.send(p, over != null ? over : w != null ? Weapon.hudPayload(p, w) : JobSkills.hudPayload(p, Jobs.entry(p), job == null ? "" : job.hudTitle(p, Jobs.entry(p))));
+    }
+
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(CombatMode::tick);
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> ACTIVE.remove(handler.getPlayer().getUuid()));
@@ -105,10 +116,8 @@ public final class CombatMode {
             if (!Jobs.hasCombat(Jobs.entry(p))) { set(p, false); continue; } // 직업을 잃음
             Weapon.Type w = Weapon.current(p);
             // 기술 칸은 화면 아래 카드로 (ABA), 액션바엔 가드·패링·회피 상태만
-            if (ServerPlayNetworking.canSend(p, bbc.net.SkillHudPayload.ID)) {
-                var job = Jobs.type(Jobs.entry(p));
-                ServerPlayNetworking.send(p, w != null ? Weapon.hudPayload(p, w) : JobSkills.hudPayload(p, Jobs.entry(p), job == null ? "" : job.hudTitle(p, Jobs.entry(p))));
-            } else if (clock % 12 == 0)
+            if (ServerPlayNetworking.canSend(p, bbc.net.SkillHudPayload.ID)) pushHud(p);
+            else if (clock % 12 == 0)
                 p.sendMessage(Combat.hudPrefix(p).append(w != null ? Weapon.hud(p, w) : JobSkills.hud(p, Jobs.entry(p))), true);
         }
     }

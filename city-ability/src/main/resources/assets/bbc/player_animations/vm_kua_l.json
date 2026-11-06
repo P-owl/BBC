@@ -366,9 +366,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": -126.2,
-     "yaw": 7.5,
-     "roll": 100.1,
+     "pitch": -60.1,
+     "yaw": -22.6,
+     "roll": -56.3,
      "bend": -19.0
     }
    },
@@ -462,8 +462,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": 7.0,
-     "yaw": 8.5,
-     "roll": -7.7,
+     "yaw": 5.7,
+     "roll": -8.1,
      "bend": -31.8
     }
    }

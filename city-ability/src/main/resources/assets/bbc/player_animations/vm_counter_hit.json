@@ -144,9 +144,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightArm": {
-     "pitch": -86.7,
-     "yaw": -6.9,
-     "roll": 90.8,
+     "pitch": -85.9,
+     "yaw": -6.4,
+     "roll": 84.0,
      "bend": -33.4
     }
    },
@@ -155,9 +155,9 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": 122.1,
-     "yaw": 44.0,
-     "roll": 92.3,
+     "pitch": 41.5,
+     "yaw": -23.2,
+     "roll": -59.0,
      "bend": -19.3
     }
    },
@@ -314,8 +314,8 @@
     "turn": 0,
     "leftArm": {
      "pitch": 7.0,
-     "yaw": 8.5,
-     "roll": -7.7,
+     "yaw": 5.7,
+     "roll": -8.1,
      "bend": -31.8
     }
    }

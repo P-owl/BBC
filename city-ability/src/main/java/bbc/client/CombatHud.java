@@ -367,7 +367,7 @@ final class CombatHud {
         int right = Wv - 8;
         int rows = n + 1;
         int top = Hv - 8 - rows * (h + gap);
-        boolean anyCd = skState.contains(1);
+        boolean anyCd = skState.contains(1) || skState.contains(3);
         boolean idle = !anyCd && clock - comboAt > 100 && clock - targetAt > 100 && !guardHeldHud && awGauge < 100 && awLeft <= 0;
         float f = idle ? 0.5f : 1f;
         // 키 탭 (오른쪽 정렬, 위로)
@@ -401,7 +401,7 @@ final class CombatHud {
             if (ult) {   // 궁극기: 각성 중이고 아직 안 썼을 때만 쓸 수 있음 (각성 게이지는 위쪽 막대)
                 name = skUlt;
                 st = awLeft > 0 && awUlt ? 0 : 2;
-            } else { name = skNames.get(i); st = skState.get(i); if (st == 1) { left = skLeft.get(i); max = Math.max(1, skMax.get(i)); } }
+            } else { name = skNames.get(i); st = skState.get(i); if (st == 1 || st == 3) { left = skLeft.get(i); max = Math.max(1, skMax.get(i)); } }
             boolean empty = !ult && name.isEmpty();
             // 테두리 + 바탕
             slab(ctx, x - 1, y - 1, w + 2, h + 2, slant, fade(empty ? 0x66808080 : 0xFFC8C8C8, f));
@@ -415,15 +415,18 @@ final class CombatHud {
             } else if (st == 1) {   // 재사용: 남은 만큼 붉게
                 float r = Math.min(1f, left / (float) max);
                 slab(ctx, x, y, slant + (w - slant) * r, h, slant, 0xD08A1414);
+            } else if (st == 3) {   // 선택지 (ABA 식 파생 고르기): 남은 시간만큼 금색으로 줄어듦
+                float r = Math.min(1f, left / (float) max);
+                slab(ctx, x, y, slant + (w - slant) * r, h, slant, 0xC08A6410);
             }
             ctx.fill(x + slant, y + 1, x + w - 1, y + 3, fade(0x18FFFFFF, f));   // 위 광택
             // 왼쪽 장식 (숫자키 칩)
             float ex = x - 12;
             quad(ctx, ex, y + h / 2f, ex + 7, y - 1, ex + 14, y + h / 2f, ex + 7, y + h + 1, fade(0xFF000000, f));
-            quad(ctx, ex + 2, y + h / 2f, ex + 7, y + 1, ex + 12, y + h / 2f, ex + 7, y + h - 1, fade(ult ? (st == 0 ? rainbow(clock * 0.02f) : 0xFF505050) : st == 1 ? 0xFF8A1414 : 0xFFB0B0B0, f));
+            quad(ctx, ex + 2, y + h / 2f, ex + 7, y + 1, ex + 12, y + h / 2f, ex + 7, y + h - 1, fade(ult ? (st == 0 ? rainbow(clock * 0.02f) : 0xFF505050) : st == 1 ? 0xFF8A1414 : st == 3 ? 0xFFFFC040 : 0xFFB0B0B0, f));
             if (empty) continue;
             String label = name + (ult ? (st == 0 ? " (G)" : awLeft > 0 ? " · 사용함" : " · 각성 필요") : " (" + (i + 1) + ")");
-            int col = st == 2 ? 0xFF8A8A8A : st == 1 ? 0xFFD0A0A0 : 0xFFFFFFFF;
+            int col = st == 2 ? 0xFF8A8A8A : st == 1 ? 0xFFD0A0A0 : st == 3 ? 0xFFFFE8A0 : 0xFFFFFFFF;
             float sc = Math.min(0.9f, (w - slant - 26) / (float) Math.max(1, tr.getWidth(label)));
             m.push();
             m.translate(x + w - 4, y + h / 2f - 3.5f * sc, 0);

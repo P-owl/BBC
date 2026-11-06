@@ -33,6 +33,8 @@ public final class JobSkills {
         default String costName() { return "스태미나"; }
         default double resource(ServerPlayerEntity p, PlayerData.Entry e) { return Stamina.get(p); }
         default boolean pay(ServerPlayerEntity p, PlayerData.Entry e, Skill s) { return Stamina.spend(p, s.cost()); }
+        /** true 면 자원이 모자라도 쓸 수 있음 (있는 만큼만 냄, 위력은 직업이 따로 줄임 — 뱀파이어 피) */
+        default boolean softCost() { return false; }
         /** 추가 조건. null 이면 사용 가능, 아니면 이유 */
         default String blocked(ServerPlayerEntity p, PlayerData.Entry e, int skill) { return null; }
     }
@@ -79,7 +81,7 @@ public final class JobSkills {
             int left = cooldownLeftTenths(p.getUuid(), k);
             boolean ms = bbc.grow.Growth.mastered(e, k);
             n.add(s.name() + (ms ? "★" : "")); l.add(left); m.add(Math.max(1, (int) Math.round(s.cooldown() * (ms ? 8 : 10))));
-            st.add(left > 0 ? 1 : (s.rank() > rank || res + 1e-6 < s.cost()) ? 2 : 0);
+            st.add(left > 0 ? 1 : (s.rank() > rank || (!set.softCost() && res + 1e-6 < s.cost())) ? 2 : 0);
         }
         return new bbc.net.SkillHudPayload(title, n, st, l, m, ultName(e));
     }
@@ -141,7 +143,7 @@ public final class JobSkills {
         if (left > 0) { bar(p, s.name() + " 재사용까지 " + left + "초", Formatting.GRAY); return false; }
         String why = set.blocked(p, e, skill);
         if (why != null) { bar(p, why, Formatting.RED); return false; }
-        if (set.resource(p, e) + 1e-6 < s.cost()) {
+        if (!set.softCost() && set.resource(p, e) + 1e-6 < s.cost()) {
             bar(p, set.costName() + " 부족 (" + (int) s.cost() + " 필요, 현재 " + (int) set.resource(p, e) + ")", Formatting.RED);
             return false;
         }

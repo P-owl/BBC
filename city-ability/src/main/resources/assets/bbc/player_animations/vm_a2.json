@@ -144,9 +144,9 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": -112.1,
-     "yaw": -126.8,
-     "roll": 12.9,
+     "pitch": 37.2,
+     "yaw": -23.3,
+     "roll": -120.7,
      "bend": -2.9
     }
    },

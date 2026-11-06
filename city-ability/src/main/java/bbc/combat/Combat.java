@@ -488,6 +488,10 @@ public final class Combat {
 
         if (!deal(atk, t, dmg)) { v.comboHits--; return Result.MISS; }
         Awaken.onHit(atk, t, dmg);
+        if (atk instanceof ServerPlayerEntity jp2) {                         // 직업: 피해를 줬을 때 (뱀파이어 흡혈)
+            bbc.job.JobType jt2 = bbc.job.Jobs.type(bbc.job.Jobs.entry(jp2));
+            if (jt2 != null) jt2.onDealt(jp2, t, dmg, FROM_M1.get());
+        }
         bbc.grow.Growth.onHit(atk, FROM_M1.get(), v.comboHits);
         v.comboDamage += dmg;
         v.lastHitAt = now;
