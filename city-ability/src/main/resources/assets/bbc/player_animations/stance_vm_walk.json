@@ -18,7 +18,7 @@
     "easing": "LINEAR",
     "turn": 0,
     "body": {
-     "pitch": 6,
+     "pitch": 5,
      "yaw": -8,
      "roll": 0
     }
@@ -28,7 +28,7 @@
     "easing": "LINEAR",
     "turn": 0,
     "head": {
-     "pitch": -8,
+     "pitch": -3,
      "yaw": -8,
      "roll": 0
     }
@@ -49,16 +49,6 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "body": {
-     "pitch": 7,
-     "yaw": -8,
-     "roll": 0
-    }
-   },
-   {
-    "tick": 40,
-    "easing": "EASEINOUTSINE",
-    "turn": 0,
-    "body": {
      "pitch": 6,
      "yaw": -8,
      "roll": 0
@@ -68,8 +58,18 @@
     "tick": 40,
     "easing": "EASEINOUTSINE",
     "turn": 0,
+    "body": {
+     "pitch": 5,
+     "yaw": -8,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 40,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
     "head": {
-     "pitch": -8,
+     "pitch": -3,
      "yaw": -8,
      "roll": 0
     }
