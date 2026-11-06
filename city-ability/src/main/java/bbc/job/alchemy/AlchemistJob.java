@@ -974,22 +974,15 @@ public final class AlchemistJob implements JobType {
             AlchemyFx.pillar(w, at.x + side.x * s2 * 0.9, g, at.z + side.z * s2 * 0.9, 0.9f, 2.2f, 24);
         clapFx(p);
         w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.PLAYERS, 1.0f, 0.8f);
-        Combat.parryWindow(p, 12);
-        long before = Combat.parryLock(p);
-        boolean[] done = {false};
-        for (int t = 1; t <= 13; t++) {
-            Tasks.later(t, () -> {
-                if (done[0] || p.isDisconnected() || !p.isAlive() || Combat.parryLock(p) <= before) return;
-                done[0] = true;
-                for (LivingEntity v : Combat.targets(p, 4.5, 70, 3)) {
-                    Double gv = AlchemyFx.ground(w, v.getPos());
-                    if (gv != null) AlchemyFx.pillar(w, v.getX(), gv, v.getZ(), 1.0f, 2.4f, 18);
-                    Combat.hit(p, v, COUNTER);
-                    Fx.word(w, v.getPos().add(0, 2.4, 0), Fx.BLUNT, 1.3f);
-                }
-                w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_IRON_GOLEM_ATTACK, SoundCategory.PLAYERS, 1.2f, 0.6f);
-            });
-        }
+        Combat.counterWindow(p, 12, atk -> {
+            for (LivingEntity v : Combat.targets(p, 4.5, 70, 3)) {
+                Double gv = AlchemyFx.ground(w, v.getPos());
+                if (gv != null) AlchemyFx.pillar(w, v.getX(), gv, v.getZ(), 1.0f, 2.4f, 18);
+                Combat.hit(p, v, COUNTER);
+                Fx.word(w, v.getPos().add(0, 2.4, 0), Fx.BLUNT, 1.3f);
+            }
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_IRON_GOLEM_ATTACK, SoundCategory.PLAYERS, 1.2f, 0.6f);
+        });
         return true;
     }
 

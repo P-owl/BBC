@@ -38,6 +38,8 @@ public interface JobType {
     default void onAwakenEnd(ServerPlayerEntity p, PlayerData.Entry e) {}
     /** 평타 모션을 튼 순간 (판정 전). 판정 순간은 m1Fx */
     default void m1Start(ServerPlayerEntity p, String motion) {}
+    /** 평타 입력을 직업이 가로챔 (파생기 등). true 면 보통 평타는 안 나감. up = 스페이스를 누른 채 */
+    default boolean m1Override(ServerPlayerEntity p, boolean up) { return false; }
     /** 각성기. 썼으면 true. false 를 돌려주면 공통 각성기 ‘난무’가 나간다 */
     default boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
     /** 임플란트 키(H). 썼으면 true (연금술사: 오토메일 칼날) */

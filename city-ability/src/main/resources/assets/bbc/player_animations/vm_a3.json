@@ -38,10 +38,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
-     "pitch": -47.8,
-     "yaw": -16.8,
-     "roll": 47.9,
-     "bend": -87.4
+     "pitch": -41.2,
+     "yaw": -6.3,
+     "roll": 58.6,
+     "bend": -54.5
     }
    },
    {
@@ -49,10 +49,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -47.8,
-     "yaw": -18.2,
-     "roll": -26.0,
-     "bend": -74.9
+     "pitch": 45.5,
+     "yaw": 24.7,
+     "roll": -8.6,
+     "bend": -111.0
     }
    },
    {
@@ -93,9 +93,9 @@
     "turn": 0,
     "rightArm": {
      "pitch": 0.0,
-     "yaw": 1.9,
+     "yaw": 44.5,
      "roll": 149.5,
-     "bend": -63.6
+     "bend": -37.9
     }
    },
    {
@@ -104,9 +104,9 @@
     "turn": 0,
     "leftArm": {
      "pitch": 0.0,
-     "yaw": -1.9,
+     "yaw": -44.5,
      "roll": -149.5,
-     "bend": -63.6
+     "bend": -37.9
     }
    },
    {
@@ -134,10 +134,10 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "rightArm": {
-     "pitch": -116.1,
-     "yaw": 9.3,
-     "roll": 157.6,
-     "bend": -39.4
+     "pitch": -115.2,
+     "yaw": -4.3,
+     "roll": 135.4,
+     "bend": -35.9
     }
    },
    {
@@ -145,10 +145,10 @@
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "leftArm": {
-     "pitch": -116.1,
-     "yaw": -9.3,
-     "roll": -157.6,
-     "bend": -39.4
+     "pitch": -115.2,
+     "yaw": 4.3,
+     "roll": -135.4,
+     "bend": -35.9
     }
    },
    {
@@ -198,10 +198,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "rightArm": {
-     "pitch": -116.1,
-     "yaw": 9.3,
-     "roll": 157.6,
-     "bend": -39.4
+     "pitch": -115.2,
+     "yaw": -4.3,
+     "roll": 135.4,
+     "bend": -35.9
     }
    },
    {
@@ -209,10 +209,10 @@
     "easing": "LINEAR",
     "turn": 0,
     "leftArm": {
-     "pitch": -116.1,
-     "yaw": -9.3,
-     "roll": -157.6,
-     "bend": -39.4
+     "pitch": -115.2,
+     "yaw": 4.3,
+     "roll": -135.4,
+     "bend": -35.9
     }
    },
    {
@@ -282,10 +282,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
-     "pitch": -47.8,
-     "yaw": -16.8,
-     "roll": 47.9,
-     "bend": -87.4
+     "pitch": -41.2,
+     "yaw": -6.3,
+     "roll": 58.6,
+     "bend": -54.5
     }
    },
    {
@@ -293,10 +293,10 @@
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": -47.8,
-     "yaw": -18.2,
-     "roll": -26.0,
-     "bend": -74.9
+     "pitch": -134.5,
+     "yaw": 155.3,
+     "roll": -188.6,
+     "bend": -111.0
     }
    },
    {

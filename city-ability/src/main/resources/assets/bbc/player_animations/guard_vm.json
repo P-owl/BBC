@@ -98,17 +98,6 @@
     }
    },
    {
-    "tick": 10,
-    "easing": "EASEINOUTSINE",
-    "turn": 0,
-    "leftArm": {
-     "pitch": -67.1,
-     "yaw": -5.1,
-     "roll": -10.3,
-     "bend": -98.3
-    }
-   },
-   {
     "tick": 20,
     "easing": "EASEINOUTSINE",
     "turn": 0,

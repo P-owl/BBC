@@ -816,8 +816,16 @@ anim("al_pump_burst", 22, al(10, 22, [
 ], hold=5))
 
 # ═════════ 뱀파이어 (석가면, 죠죠 1부 참고 — 올스타 배틀 R 1부 디오 필살기·아이즈 오브 헤븐 디오 플레이 영상의 기술·자세 원칙만) ═════════
-# 원칙: 거만하게 상체를 뒤로 젖히고 턱을 듦, 왼손은 허리에. 공격은 주먹이 아니라 펼친 손(수도·손등·손톱·손끝 찌르기)과 무릎·발.
-#   잡기 기술은 상대를 목 높이로 들어 올린 채 손가락을 꽂아 흡혈 → 내던짐. 얼리기는 손바닥을 갖다 댄 채 버팀.
+# 영상에서 잰 원칙 (2차: 프레임을 크게 떼어 다시 봄)
+#   대기: 싸움 자세가 아니라 '서 있는' 자세. 키를 다 펴고 한 손은 허리, 다른 팔은 힘을 빼고 늘어뜨림. 한쪽 다리에 체중(콘트라포스토), 턱을 살짝 듦
+#   달리기: 몸 전체를 크게(약 45°) 앞으로 기울이고 보폭을 길게, 두 팔은 힘을 뺀 채 몸 뒤 아래로 늘어뜨려 끌고 감 (팔을 수평으로 펴지 않음)
+#   잡기(무다무다·빈약하다): 어깨로 들이받아 들어 올린 뒤, 오른손으로 상대 목을 쥐어 머리 위로 들고 왼팔은 뒤로 낮게 펼침 →
+#     그대로 손가락을 꽂아 피를 빨다가(맞을 때마다 피) → 머리 위로 크게 휘둘러 땅에 내리꽂음
+#   광선(공열안자경): 두 손을 관자놀이에 대고 고개를 숙여 힘을 모음 → 고개를 들며 깊게 앞으로 숙이고 두 팔은 뒤로 뿌림, 눈앞에 하얀 가시 폭발, 광선은 고리가 이어진 나선
+#   각성기 난타: 웅크려 앞으로 기운 채 펼친 손끝을 곧게 번갈아 찌름 (옆으로 할퀴지 않음), 찌르는 쪽 어깨가 앞으로
+#   각성(바-ン): 한 팔을 머리 위로 크게 휘둘러 올렸다가 → 넓게 주저앉으며 두 손을 갈고리처럼 펼쳐 가슴 앞에, 고개는 비스듬히
+
+
 def DF(u, f, bend=None, z=None):
     """맨손용: 위팔 방향 u, 아래팔(손) 방향 f 로 팔 자세 (팔꿈치 각은 u·f 사이 각으로 자동). D 는 '칼끝' 방향을 받으므로 바꿔 줌"""
     import numpy as _np, math as _m
@@ -844,28 +852,46 @@ def HT(sh, u, hand, z=None):
 def HR(u, hand, z=None): return HT(SH_R, u, hand, z)
 def HL(u, hand, z=None): return HT(SH_L, u, hand, z)
 
-VM_HIP = HL((-0.55, -0.65, 0.5), (-0.27, 0.93, 0.02))        # 왼손 허리에 짚기
-VM_CLAW_UP = HR((0.35, -0.6, -0.7), (0.16, 1.34, -0.42))          # 오른손 손톱을 세워 가슴 앞에
-VM_ARMS = dict(body=(8, -12, 0), head=(-12, -12, 0), rightArm=VM_CLAW_UP, leftArm=VM_HIP)
-VM_LEGS = dict(rightLeg=(14, 0, 10, 8), leftLeg=(-10, 0, -8, 6), bodyPos=(0, -0.02, 0))
+
+# ── 손 위치 모음 (몸 기준 블록) ──
+R_HIP = HR((0.55, -0.65, 0.5), (0.27, 0.93, 0.02))          # 오른손 허리에 짚기
+L_HIP = HL((-0.55, -0.65, 0.5), (-0.27, 0.93, 0.02))
+L_LOOSE = HL((-0.15, -0.97, 0.12), (-0.37, 0.8, -0.12))      # 왼팔 힘 빼고 늘어뜨림 (손가락 벌린 채 허벅지 앞)
+R_LOOSE = HR((0.15, -0.97, 0.12), (0.37, 0.8, -0.12))
+R_NECK_HI = HR((0.12, 0.55, -0.83), (0.1, 2.02, -0.52))     # 오른손으로 상대 목을 쥐어 머리 위로 들어 올림
+L_BACK_LO = HL((-0.5, -0.6, 0.6), (-0.5, 1.0, 0.38))        # 왼팔 뒤로 낮게 펼침
+R_BACK_LO = HR((0.5, -0.6, 0.6), (0.5, 1.0, 0.38))
+R_THRUST = HR((0.06, -0.12, -1), (0.12, 1.3, -0.6))          # 펼친 손끝을 곧게 앞으로
+L_THRUST = HL((-0.06, -0.12, -1), (-0.12, 1.3, -0.6))
+R_CHAMBER = HR((0.4, -0.65, 0.65), (0.28, 1.02, -0.18))      # 허리로 당김
+L_CHAMBER = HL((-0.4, -0.65, 0.65), (-0.28, 1.02, -0.18))
+R_TEMPLE = HR((0.85, 0.15, -0.5), (0.19, 1.76, -0.13))       # 관자놀이
+L_TEMPLE = HL((-0.85, 0.15, -0.5), (-0.19, 1.76, -0.13))
+R_CLAW_FRONT = HR((0.6, -0.45, -0.65), (0.42, 1.25, -0.45))  # 갈고리 손을 가슴 앞 바깥에
+L_CLAW_FRONT = HL((-0.6, -0.45, -0.65), (-0.42, 1.3, -0.42))
+R_UP_HIGH = HR((0.3, 0.95, -0.1), (0.3, 2.05, -0.15))        # 팔을 머리 위로
+
+# ── 대기: 키를 다 펴고 오른손은 허리, 왼팔은 늘어뜨림. 왼무릎을 살짝 굽혀 오른다리에 체중, 턱을 듦 ──
+VM_LEGS = dict(rightLeg=(3, 0, 5, 2), leftLeg=(-10, 0, -3, 16), bodyPos=(0, -0.01, 0))
+VM_ARMS = dict(body=(4, -16, 0), head=(-9, -12, 0), rightArm=R_HIP, leftArm=L_LOOSE)
 VM_STANCE = solved(dict(**VM_ARMS, **VM_LEGS))
-anim("stance_vm", 60, seq([(0, LIN, VM_STANCE),
-                           (30, IO, dict(body=(10, -12, 0), head=(-14, -12, 0), rightArm=DF((0.3, -0.52, -0.8), (0.0, 0.85, -0.5), -100))),
-                           (60, IO, VM_STANCE)]), loop=True, ret=0)
-# 걷기: 다리는 바닐라. 더 젖힌 상체로 느긋하게, 왼손은 허리, 오른손은 손톱을 늘어뜨림
-VM_WALK = dict(body=(12, -6, 0), head=(-14, -6, 0), leftArm=VM_HIP, rightArm=HR((0.15, -0.95, -0.2), (0.3, 0.8, -0.36)))
-anim("stance_vm_walk", 40, seq([(0, LIN, VM_WALK),
-                                (20, IO, dict(body=(11, -9, 0), head=(-13, -9, 0), rightArm=DF((0.18, -0.95, 0.05), (0.1, -0.6, -0.8), -36))),
-                                (40, IO, VM_WALK)]), loop=True, ret=0)
-# 달리기: 몸을 크게 앞으로 숙이고(약 35°) 두 팔을 뒤로 펼쳐 손톱을 세운 채 낮게 질주 (다리 흔들기는 바닐라)
-RUN_VM = dict(body=(-34, None, None), head=(-30, 0, 0), rightArm=(55, 0, 22, -20), leftArm=(55, 0, -22, -20),
-              rightLeg=(None, None, None, 26), leftLeg=(None, None, None, 26), bodyPos=(0, -0.1, 0))
-anim("run_vm", 20, P(0, LIN, **RUN_VM) + P(10, IO, body=(-36, None, None), rightArm=(60, 0, 24, -24), leftArm=(60, 0, -24, -24)) + P(20, IO, **RUN_VM),
+anim("stance_vm", 100, seq([(0, LIN, VM_STANCE),
+                            (25, IO, dict(body=(5, -16, 0), leftArm=HL((-0.17, -0.97, 0.1), (-0.38, 0.81, -0.1)))),
+                            (50, IO, dict(body=(4, -16, 0), head=(-12, -20, 4))),     # 상대를 내려다보듯 고개를 살짝 기울임
+                            (75, IO, dict(body=(5, -16, 0), head=(-10, -16, 2))),
+                            (100, IO, VM_STANCE)]), loop=True, ret=0)
+# 걷기: 다리와 왼팔은 바닐라(걸음에 맞춰 흔들림), 오른손은 허리에 둔 채 상체를 살짝 젖히고 느긋하게
+VM_WALK = dict(body=(6, -8, 0), head=(-8, -8, 0), rightArm=R_HIP)
+anim("stance_vm_walk", 40, seq([(0, LIN, VM_WALK), (20, IO, dict(body=(7, -8, 0))), (40, IO, VM_WALK)]), loop=True, ret=0)
+# 달리기: 몸을 45° 기울이고(발이 뒤로 끌리지 않게 몸을 내림) 고개는 앞을, 두 팔은 힘을 빼고 몸 뒤 아래로 늘어뜨림. 다리 흔들기는 바닐라 + 무릎 굽힘
+RUN_VM = dict(body=(-44, None, None), head=(-40, 0, 0), rightArm=(-6, 0, 12, -14), leftArm=(-6, 0, -12, -14),
+              rightLeg=(None, None, None, 34), leftLeg=(None, None, None, 34), bodyPos=(0, -0.2, 0))
+anim("run_vm", 20, P(0, LIN, **RUN_VM) + P(10, IO, body=(-46, None, None), rightArm=(-2, 0, 14, -18), leftArm=(-2, 0, -14, -18)) + P(20, IO, **RUN_VM),
      loop=True, ret=0)
-# 가드: 상체를 젖힌 채 왼팔뚝을 얼굴 앞에 세워 받아냄, 오른손은 허리 높이에서 손톱을 세워 받아칠 준비
+# 가드: 상체를 젖힌 채 왼팔뚝을 얼굴 앞에 세워 받아냄, 오른손은 허리 높이에서 받아칠 준비
 VM_GUARD = dict(body=(4, -20, 0), head=(-4, -20, 0), leftArm=HL((0.25, -0.4, -0.88), (-0.05, 1.62, -0.32)),
                 rightArm=HR((0.45, -0.7, 0.4), (0.28, 1.0, -0.32)), **legs((14, 8, 22), (-16, 8, 22)), bodyPos=(0, -0.06, 0))
-guard_loop("guard_vm", VM_GUARD, dict(body=(5, -20, 0), leftArm=DF((-0.15, -0.37, -0.92), (0.15, 0.95, -0.25), -102)))
+guard_loop("guard_vm", VM_GUARD, dict(body=(5, -20, 0)))
 
 
 def vm(t_hit, end, frames, hold=3):
@@ -883,45 +909,43 @@ def vm(t_hit, end, frames, hold=3):
 VM_COIL = dict(rightLeg=(14, 0, 14, 26), leftLeg=(-18, 0, -14, 30), bodyPos=(0, -0.08, 0))
 VM_STEP = dict(leftLeg=(-46, 0, -14, 56), rightLeg=(34, 0, 14, 10), bodyPos=(0, -0.16, 0))   # 왼발 깊게 내딛음
 VM_STEP_R = dict(rightLeg=(-46, 0, 14, 56), leftLeg=(34, 0, -14, 10), bodyPos=(0, -0.16, 0))
+VM_WIDE = dict(rightLeg=(18, 0, 16, 26), leftLeg=(-30, 0, -16, 40), bodyPos=(0, -0.12, 0))   # 넓게 벌려 낮춘 런지
+VM_SQUAT = dict(leftLeg=(-36, 0, -30, 64), rightLeg=(-36, 0, 30, 64), bodyPos=(0, -0.26, 0))  # 넓게 주저앉음
 
 # ── 평타 (참고: KUA! 약 공격 파생 — 수도 → 손등 → 무릎, 아이즈 오브 헤븐 손톱 연타) ──
 anim("vm_1", 10, vm(4, 10, [   # 오른손 수도: 손날을 오른어깨 위로 들었다가 사선으로 내려침
-    (2, IO, dict(rightArm=DF((0.55, 0.7, 0.4), (0.1, 0.5, -0.85), -85), leftArm=VM_HIP, body=(4, -40, 0), head=(-6, -30, 0), **VM_COIL)),
-    (4, EX, dict(rightArm=DF((-0.15, -0.35, -0.92), (-0.5, -0.7, -0.5), -20), leftArm=DF((-0.5, -0.6, 0.6), (0.2, -0.4, -0.9), -60),
-                 body=(-12, 18, 0), head=(-8, 16, 0), **VM_STEP)),
+    (2, IO, dict(rightArm=HR((0.6, 0.6, 0.5), (0.45, 1.85, 0.05)), leftArm=L_CHAMBER, body=(4, -40, 0), head=(-6, -30, 0), **VM_COIL)),
+    (4, EX, dict(rightArm=HR((-0.05, -0.3, -0.95), (-0.25, 0.95, -0.55)), leftArm=L_BACK_LO, body=(-12, 18, 0), head=(-8, 16, 0), **VM_STEP)),
 ]))
 anim("vm_2", 10, vm(4, 10, [   # 왼손 손등 후리기: 왼손을 오른어깨 앞까지 감았다가 바깥으로 후려침
-    (2, IO, dict(leftArm=DF((0.55, -0.1, -0.83), (0.85, 0.3, 0.4), -95), rightArm=DF((0.4, -0.7, 0.55), (0.3, -0.3, -0.9), -70),
-                 body=(0, 24, 0), head=(-4, 18, 0), **VM_COIL)),
-    (4, EX, dict(leftArm=DF((-0.55, 0.05, -0.83), (-0.85, 0.1, -0.5), -15), body=(-8, -30, 0), head=(-6, -26, 0), **VM_STEP)),
+    (2, IO, dict(leftArm=HL((0.6, -0.2, -0.75), (0.3, 1.45, -0.3)), rightArm=R_CHAMBER, body=(0, 24, 0), head=(-4, 18, 0), **VM_COIL)),
+    (4, EX, dict(leftArm=HL((-0.6, 0.0, -0.8), (-0.75, 1.35, -0.4)), body=(-8, -30, 0), head=(-6, -26, 0), **VM_STEP)),
 ]))
 anim("vm_3", 10, vm(4, 10, [   # 왼손으로 멱살을 잡아당기며 오른 무릎을 명치에
-    (2, IO, dict(leftArm=DF((-0.1, -0.05, -1), (0.05, 0.25, -0.97), -25), rightArm=DF((0.5, -0.7, 0.5), (0.4, -0.5, -0.75), -60),
-                 body=(0, -16, 0), head=(-4, -16, 0), **VM_COIL)),
-    (4, EX, dict(leftArm=DF((-0.15, -0.5, -0.85), (0.1, -0.1, 0.99), -95), body=(10, -14, 0), head=(-2, -14, 0),
+    (2, IO, dict(leftArm=HL((-0.05, -0.1, -1), (-0.05, 1.45, -0.62)), rightArm=R_CHAMBER, body=(0, -16, 0), head=(-4, -16, 0), **VM_COIL)),
+    (4, EX, dict(leftArm=HL((-0.2, -0.6, -0.75), (-0.15, 1.15, -0.05)), body=(10, -14, 0), head=(-2, -14, 0),
                  rightLeg=(-100, 0, 10, 105), leftLeg=(6, 0, -12, 14), bodyPos=(0, 0.02, 0))),
 ]))
 anim("vm_4", 10, vm(4, 10, [   # 오른손 손톱 올려 베기: 낮게 웅크렸다가 아래에서 위로 할퀴어 올림
-    (2, IO, dict(rightArm=DF((0.35, -0.8, 0.5), (0.2, -0.7, -0.65), -30), body=(-14, -30, 0), head=(-10, -30, 0),
+    (2, IO, dict(rightArm=HR((0.35, -0.85, 0.4), (0.4, 0.75, -0.25)), leftArm=L_CHAMBER, body=(-14, -30, 0), head=(-10, -30, 0),
                  rightLeg=(18, 0, 16, 40), leftLeg=(-30, 0, -14, 46), bodyPos=(0, -0.18, 0))),
-    (4, EX, dict(rightArm=DF((0.15, 0.8, -0.58), (0.05, 1.0, 0.05), -20), leftArm=DF((-0.6, -0.6, 0.5), (-0.2, -0.5, -0.8), -50),
-                 body=(12, 14, 0), head=(-14, 14, 0), **VM_STEP)),
+    (4, EX, dict(rightArm=HR((0.15, 0.75, -0.65), (0.2, 2.0, -0.45)), leftArm=L_BACK_LO, body=(12, 14, 0), head=(-14, 14, 0), **VM_STEP)),
 ]))
 anim("vm_5", 17, vm(6, 17, [   # 마무리: 손바닥을 허리까지 끌어당겨 몸을 감았다가, 깊게 내딛으며 온몸을 틀어 가슴에 장타 (날려보냄)
-    (3, IO, dict(rightArm=DF((0.35, -0.55, 0.75), (0.3, -0.35, -0.88), -105), leftArm=DF((-0.2, -0.1, -0.97), (0.2, 0.3, -0.93), -30),
-                 body=(4, -46, 0), head=(-6, -36, 0), rightLeg=(18, 0, 16, 34), leftLeg=(-24, 0, -14, 40), bodyPos=(0, -0.14, 0))),
-    (6, EX, dict(rightArm=DF((0.0, 0.05, -1), (0.0, 0.15, -1), -5), leftArm=DF((-0.55, -0.35, 0.75), (-0.3, -0.6, 0.7), -40),
-                 body=(-16, 30, 0), head=(-12, 26, 0), leftLeg=(-54, 0, -14, 62), rightLeg=(40, 0, 16, 8), bodyPos=(0, -0.2, 0))),
+    (3, IO, dict(rightArm=R_CHAMBER, leftArm=HL((-0.1, -0.1, -1), (-0.1, 1.35, -0.6)), body=(4, -46, 0), head=(-6, -36, 0),
+                 rightLeg=(18, 0, 16, 34), leftLeg=(-24, 0, -14, 40), bodyPos=(0, -0.14, 0))),
+    (6, EX, dict(rightArm=R_THRUST, leftArm=L_BACK_LO, body=(-16, 30, 0), head=(-12, 26, 0),
+                 leftLeg=(-54, 0, -14, 62), rightLeg=(40, 0, 16, 8), bodyPos=(0, -0.2, 0))),
 ], hold=6))
 anim("vm_rise", 11, vm(4, 11, [   # 띄우기 (참고: KUA! 중 공격 파생 — 무릎 → 솟구치는 올려치기)
-    (2, IO, dict(rightArm=DF((0.3, -0.85, 0.4), (0.15, -0.8, -0.55), -30), leftArm=DF((-0.1, -0.05, -1), (0.0, 0.3, -0.95), -30),
+    (2, IO, dict(rightArm=HR((0.3, -0.85, 0.4), (0.38, 0.75, -0.25)), leftArm=HL((-0.05, -0.1, -1), (-0.05, 1.45, -0.62)),
                  body=(-20, -16, 0), head=(-12, -16, 0), rightLeg=(-70, 0, 10, 90), leftLeg=(10, 0, -12, 20), bodyPos=(0, -0.04, 0))),
-    (4, EX, dict(rightArm=DF((0.05, 1.0, -0.05), (0.0, 1.0, 0.1), -10), leftArm=DF((-0.6, -0.55, 0.55), (-0.3, -0.6, 0.7), -40),
-                 body=(14, 8, 0), head=(-26, 8, 0), rightLeg=(12, 0, 12, 6), leftLeg=(-20, 0, -12, 12), bodyPos=(0, 0.04, 0))),
+    (4, EX, dict(rightArm=R_UP_HIGH, leftArm=L_BACK_LO, body=(14, 8, 0), head=(-26, 8, 0),
+                 rightLeg=(12, 0, 12, 6), leftLeg=(-20, 0, -12, 12), bodyPos=(0, 0.04, 0))),
 ], hold=3))
 # 공중 평타: 벌린 다리 + 손톱 (오른손 가로 → 왼손 가로 → 두 손 엑스자로 내려 할큄)
 VM_AIRL = dict(rightLeg=(-34, 0, 22, 56), leftLeg=(14, 0, -20, 34), bodyPos=(0, 0, 0))
-VM_AIR0 = dict(body=(0, -12, 0), head=(-6, -12, 0), rightArm=VM_CLAW_UP, leftArm=DF((-0.5, -0.5, -0.7), (0.0, 0.6, -0.8), -80), **VM_AIRL)
+VM_AIR0 = dict(body=(0, -12, 0), head=(-6, -12, 0), rightArm=R_CLAW_FRONT, leftArm=L_CHAMBER, **VM_AIRL)
 
 
 def vma(t_hit, end, frames, hold=2):
@@ -933,171 +957,216 @@ def vma(t_hit, end, frames, hold=2):
 
 
 anim("vm_a1", 10, vma(4, 10, [
-    (2, IO, dict(rightArm=DF((0.75, 0.2, 0.6), (0.4, 0.3, -0.85), -70), body=(0, -40, 0), head=(-6, -30, 0))),
-    (4, EX, dict(rightArm=DF((-0.3, 0.0, -0.95), (-0.85, 0.0, -0.5), -15), body=(-10, 22, 0), head=(-8, 18, 0), rightLeg=(-50, 0, 20, 80))),
+    (2, IO, dict(rightArm=HR((0.8, 0.2, 0.55), (0.75, 1.5, 0.3)), body=(0, -40, 0), head=(-6, -30, 0))),
+    (4, EX, dict(rightArm=HR((-0.2, -0.05, -0.97), (-0.45, 1.35, -0.45)), body=(-10, 22, 0), head=(-8, 18, 0), rightLeg=(-50, 0, 20, 80))),
 ]))
 anim("vm_a2", 10, vma(4, 10, [
-    (2, IO, dict(leftArm=DF((-0.75, 0.2, 0.6), (-0.4, 0.3, -0.85), -70), body=(0, 26, 0), head=(-4, 20, 0))),
-    (4, EX, dict(leftArm=DF((0.3, 0.0, -0.95), (0.85, 0.0, -0.5), -15), body=(-10, -28, 0), head=(-8, -24, 0), leftLeg=(-40, 0, -20, 70))),
+    (2, IO, dict(leftArm=HL((-0.8, 0.2, 0.55), (-0.75, 1.5, 0.3)), body=(0, 26, 0), head=(-4, 20, 0))),
+    (4, EX, dict(leftArm=HL((0.2, -0.05, -0.97), (0.45, 1.35, -0.45)), body=(-10, -28, 0), head=(-8, -24, 0), leftLeg=(-40, 0, -20, 70))),
 ]))
 anim("vm_a3", 10, vma(4, 10, [
-    (2, IO, dict(rightArm=DF((0.5, 0.85, 0.0), (0.2, 0.4, -0.9), -60), leftArm=DF((-0.5, 0.85, 0.0), (-0.2, 0.4, -0.9), -60),
-                 body=(16, 0, 0), head=(-18, 0, 0))),
-    (4, EX, dict(rightArm=DF((-0.3, -0.35, -0.88), (-0.4, -0.8, -0.4), -15), leftArm=DF((0.3, -0.35, -0.88), (0.4, -0.8, -0.4), -15),
+    (2, IO, dict(rightArm=HR((0.5, 0.85, 0.0), (0.45, 2.0, -0.2)), leftArm=HL((-0.5, 0.85, 0.0), (-0.45, 2.0, -0.2)), body=(16, 0, 0), head=(-18, 0, 0))),
+    (4, EX, dict(rightArm=HR((-0.25, -0.35, -0.9), (-0.15, 0.85, -0.55)), leftArm=HL((0.25, -0.35, -0.9), (0.15, 0.85, -0.55)),
                  body=(-26, 0, 0), head=(-16, 0, 0), rightLeg=(10, 0, 20, 40), leftLeg=(20, 0, -20, 30))),
 ]))
-# 다운 슬램 (참고: 각성기에서 뛰어올라 손가락으로 내리꽂는 장면): 공중에서 몸을 뒤로 젖혀 오른손 손끝을 하늘로 세웠다가
-#   몸 전체를 앞으로 고꾸라뜨리며(약 75°) 손끝으로 상대를 내리꽂음, 다리는 뒤로 차올라감
+# 다운 슬램 (참고: 각성기에서 뛰어올라 손가락으로 내리꽂는 장면): 몸을 젖혀 오른손 손끝을 하늘로 세웠다가 몸 전체를 고꾸라뜨리며 내리꽂음
 anim("vm_slam", 15, seq([(0, LIN, VM_AIR0),
-     (2, OQ, dict(rightArm=DF((0.15, 0.98, 0.1), (0.05, 1.0, -0.05), -5), leftArm=DF((-0.7, 0.1, 0.7), (-0.5, -0.3, 0.8), -40),
-                  body=(28, -10, 0), head=(-30, -10, 0), rightLeg=(-60, 0, 18, 90), leftLeg=(-40, 0, -18, 80))),
-     (4, EX, dict(rightArm=DF((0.05, 0.35, -0.94), (0.0, 0.2, -0.98), -5), leftArm=DF((-0.7, 0.3, 0.6), (-0.4, 0.6, 0.7), -30),
+     (2, OQ, dict(rightArm=R_UP_HIGH, leftArm=L_BACK_LO, body=(28, -10, 0), head=(-30, -10, 0), rightLeg=(-60, 0, 18, 90), leftLeg=(-40, 0, -18, 80))),
+     (4, EX, dict(rightArm=HR((0.05, 0.3, -0.95), (0.1, 1.6, -0.6)), leftArm=L_BACK_LO,
                   body=(-76, -6, 0), head=(-40, -6, 0), rightLeg=(40, 0, 18, 30), leftLeg=(30, 0, -18, 24))),
      (9, LIN, dict(body=(-72, -6, 0))),
      (15, IO, VM_STANCE)]))
 
-# ── 뱀파이어 기술 ──
-# 흡혈 돌진 (참고: '빈약하다!' — 낮게 달려들어 붙잡고 목에 손가락을 꽂아 흡혈 → 내던짐)
-VM_GRAB_R = HR((0.1, 0.3, -0.95), (0.1, 1.75, -0.62))     # 오른손: 상대 목을 쥐어 들어 올림
-VM_GRAB_L = HL((-0.05, -0.1, -1), (-0.08, 1.45, -0.62))       # 왼손: 어깨를 붙잡음
-anim("vm_lunge", 40, seq([(0, LIN, VM_STANCE),
-     (3, OQ, dict(body=(-40, -4, 0), head=(-34, -4, 0), rightArm=DF((0.1, -0.15, -0.98), (0.05, 0.3, -0.95), -30), leftArm=(55, 0, -20, -20),
-                  rightLeg=(-50, 0, 8, 60), leftLeg=(40, 0, -8, 20), bodyPos=(0, -0.24, 0))),
-     (6, EX, dict(body=(6, -6, 0), head=(-12, -6, 0), rightArm=VM_GRAB_R, leftArm=VM_GRAB_L, **legs((16, 8, 16), (-20, 8, 18)), bodyPos=(0, -0.04, 0))),
-     (10, IO, dict(body=(12, -6, 0), head=(-22, -6, 0), rightArm=HR((0.1, 0.45, -0.89), (0.08, 1.9, -0.6)))),
-     (16, IO, dict(body=(14, -8, 0), head=(-26, -8, 0), rightArm=HR((0.1, 0.5, -0.86), (0.08, 1.95, -0.58)))),
-     (22, IO, dict(body=(12, -5, 0), head=(-22, -5, 0), rightArm=HR((0.1, 0.45, -0.89), (0.08, 1.9, -0.6)))),
-     (28, IO, dict(body=(14, -8, 0), head=(-26, -8, 0), rightArm=HR((0.1, 0.5, -0.86), (0.08, 1.95, -0.58)))),
-     (31, IO, dict(body=(10, 30, 0), head=(-10, 26, 0), rightArm=DF((-0.4, 0.55, -0.73), (-0.5, 0.8, -0.3), -30), leftArm=DF((-0.5, -0.5, 0.7), (-0.3, -0.6, 0.7), -40))),
-     (33, EX, dict(body=(-6, -46, 0), head=(-8, -40, 0), rightArm=DF((0.85, 0.2, 0.45), (0.9, 0.0, 0.4), -10))),
-     (36, LIN, dict(body=(-4, -44, 0))),
-     (40, IO, VM_STANCE)]))
+# ── 잡아 들어 올리는 공용 자세 (무다 연타·흡혈 돌진·피의 만찬) ──
+VM_LIFT = dict(rightArm=R_NECK_HI, leftArm=L_BACK_LO, body=(14, -4, 0), head=(-26, -4, 0), **VM_WIDE)
+VM_LIFT2 = dict(rightArm=HR((0.12, 0.6, -0.8), (0.1, 2.06, -0.5)), body=(17, -4, 0), head=(-29, -4, 0))   # 손가락을 꽂을 때마다 몸이 들썩
+VM_RAM = dict(rightArm=HR((0.3, -0.5, -0.8), (0.15, 1.0, -0.62)), leftArm=HL((-0.3, -0.5, -0.8), (-0.15, 1.0, -0.62)),
+              body=(-34, -6, 0), head=(-30, -6, 0), leftLeg=(-50, 0, -10, 60), rightLeg=(40, 0, 10, 12), bodyPos=(0, -0.26, 0))   # 어깨로 들이받음
+VM_DASH = dict(body=(-44, -4, 0), head=(-40, -4, 0), rightArm=(-6, 0, 12, -14), leftArm=(-6, 0, -12, -14),
+               rightLeg=(-50, 0, 8, 60), leftLeg=(40, 0, -8, 20), bodyPos=(0, -0.26, 0))    # 달리기처럼 낮게 돌진
+
+
+def lift_hold(t0, t1, every=3):
+    """t0~t1: 들어 올린 채 every 틱마다 들썩 (손가락을 꽂아 흡혈)"""
+    out = []
+    t = t0
+    k = 0
+    while t <= t1:
+        out.append((t, EX if k % 2 else IO, VM_LIFT2 if k % 2 else dict(rightArm=R_NECK_HI, body=(14, -4, 0), head=(-26, -4, 0))))
+        t += every
+        k += 1
+    return out
+
+
+# 흡혈 돌진 (참고: '빈약하다!'): 낮게 달려들어 들이받고 → 목을 쥐어 들어 올린 채 다섯 번 흡혈 → 옆으로 내던짐
+anim("vm_lunge", 42, seq([(0, LIN, VM_STANCE), (3, OQ, VM_DASH), (6, EX, VM_RAM), (9, OQ, VM_LIFT)] + lift_hold(11, 30, 4)
+     + [(33, IO, dict(rightArm=HR((-0.3, 0.75, -0.6), (-0.4, 1.95, -0.25)), body=(12, 26, 0), head=(-14, 22, 0))),
+        (35, EX, dict(rightArm=HR((0.8, 0.2, 0.55), (0.85, 1.2, 0.25)), body=(-6, -46, 0), head=(-8, -40, 0))),
+        (38, LIN, dict(body=(-4, -44, 0))),
+        (42, IO, VM_STANCE)]))
 # 내리꽂기 흡혈 (공중): 머리부터 고꾸라져 내리꽂히며 상대를 깔아뭉개고, 한쪽 무릎을 꿇은 채 손가락을 꽂아 흡혈
+VM_PIN = dict(body=(-34, -6, 0), head=(-22, -6, 0), rightArm=HR((0.1, -0.7, -0.7), (0.1, 0.55, -0.62)), leftArm=HL((-0.4, -0.7, -0.55), (-0.3, 0.75, -0.5)),
+              leftLeg=(-74, 0, -22, 100), rightLeg=(24, 0, 24, 96), bodyPos=(0, -0.36, 0))
 anim("vm_dive", 32, seq([(0, LIN, VM_AIR0),
-     (3, OQ, dict(body=(-80, 0, 0), head=(-44, 0, 0), rightArm=DF((0.15, -0.3, -0.94), (0.1, -0.2, -0.97), -10),
-                  leftArm=DF((-0.15, -0.3, -0.94), (-0.1, -0.2, -0.97), -10), rightLeg=(30, 0, 14, 20), leftLeg=(24, 0, -14, 16))),
-     (8, EX, dict(body=(-34, -6, 0), head=(-22, -6, 0), rightArm=DF((0.1, -0.75, -0.65), (0.0, -0.95, -0.3), -10), leftArm=DF((-0.3, -0.7, -0.6), (-0.1, -0.9, -0.4), -20),
-                  leftLeg=(-74, 0, -22, 100), rightLeg=(24, 0, 24, 96), bodyPos=(0, -0.36, 0))),
-     (14, IO, dict(body=(-30, -6, 0), head=(-14, -6, 0), rightArm=DF((0.1, -0.72, -0.68), (0.0, -0.95, -0.3), -14))),
-     (20, IO, dict(body=(-34, -6, 0), head=(-20, -6, 0), rightArm=DF((0.1, -0.75, -0.65), (0.0, -0.95, -0.3), -10))),
-     (26, IO, dict(body=(-26, -6, 0), head=(-12, -6, 0))),
+     (3, OQ, dict(body=(-80, 0, 0), head=(-44, 0, 0), rightArm=HR((0.15, -0.3, -0.94), (0.2, 1.1, -0.6)),
+                  leftArm=HL((-0.15, -0.3, -0.94), (-0.2, 1.1, -0.6)), rightLeg=(30, 0, 14, 20), leftLeg=(24, 0, -14, 16))),
+     (8, EX, VM_PIN),
+     (14, IO, dict(body=(-30, -6, 0), head=(-14, -6, 0))),
+     (19, EX, dict(body=(-36, -6, 0), head=(-22, -6, 0))),
+     (24, IO, dict(body=(-30, -6, 0), head=(-14, -6, 0))),
      (32, IO, VM_STANCE)]))
-# 손끝 찌르기 (평타 중): 손끝을 모아 창처럼 쭉 (빠름)
+# 손끝 찌르기 (평타 중): 허리로 당겼다가 손끝을 모아 창처럼 쭉 (빠름)
 anim("vm_stab", 10, vm(3, 10, [
-    (1, IO, dict(rightArm=DF((0.35, -0.5, 0.8), (0.3, -0.3, -0.9), -110), body=(4, -44, 0), head=(-4, -36, 0), **VM_COIL)),
-    (3, EX, dict(rightArm=DF((0.0, 0.08, -1), (0.0, 0.08, -1), 0), leftArm=DF((-0.5, -0.4, 0.75), (-0.2, -0.6, 0.75), -50),
-                 body=(-14, 26, 0), head=(-10, 24, 0), **VM_STEP)),
+    (1, IO, dict(rightArm=R_CHAMBER, leftArm=HL((-0.1, -0.1, -1), (-0.1, 1.35, -0.6)), body=(4, -44, 0), head=(-4, -36, 0), **VM_COIL)),
+    (3, EX, dict(rightArm=R_THRUST, leftArm=L_BACK_LO, body=(-14, 26, 0), head=(-10, 24, 0), **VM_STEP)),
 ]))
 
-# 기화냉동법 (참고: 손바닥을 갖다 대 상대를 얼림): 왼발을 내딛으며 왼손바닥을 상대 얼굴에 붙임 → 버팀(얼어붙음) → 손바닥으로 밀어 올림
-VM_PALM_L = HL((0.05, 0.1, -1), (-0.06, 1.55, -0.62))
-anim("vm_freeze", 30, seq([(0, LIN, VM_STANCE),
-     (2, IO, dict(leftArm=DF((-0.4, -0.5, 0.75), (0.2, -0.3, -0.93), -100), rightArm=VM_CLAW_UP, body=(0, 20, 0), head=(-6, 14, 0), **VM_COIL)),
-     (4, EX, dict(leftArm=VM_PALM_L, rightArm=DF((0.5, -0.6, 0.6), (0.3, -0.2, -0.93), -70), body=(-10, -30, 0), head=(-10, -28, 0), **VM_STEP)),
-     (10, IO, dict(body=(-6, -30, 0), head=(-16, -28, 0))),
-     (16, IO, dict(body=(-10, -30, 0), head=(-10, -28, 0))),
-     (19, EX, dict(leftArm=DF((-0.1, 0.55, -0.83), (-0.05, 0.8, -0.6), -10), body=(10, -28, 0), head=(-20, -26, 0))),
-     (24, LIN, dict(body=(8, -28, 0))),
-     (30, IO, VM_STANCE)]))
-# 얼음 손톱 (평타 중): 오른손 손등 쪽으로 사선 할퀴기 (손톱에 서리)
+# 기화냉동법 (참고: 낮게 파고들어 오른손바닥을 대면 상대가 하얗게 얼어 떠오름 → 손을 들어 올렸다가 내던짐)
+anim("vm_freeze", 32, seq([(0, LIN, VM_STANCE),
+     (2, IO, dict(rightArm=R_CHAMBER, leftArm=L_LOOSE, body=(-6, -36, 0), head=(-8, -30, 0), **VM_COIL)),
+     (4, EX, dict(rightArm=HR((0.1, -0.35, -0.93), (0.1, 1.05, -0.62)), leftArm=L_BACK_LO, body=(-24, 20, 0), head=(-18, 18, 0), **VM_STEP)),
+     (8, IO, dict(rightArm=HR((0.1, -0.15, -0.98), (0.1, 1.25, -0.62)), body=(-14, 18, 0), head=(-20, 18, 0))),
+     (14, IO, dict(rightArm=HR((0.12, 0.6, -0.8), (0.12, 2.05, -0.45)), body=(12, 10, 0), head=(-30, 10, 0), **VM_WIDE)),
+     (18, LIN, dict(body=(14, 10, 0), head=(-32, 10, 0))),
+     (21, EX, dict(rightArm=HR((0.5, -0.2, -0.85), (0.6, 1.0, -0.4)), body=(-10, -30, 0), head=(-10, -26, 0))),
+     (25, LIN, dict(body=(-8, -30, 0))),
+     (32, IO, VM_STANCE)]))
+# 얼음 손톱 (평타 중): 오른손을 왼어깨 위로 감았다가 손등 쪽으로 사선 할퀴기
 anim("vm_iceclaw", 12, vm(4, 12, [
-    (2, IO, dict(rightArm=DF((-0.5, 0.6, -0.6), (-0.7, 0.5, 0.4), -90), body=(0, 26, 0), head=(-4, 22, 0), **VM_COIL)),
-    (4, EX, dict(rightArm=DF((0.55, -0.35, -0.75), (0.8, -0.5, -0.3), -15), body=(-10, -34, 0), head=(-8, -28, 0), **VM_STEP_R)),
+    (2, IO, dict(rightArm=HR((-0.4, 0.55, -0.7), (-0.35, 1.8, -0.2)), body=(0, 26, 0), head=(-4, 22, 0), **VM_COIL)),
+    (4, EX, dict(rightArm=HR((0.6, -0.4, -0.7), (0.62, 0.95, -0.35)), leftArm=L_BACK_LO, body=(-10, -34, 0), head=(-8, -28, 0), **VM_STEP_R)),
 ]))
 # 얼려 내리꽂기 (공중): 두 손으로 붙잡아 얼린 뒤 머리 위로 들었다가 내리꽂음
 anim("vm_icedrop", 18, seq([(0, LIN, VM_AIR0),
-     (2, OQ, dict(rightArm=VM_GRAB_R, leftArm=DF((-0.1, 0.3, -0.95), (0.0, 0.65, -0.76), -40), body=(-10, 0, 0), head=(-10, 0, 0))),
-     (6, IO, dict(rightArm=DF((0.2, 0.95, -0.2), (0.0, 1.0, 0.1), -20), leftArm=DF((-0.2, 0.95, -0.2), (0.0, 1.0, 0.1), -20), body=(22, 0, 0), head=(-26, 0, 0))),
-     (8, EX, dict(rightArm=DF((0.15, -0.4, -0.9), (0.05, -0.75, -0.65), -10), leftArm=DF((-0.15, -0.4, -0.9), (-0.05, -0.75, -0.65), -10),
+     (2, OQ, dict(rightArm=HR((0.1, 0.0, -1), (0.12, 1.5, -0.6)), leftArm=HL((-0.1, 0.0, -1), (-0.12, 1.5, -0.6)), body=(-10, 0, 0), head=(-10, 0, 0))),
+     (6, IO, dict(rightArm=HR((0.25, 0.95, 0.1), (0.15, 2.05, 0.05)), leftArm=HL((-0.25, 0.95, 0.1), (-0.15, 2.05, 0.05)), body=(22, 0, 0), head=(-26, 0, 0))),
+     (8, EX, dict(rightArm=HR((0.15, -0.4, -0.9), (0.12, 0.85, -0.55)), leftArm=HL((-0.15, -0.4, -0.9), (-0.12, 0.85, -0.55)),
                   body=(-60, 0, 0), head=(-34, 0, 0), rightLeg=(30, 0, 20, 40), leftLeg=(20, 0, -20, 30))),
      (12, LIN, dict(body=(-56, 0, 0))),
      (18, IO, VM_STANCE)]))
 
-# 냉동 반격 (참고: '순식간에 얼린 것이다' — 받아내는 자세): 상체를 젖히고 오른손바닥을 앞으로 내민 채 기다림
-VM_COUNTER = dict(body=(10, -16, 0), head=(-14, -16, 0), rightArm=HR((0.1, -0.2, -0.97), (0.14, 1.42, -0.6)), leftArm=VM_HIP, **VM_LEGS)
-anim("vm_counter", 16, seq([(0, LIN, VM_STANCE), (2, OQ, VM_COUNTER), (14, LIN, dict(body=(11, -16, 0))), (16, IO, VM_STANCE)]))
-anim("vm_counter_hit", 16, seq([(0, LIN, VM_COUNTER),
-     (2, EX, dict(rightArm=DF((0.0, 0.1, -1), (0.0, 0.2, -0.98), -5), body=(-8, 20, 0), head=(-8, 18, 0), **VM_STEP)),
-     (8, LIN, dict(body=(-6, 20, 0))),
-     (16, IO, VM_STANCE)]))
+# 냉동 반격 (참고: '순식간에 얼린 것이다'): 상체를 젖힌 채 오른손바닥을 앞으로 내밀고 1.5초 기다림 (손바닥에 서리)
+VM_COUNTER = dict(body=(10, -16, 0), head=(-14, -16, 0), rightArm=HR((0.12, -0.2, -0.97), (0.14, 1.42, -0.6)), leftArm=L_HIP, **VM_LEGS)
+anim("vm_counter", 32, seq([(0, LIN, VM_STANCE), (3, OQ, VM_COUNTER), (16, IO, dict(body=(12, -16, 0), head=(-16, -16, 0))),
+                            (30, IO, dict(body=(10, -16, 0), head=(-14, -16, 0))), (32, IO, VM_STANCE)]))
+anim("vm_counter_hit", 22, seq([(0, LIN, VM_COUNTER),
+     (2, EX, dict(rightArm=R_THRUST, leftArm=L_BACK_LO, body=(-10, 22, 0), head=(-10, 20, 0), **VM_STEP)),
+     (10, LIN, dict(body=(-8, 22, 0))),
+     (14, IO, dict(rightArm=HR((0.12, -0.2, -0.97), (0.14, 1.42, -0.6)), leftArm=L_HIP, body=(10, -10, 0), head=(-16, -10, 0), **VM_LEGS)),
+     (22, IO, VM_STANCE)]))
 
-# 괴력 (참고: 'URYYY!' 포효): 두 팔을 끌어안듯 웅크렸다가 → 팔을 활짝 펴고 가슴을 내밀며 하늘을 향해 포효
-anim("vm_might", 24, seq([(0, LIN, VM_STANCE),
-     (4, IO, dict(rightArm=DF((-0.4, -0.3, -0.85), (-0.6, 0.6, -0.5), -100), leftArm=DF((0.4, -0.3, -0.85), (0.6, 0.6, -0.5), -100),
-                  body=(-18, 0, 0), head=(10, 0, 0), **legs((16, 10, 34), (-20, 10, 34)), bodyPos=(0, -0.12, 0))),
-     (8, EX, dict(rightArm=DF((0.85, 0.45, 0.2), (0.6, 0.8, -0.1), -50), leftArm=DF((-0.85, 0.45, 0.2), (-0.6, 0.8, -0.1), -50),
-                  body=(16, 0, 0), head=(-38, 0, 0), **legs((10, 18, 20), (-10, 18, 20)), bodyPos=(0, -0.08, 0))),
-     (18, LIN, dict(body=(18, 0, 0), head=(-40, 0, 0))),
-     (24, IO, VM_STANCE)]))
+# 괴력 연격 (참고: KUA! — 짧게 뛰어들며 무릎, 맞으면 평타로 이어 받는 파생기)
+VM_KUA = dict(leftArm=HL((-0.05, -0.1, -1), (-0.05, 1.45, -0.62)), rightArm=R_CHAMBER, body=(8, -16, 0), head=(-4, -16, 0),
+              rightLeg=(-104, 0, 10, 108), leftLeg=(6, 0, -12, 14), bodyPos=(0, 0.04, 0))
+anim("vm_kua", 18, seq([(0, LIN, VM_STANCE),
+     (2, IO, dict(body=(-14, -18, 0), head=(-10, -18, 0), rightArm=R_CHAMBER, leftArm=L_CHAMBER, **VM_COIL)),
+     (5, EX, VM_KUA), (9, LIN, dict(body=(6, -16, 0))),
+     (12, IO, dict(rightArm=R_CLAW_FRONT, leftArm=L_CLAW_FRONT, body=(6, -16, 0), head=(-8, -16, 0), **VM_WIDE)),   # 다음 파생을 기다리는 자세
+     (18, IO, VM_STANCE)]))
+anim("vm_kua_l", 18, seq([(0, LIN, dict(rightArm=R_CLAW_FRONT, leftArm=L_CLAW_FRONT, body=(6, -16, 0), head=(-8, -16, 0), **VM_WIDE)),   # 약: 수도 → 손등
+     (2, IO, dict(rightArm=HR((0.6, 0.6, 0.5), (0.45, 1.85, 0.05)), leftArm=L_CHAMBER, body=(4, -40, 0), head=(-6, -30, 0), **VM_COIL)),
+     (3, EX, dict(rightArm=HR((-0.05, -0.3, -0.95), (-0.25, 0.95, -0.55)), leftArm=L_BACK_LO, body=(-12, 18, 0), head=(-8, 16, 0), **VM_STEP)),
+     (6, IO, dict(leftArm=HL((0.6, -0.2, -0.75), (0.3, 1.45, -0.3)), rightArm=R_CHAMBER, body=(0, 24, 0), head=(-4, 18, 0))),
+     (8, EX, dict(leftArm=HL((-0.6, 0.0, -0.8), (-0.75, 1.35, -0.4)), body=(-10, -34, 0), head=(-8, -28, 0), **VM_STEP_R)),
+     (12, LIN, dict(body=(-8, -32, 0))), (18, IO, VM_STANCE)]))
+anim("vm_kua_m", 24, seq([(0, LIN, dict(rightArm=R_CLAW_FRONT, leftArm=L_CLAW_FRONT, body=(6, -16, 0), head=(-8, -16, 0), **VM_WIDE)),   # 중: 무릎 → 얼리는 손바닥 → 올려치기
+     (3, EX, VM_KUA),
+     (7, IO, dict(rightArm=R_CHAMBER, leftArm=L_CHAMBER, body=(-4, -30, 0), head=(-6, -26, 0), **VM_COIL)),
+     (9, EX, dict(leftArm=HL((-0.1, -0.1, -1), (-0.1, 1.4, -0.62)), body=(-14, -36, 0), head=(-12, -32, 0), **VM_STEP)),
+     (12, IO, dict(rightArm=HR((0.3, -0.85, 0.4), (0.38, 0.75, -0.25)), body=(-22, -10, 0), head=(-14, -10, 0), **VM_SQUAT)),
+     (14, EX, dict(rightArm=R_UP_HIGH, leftArm=L_BACK_LO, body=(14, 8, 0), head=(-28, 8, 0), rightLeg=(12, 0, 12, 6), leftLeg=(-20, 0, -12, 12), bodyPos=(0, 0.04, 0))),
+     (18, LIN, dict(body=(16, 8, 0))), (24, IO, VM_STANCE)]))
+anim("vm_kua_h", 28, seq([(0, LIN, dict(rightArm=R_CLAW_FRONT, leftArm=L_CLAW_FRONT, body=(6, -16, 0), head=(-8, -16, 0), **VM_WIDE)),   # 강: 머리를 움켜쥐고 들었다가 땅에 내리꽂음 (URYYY)
+     (3, EX, dict(rightArm=HR((0.1, 0.0, -1), (0.1, 1.55, -0.62)), leftArm=L_BACK_LO, body=(-6, -10, 0), head=(-8, -10, 0), **VM_STEP)),
+     (8, IO, dict(rightArm=HR((0.25, 0.9, -0.35), (0.2, 2.1, -0.15)), body=(22, -6, 0), head=(-34, -6, 0), **VM_WIDE)),
+     (12, LIN, dict(body=(24, -6, 0))),
+     (14, EX, dict(rightArm=HR((0.1, -0.5, -0.86), (0.1, 0.45, -0.6)), leftArm=L_BACK_LO, body=(-48, -6, 0), head=(-30, -6, 0), **VM_SQUAT)),
+     (20, LIN, dict(body=(-44, -6, 0))), (28, IO, VM_STANCE)]))
+
 # 재생: 상처 난 가슴에 오른손을 대고 고개를 젖힘 (살이 다시 붙음)
 anim("vm_regen", 20, seq([(0, LIN, VM_STANCE),
-     (5, IO, dict(rightArm=DF((0.25, -0.6, -0.75), (-0.7, 0.4, -0.6), -110), leftArm=DF((-0.75, -0.6, 0.2), (-0.6, -0.3, -0.75), -40),
-                  body=(14, -8, 0), head=(-34, -8, 0))),
+     (5, IO, dict(rightArm=HR((0.3, -0.75, -0.55), (-0.08, 1.22, -0.2)), leftArm=L_LOOSE, body=(14, -8, 0), head=(-34, -8, 0))),
      (14, LIN, dict(body=(16, -8, 0), head=(-36, -8, 0))),
      (20, IO, VM_STANCE)]))
-# 하인·육아 지배: 상체를 젖힌 채 손가락 하나로 상대를 가리킴
-anim("vm_point", 14, vm(4, 14, [
-    (4, EX, dict(rightArm=DF((0.05, 0.15, -0.99), (0.0, 0.2, -0.98), -5), body=(12, 12, 0), head=(-16, 12, 0))),
-], hold=6))
+# 피의 하인: 손바닥을 위로 펼친 오른손을 천천히 들어 올리며 '일어나라' (상체를 젖히고 내려다봄)
+anim("vm_thrall", 24, seq([(0, LIN, VM_STANCE),
+     (5, IO, dict(rightArm=HR((0.3, -0.6, -0.75), (0.32, 1.1, -0.6)), body=(8, 10, 0), head=(-10, 10, 0))),
+     (12, IO, dict(rightArm=HR((0.3, -0.1, -0.95), (0.35, 1.6, -0.55)), body=(12, 10, 0), head=(-20, 10, 0))),
+     (18, LIN, dict(body=(13, 10, 0))),
+     (24, IO, VM_STANCE)]))
+# 육아 지배: 오른손을 이마에 댔다가(육아를 떼어 냄) 두 손가락으로 상대를 향해 튕겨 날림
+anim("vm_budshot", 18, seq([(0, LIN, VM_STANCE),
+     (3, IO, dict(rightArm=HR((0.6, 0.05, -0.8), (0.05, 1.82, -0.22)), body=(4, -10, 0), head=(-2, -10, 0))),
+     (7, EX, dict(rightArm=HR((0.05, 0.1, -1), (0.08, 1.48, -0.62)), body=(-6, 18, 0), head=(-10, 18, 0), **VM_STEP)),
+     (12, LIN, dict(body=(-4, 18, 0))),
+     (18, IO, VM_STANCE)]))
 
-# 혈안 광선 (참고: 공열안자경): 깊게 웅크려 몸을 앞으로 숙이고 두 팔을 양옆 아래로 벌린 채 눈에서 쏨
-VM_BEAM = dict(body=(-20, -10, 0), head=(-6, -10, 0), rightArm=DF((0.75, -0.6, -0.2), (0.6, -0.2, -0.75), -60),
-               leftArm=DF((-0.75, -0.6, -0.2), (-0.6, -0.2, -0.75), -60), **VM_STEP)
-anim("vm_beam", 22, seq([(0, LIN, VM_STANCE), (3, IO, dict(VM_BEAM, head=(10, -10, 0))), (6, EX, VM_BEAM),
-                         (16, LIN, dict(body=(-18, -10, 0))), (22, IO, VM_STANCE)]))
-# 공중에서: 몸을 앞으로 숙여 아래를 내려다보며 쏨
-VM_BEAM_AIR = dict(body=(-44, -6, 0), head=(-6, -6, 0), rightArm=DF((0.8, -0.3, 0.5), (0.5, 0.2, 0.85), -40),
-                   leftArm=DF((-0.8, -0.3, 0.5), (-0.5, 0.2, 0.85), -40), **VM_AIRL)
-anim("vm_beam_air", 22, seq([(0, LIN, VM_AIR0), (3, IO, dict(VM_BEAM_AIR, head=(6, -6, 0))), (6, EX, VM_BEAM_AIR),
-                             (16, LIN, dict(body=(-42, -6, 0))), (22, IO, VM_STANCE)]))
-# 단발 광선 (평타 중): 고개를 앞으로 확 내밀며 짧게 쏨, 오른손은 관자놀이
-anim("vm_beam_quick", 10, vm(3, 10, [
-    (1, IO, dict(head=(8, -12, 0), rightArm=DF((0.6, 0.55, -0.6), (-0.3, 0.6, -0.75), -130))),
-    (3, EX, dict(head=(-4, -12, 0), body=(-6, -12, 0), rightArm=DF((0.6, 0.55, -0.6), (-0.3, 0.6, -0.75), -130))),
+# 혈안 광선 (참고: 공열안자경): 두 손을 관자놀이에 대고 고개를 숙여 힘을 모음(4~9) → 10틱: 고개를 들며 깊게 숙이고 두 팔을 뒤로 뿌리며 발사
+VM_BEAM_CHARGE = dict(rightArm=R_TEMPLE, leftArm=L_TEMPLE, body=(-6, -10, 0), head=(22, -10, 0), **VM_WIDE)
+VM_BEAM_FIRE = dict(rightArm=R_BACK_LO, leftArm=L_BACK_LO, body=(-24, -6, 0), head=(-14, -6, 0), **VM_STEP)
+anim("vm_beam", 26, seq([(0, LIN, VM_STANCE), (4, IO, VM_BEAM_CHARGE), (9, LIN, dict(head=(26, -10, 0))),
+                         (10, EX, VM_BEAM_FIRE), (20, LIN, dict(body=(-22, -6, 0))), (26, IO, VM_STANCE)]))
+# 공중에서: 관자놀이에 손 → 몸을 앞으로 숙여 내려다보며 쏨
+VM_BEAM_AIR = dict(body=(-46, -6, 0), head=(-4, -6, 0), rightArm=R_BACK_LO, leftArm=L_BACK_LO, **VM_AIRL)
+anim("vm_beam_air", 24, seq([(0, LIN, VM_AIR0), (3, IO, dict(rightArm=R_TEMPLE, leftArm=L_TEMPLE, body=(-10, -6, 0), head=(20, -6, 0))),
+                             (8, EX, VM_BEAM_AIR), (18, LIN, dict(body=(-44, -6, 0))), (24, IO, VM_STANCE)]))
+# 단발 광선 (평타 중): 오른손을 관자놀이에 대며 고개를 앞으로 확 내밀어 짧게 쏨
+anim("vm_beam_quick", 11, vm(4, 11, [
+    (2, IO, dict(head=(16, -12, 0), rightArm=R_TEMPLE)),
+    (4, EX, dict(head=(-8, -12, 0), body=(-10, -12, 0), rightArm=R_TEMPLE)),
 ]))
 
-# 무다무다 연타 (참고: '무다무다무다'): 왼손으로 어깨를 붙잡고 오른손 손끝으로 3틱마다 찌름 (8번) → 마지막은 몸을 틀어 깊게
-VM_MUDA_BACK = HR((0.3, -0.75, 0.55), (0.3, 1.08, -0.15))
-VM_MUDA_OUT = DF((0.0, 0.05, -1), (0.0, 0.1, -1), -5)
-_muda = [(0, LIN, VM_STANCE),
-         (3, OQ, dict(leftArm=VM_GRAB_L, rightArm=VM_MUDA_BACK, body=(-6, -20, 0), head=(-8, -20, 0), **legs((18, 10, 24), (-24, 10, 26)), bodyPos=(0, -0.08, 0)))]
-for i in range(8):
-    t = 5 + i * 3
-    _muda += [(t, EX, dict(rightArm=VM_MUDA_OUT, body=(-10, -10 + (i % 2) * 6, 0), head=(-10, -10 + (i % 2) * 6, 0))),
-              (t + 2, IO, dict(rightArm=VM_MUDA_BACK, body=(-6, -20, 0), head=(-8, -20, 0)))]
-_muda += [(30, IO, dict(rightArm=DF((0.35, -0.55, 0.75), (0.3, -0.35, -0.88), -105), body=(0, -44, 0), head=(-6, -36, 0))),
-          (32, EX, dict(rightArm=VM_MUDA_OUT, leftArm=DF((-0.55, -0.35, 0.75), (-0.3, -0.6, 0.7), -40), body=(-16, 28, 0), head=(-12, 24, 0), **VM_STEP)),
-          (38, LIN, dict(body=(-14, 28, 0))), (44, IO, VM_STANCE)]
-anim("vm_muda", 44, seq(_muda))
+# 무다 연타 (참고: '무다무다무다'): 낮게 달려들어 어깨로 들이받아 띄움 → 오른손으로 목을 쥐어 머리 위로 들고 3틱마다 손가락을 꽂음(8번, 맞을 때마다 피) →
+#   머리 위로 크게 휘둘러 앞의 땅에 내리꽂음
+anim("vm_muda", 50, seq([(0, LIN, VM_STANCE), (2, OQ, VM_DASH), (4, EX, VM_RAM), (7, OQ, VM_LIFT)] + lift_hold(9, 32, 3)
+     + [(36, IO, dict(rightArm=HR((0.2, 0.9, 0.38), (0.15, 2.1, 0.25)), leftArm=L_BACK_LO, body=(26, -4, 0), head=(-34, -4, 0), **VM_WIDE)),
+        (39, EX, dict(rightArm=HR((0.1, -0.5, -0.86), (0.1, 0.45, -0.6)), leftArm=L_BACK_LO, body=(-48, -6, 0), head=(-30, -6, 0), **VM_SQUAT)),
+        (44, LIN, dict(body=(-44, -6, 0))),
+        (50, IO, VM_STANCE)]))
 
-# ── 각성기 '피의 만찬' (참고: '가장 잔혹한 죽음을 선사하마!' — 110틱) ──
-#   0 낮게 달려듦 → 8 손을 가슴에 꽂아 얼림 → 20~44 두 손 손톱 난타 → 46 웅크림 → 50 뛰어오름(몸을 젖혀 손끝을 하늘로) →
-#   60 손가락으로 아래를 가리킴 → 66 머리부터 내리꽂히며 손끝으로 박음 → 72 한쪽 무릎 → 80~ 천천히 일어나 두 팔을 활짝 펴고 고개를 젖혀 웃음
-_ult = [(0, LIN, VM_STANCE),
-        (4, OQ, dict(body=(-40, -4, 0), head=(-34, -4, 0), rightArm=(50, 0, 20, -20), leftArm=(50, 0, -20, -20),
-                     rightLeg=(-50, 0, 8, 60), leftLeg=(40, 0, -8, 20), bodyPos=(0, -0.24, 0))),
-        (6, IO, dict(rightArm=DF((0.35, -0.55, 0.75), (0.3, -0.35, -0.88), -105), body=(-10, -40, 0), head=(-10, -34, 0))),
-        (8, EX, dict(rightArm=VM_MUDA_OUT, leftArm=DF((-0.55, -0.35, 0.75), (-0.3, -0.6, 0.7), -40), body=(-14, 26, 0), head=(-12, 24, 0), **VM_STEP)),
-        (18, LIN, dict(body=(-12, 26, 0), head=(-18, 24, 0)))]
+# ── 각성 '혈광 해방' (80틱, 참고: 대전 시작·각성 포즈 '바-ン') ──
+#   0 고개를 숙이고 가슴에 손 → 14 고개를 젖혀 포효 → 30 오른팔을 머리 위로 크게 휘둘러 올림(몸을 틀며) →
+#   44 넓게 주저앉으며 두 손을 갈고리처럼 가슴 앞에 펼침, 고개는 비스듬히 → 74까지 버팀
+anim("vm_awaken", 80, seq([(0, LIN, VM_STANCE),
+     (6, IO, dict(rightArm=HR((0.3, -0.75, -0.55), (-0.08, 1.22, -0.2)), leftArm=L_LOOSE, body=(-4, -10, 0), head=(26, -10, 0))),
+     (12, LIN, dict(body=(-5, -10, 0), head=(28, -10, 0))),
+     (16, EX, dict(rightArm=HR((0.6, -0.6, 0.5), (0.55, 1.0, 0.25)), leftArm=HL((-0.6, -0.6, 0.5), (-0.55, 1.0, 0.25)),
+                   body=(18, 0, 0), head=(-44, 0, 0), **legs((8, 12, 10), (-8, 12, 10)), bodyPos=(0, -0.03, 0))),
+     (26, LIN, dict(body=(20, 0, 0), head=(-46, 0, 0))),
+     (32, EX, dict(rightArm=HR((0.35, 0.92, 0.15), (0.35, 2.1, -0.1)), leftArm=HL((-0.6, -0.5, 0.6), (-0.55, 1.05, 0.35)),
+                   body=(12, 26, 0), head=(-14, 10, 0))),
+     (40, LIN, dict(body=(13, 28, 0))),
+     (46, EX, dict(rightArm=R_CLAW_FRONT, leftArm=L_CLAW_FRONT, body=(10, -10, 0), head=(-6, -36, 6), **VM_SQUAT)),
+     (60, LIN, dict(body=(11, -10, 0), head=(-8, -38, 6))),
+     (74, LIN, dict(body=(10, -10, 0), head=(-6, -36, 6))),
+     (80, IO, VM_STANCE)]))
+
+# ── 각성기 '피의 만찬' (참고: 각성기 연출 — 110틱) ──
+#   0 낮게 달려듦 → 8 웅크려 손끝을 가슴에 꽂아 얼림 → 20~41 웅크린 채 두 손끝을 번갈아 곧게 찌름(3틱마다) → 46 웅크림 →
+#   50 뛰어오름(몸을 젖혀 손끝을 하늘로) → 62 손가락으로 아래를 가리킴 → 66 머리부터 내리꽂혀 손끝으로 박음 → 72 한쪽 무릎 →
+#   80~ 천천히 일어나 두 팔을 활짝 펴고 고개를 젖혀 웃음
+VM_BARRAGE_LEGS = dict(leftLeg=(-44, 0, -16, 60), rightLeg=(30, 0, 16, 30), bodyPos=(0, -0.22, 0))
+_ult = [(0, LIN, VM_STANCE), (4, OQ, VM_DASH),
+        (6, IO, dict(rightArm=R_CHAMBER, leftArm=L_CHAMBER, body=(-18, -40, 0), head=(-14, -34, 0), **VM_BARRAGE_LEGS)),
+        (8, EX, dict(rightArm=R_THRUST, leftArm=L_BACK_LO, body=(-16, 26, 0), head=(-12, 24, 0))),
+        (18, LIN, dict(body=(-14, 26, 0), head=(-18, 24, 0)))]
 for i in range(8):
     t = 20 + i * 3
-    right = i % 2 == 0
-    arm = "rightArm" if right else "leftArm"
-    other = "leftArm" if right else "rightArm"
-    sx = 1 if right else -1
-    _ult += [(t, EX, {arm: DF((-0.3 * sx, 0.0, -0.95), (-0.85 * sx, -0.2, -0.5), -15), other: DF((0.6 * sx, 0.3, 0.7), (0.4 * sx, 0.4, -0.8), -80),
-                      "body": (-12, 26 * sx, 0), "head": (-10, 20 * sx, 0)})]
-_ult += [(46, IO, dict(rightArm=(40, 0, 30, -40), leftArm=(40, 0, -30, -40), body=(-30, 0, 0), head=(-20, 0, 0),
-                       leftLeg=(-36, 0, -30, 64), rightLeg=(-36, 0, 30, 64), bodyPos=(0, -0.26, 0))),
-         (50, OQ, dict(rightArm=DF((0.15, 0.98, 0.1), (0.05, 1.0, -0.05), -5), leftArm=DF((-0.7, 0.1, 0.7), (-0.5, -0.3, 0.8), -40),
-                       body=(20, 0, 0), head=(-30, 0, 0), rightLeg=(-50, 0, 18, 90), leftLeg=(-30, 0, -18, 70), bodyPos=(0, 0, 0))),
+    if i % 2 == 0:
+        _ult.append((t, EX, dict(rightArm=R_THRUST, leftArm=L_CHAMBER, body=(-16, 20, 0), head=(-12, 6, 0))))
+    else:
+        _ult.append((t, EX, dict(leftArm=L_THRUST, rightArm=R_CHAMBER, body=(-16, -20, 0), head=(-12, -6, 0))))
+_ult += [(44, IO, dict(rightArm=R_CHAMBER, leftArm=L_CHAMBER, body=(-8, 0, 0), head=(-14, 0, 0))),
+         (47, IO, dict(rightArm=R_BACK_LO, leftArm=L_BACK_LO, body=(-30, 0, 0), head=(-24, 0, 0), **VM_SQUAT)),
+         (50, OQ, dict(rightArm=R_UP_HIGH, leftArm=L_BACK_LO, body=(20, 0, 0), head=(-30, 0, 0),
+                       rightLeg=(-50, 0, 18, 90), leftLeg=(-30, 0, -18, 70), bodyPos=(0, 0, 0))),
          (58, IO, dict(body=(26, 0, 0), head=(-36, 0, 0))),
-         (62, EX, dict(rightArm=DF((0.05, -0.6, -0.8), (0.0, -0.7, -0.7), -5), body=(-30, 0, 0), head=(-10, 0, 0), rightLeg=(-80, 0, 20, 100), leftLeg=(-70, 0, -20, 100))),
-         (66, EX, dict(rightArm=DF((0.05, 0.35, -0.94), (0.0, 0.2, -0.98), -5), body=(-80, 0, 0), head=(-44, 0, 0), rightLeg=(36, 0, 18, 30), leftLeg=(30, 0, -18, 24))),
-         (72, OQ, dict(rightArm=DF((0.1, -0.75, -0.65), (0.0, -0.95, -0.3), -10), leftArm=DF((-0.6, -0.6, 0.5), (-0.3, -0.5, -0.8), -40),
-                       body=(-34, -6, 0), head=(-26, -6, 0), leftLeg=(-74, 0, -22, 100), rightLeg=(24, 0, 24, 96), bodyPos=(0, -0.36, 0))),
+         (62, EX, dict(rightArm=HR((0.1, -0.55, -0.83), (0.12, 0.85, -0.55)), body=(-30, 0, 0), head=(-10, 0, 0),
+                       rightLeg=(-80, 0, 20, 100), leftLeg=(-70, 0, -20, 100))),
+         (66, EX, dict(rightArm=HR((0.05, 0.3, -0.95), (0.1, 1.6, -0.6)), body=(-80, 0, 0), head=(-44, 0, 0), rightLeg=(36, 0, 18, 30), leftLeg=(30, 0, -18, 24))),
+         (72, OQ, dict(VM_PIN)),
          (82, IO, dict(body=(-30, -6, 0), head=(-20, -6, 0))),
-         (94, IO, dict(rightArm=DF((0.9, 0.35, 0.25), (0.6, 0.75, -0.25), -60), leftArm=DF((-0.9, 0.35, 0.25), (-0.6, 0.75, -0.25), -60),
+         (94, IO, dict(rightArm=HR((0.8, 0.5, 0.3), (0.8, 1.95, -0.05)), leftArm=HL((-0.8, 0.5, 0.3), (-0.8, 1.95, -0.05)),
                        body=(18, 0, 0), head=(-40, 0, 0), **legs((10, 14, 12), (-10, 14, 12)), bodyPos=(0, -0.04, 0))),
          (104, LIN, dict(body=(20, 0, 0), head=(-44, 0, 0))),
          (110, IO, VM_STANCE)]

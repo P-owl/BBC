@@ -152,6 +152,27 @@ public final class Combat {
         f.parryUntil = Math.max(f.parryUntil, now + ticks);
     }
 
+    /**
+     * 반격 기술 (냉동 반격·연성 방벽 등): ticks 동안 어느 방향에서든 패링 가능한 공격에 맞으면 피해 없이 onHit(때린 상대) 를 부름.
+     * 가드를 누를 필요가 없고 기술 후딜 중에도 됨 (parryWindow 는 가드를 누르고 있어야만 패링이라 반격 기술엔 안 맞았음)
+     */
+    public static void counterWindow(LivingEntity e, int ticks, java.util.function.Consumer<LivingEntity> onHit) {
+        Fighter f = of(e);
+        f.counterUntil = now + ticks;
+        f.counterFn = onHit;
+    }
+
+    /** 반격 자세에 걸렸으면 받아치고 true */
+    private static boolean counter(Fighter v, LivingEntity atk) {
+        if (v.counterFn == null || now > v.counterUntil || atk == null || atk == v.e) return false;
+        var fn = v.counterFn;
+        v.counterFn = null;
+        v.counterUntil = 0;
+        setState(of(atk), Fighter.State.HITSTUN, Tuning.PARRY_STUN);   // 때린 쪽은 바로 멈칫
+        Tasks.later(1, () -> { if (v.e.isAlive()) fn.accept(atk); });  // 맞는 처리 도중에 다시 hit 하지 않게 다음 틱에
+        return true;
+    }
+
     /** 마지막 패링 성공으로 걸린 잠금이 끝나는 틱 (패링이 났는지 알아볼 때) */
     public static long parryLock(LivingEntity e) {
         Fighter f = peek(e);
@@ -179,6 +200,10 @@ public final class Combat {
     public static void m1(LivingEntity p, boolean up) { // 플레이어 입력과 몬스터 AI 가 같이 쓴다
         Fighter a = of(p);
         if (a.stunned() || a.guardHeld || a.dashTicks > 0 || a.channel != null || a.fallLock) return;
+        if (p instanceof net.minecraft.server.network.ServerPlayerEntity sp) {   // 직업 파생기 (예: 뱀파이어 괴력 연격 뒤 평타)
+            bbc.job.JobType jt = bbc.job.Jobs.type(bbc.job.Jobs.entry(sp));
+            if (jt != null && jt.m1Override(sp, up)) return;
+        }
         if (now < a.m1ReadyAt) {
             if (a.m1ReadyAt - now <= Tuning.INPUT_BUFFER) { a.buffered = up ? 2 : 1; a.bufferedAt = now; }
             return;
@@ -409,6 +434,7 @@ public final class Combat {
         boolean bounce = downOpen && !FROM_M1.get();   // 기술은 다시 띄움, 평타는 일반 경직 (슬램한 본인은 평타 막힘 24틱이라 못 넣음)
         if (v.state == Fighter.State.DOWN && !h.downHit() && !downOpen) return Result.MISS;
 
+        if (parryable(h) && counter(v, atk)) return Result.PARRIED;
         // 가드·패링 (앞에서 온 공격만, 평상 상태이고 후딜이 아닐 때)
         if (v.guardHeld && v.state == Fighter.State.IDLE && now >= v.recoveryUntil && front(t, atk.getPos())) {
             if (now <= v.parryUntil && parryable(h)) { parry(v, atk); return Result.PARRIED; }
@@ -903,6 +929,7 @@ public final class Combat {
         if (fv == null) return true;
         if (now < fv.invulnUntil) return false;
         Vec3d from = src.getPosition() != null ? src.getPosition() : atk != null ? atk.getPos() : null;
+        if (atk instanceof LivingEntity la2 && counter(fv, la2)) return false;
         if (fv.guardHeld && fv.state == Fighter.State.IDLE && from != null && front(e, from)) {
             if (now <= fv.parryUntil && atk instanceof LivingEntity la) { parry(fv, la); return false; }
             fv.guardUsedAt = now;

@@ -387,16 +387,16 @@ public final class VampireJob implements JobType {
     private static final JobSkills.Skill[] LIST = {
             new JobSkills.Skill("흡혈 돌진", "흡혈", 1, 0, 6, "낮게 달려들어 목을 쥐고 들어 올려 흡혈 → 내던짐 (잡기) · 평타 중: 손끝 찌르기 · 공중: 내리꽂아 깔고 흡혈"),
             new JobSkills.Skill("기화냉동법", "냉동", 1, 15, 14, "손바닥을 갖다 대 얼려 버린 뒤 밀어 올림 (잡기) · 평타 중: 얼음 손톱 · 공중: 붙잡아 얼려 내리꽂음"),
-            new JobSkills.Skill("괴력", "괴력", 1, 10, 20, "포효 — 주변을 밀쳐내고 10초 동안 주는 피해 ×1.3, 5타 날려보내기 2배"),
+            new JobSkills.Skill("괴력 연격", "연격", 1, 10, 10, "뛰어들며 무릎 → 맞으면 0.8초 안에 평타로 파생: 평타 = 수도·손등 · 스페이스+평타 = 얼려 올려치기 · 웅크리고+평타 = 머리를 쥐고 내리꽂기"),
             new JobSkills.Skill("재생", "재생", 1, 20, 15, "체력 6 회복 + 불 끄기"),
             new JobSkills.Skill("피의 하인", "하인", 1, 25, 45, "30초 안에 흡혈한 몬스터를 60초 하인으로 (최대 2)"),
-            new JobSkills.Skill("냉동 반격", "반격", 2, 20, 12, "0.7초 받아내는 자세 — 맞으면 때린 상대를 순식간에 얼리고 산산조각 (반격)"),
+            new JobSkills.Skill("냉동 반격", "반격", 2, 20, 12, "1.5초 동안 손바닥을 내밀고 받아냄 (가드 안 눌러도 됨) — 맞으면 때린 상대를 순식간에 얼리고 산산조각"),
             new JobSkills.Skill("혈안 광선", "광선", 2, 30, 18, "눈에서 고압 체액을 쏴 20칸 관통 · 평타 중: 짧은 단발 · 공중: 내려다보며 쏴 땅이 터짐"),
-            new JobSkills.Skill("무다 연타", "무다", 2, 25, 16, "어깨를 붙잡고 손끝으로 여덟 번 찌르며 흡혈 → 깊게 꽂아 날려보냄 (잡기)"),
+            new JobSkills.Skill("무다 연타", "무다", 2, 25, 16, "들이받아 목을 쥐고 머리 위로 들어 올린 채 손가락을 여덟 번 꽂아 흡혈 → 휘둘러 땅에 내리꽂음 (잡기)"),
             new JobSkills.Skill("육아 지배", "육아", 2, 40, 60, "주민이나 몬스터 하나를 60초 하인으로 (플레이어 불가)"),
     };
     /** 기술 칸 저장 형식이 바뀌면(순서·개수) 장착을 처음 상태로 */
-    private static final String EQUIP_VER = "2";
+    private static final String EQUIP_VER = "2";   // 괴력 → 괴력 연격은 같은 칸이라 그대로
 
     // 잡기는 가드·패링 불가 (가드 깨기 + noParry), 잡힌 동안은 경직을 길게 걸어 붙들어 둠
     private static final Hit GRAB = new Hit(0.6f, Hit.Kind.HIT, 40, 0, 0, 0, true, false).noParry();
@@ -408,14 +408,13 @@ public final class VampireJob implements JobType {
     private static final Hit FREEZE_LIFT = new Hit(1.6f, Hit.Kind.AIR, 26, 0.2, 0.9, 0, true, false).noParry();
     private static final Hit ICE_CLAW = new Hit(1.1f, Hit.Kind.HIT, 22, 0.2, 0, 15, false, false);
     private static final Hit ICE_DROP = new Hit(2.2f, Hit.Kind.DOWN, 28, 0, -1.2, 0, true, true).noParry();
-    private static final Hit ROAR = new Hit(0.4f, Hit.Kind.KNOCK, 12, 0.9, 0.25, 15, false, false);
-    private static final Hit COUNTER_FREEZE = new Hit(2.0f, Hit.Kind.HIT, 40, 0, 0, 0, true, false).noParry();
+        private static final Hit COUNTER_FREEZE = new Hit(2.0f, Hit.Kind.HIT, 40, 0, 0, 0, true, false).noParry();
     private static final Hit SHATTER = new Hit(1.8f, Hit.Kind.KNOCK, 20, 1.0, 0.4, 0, true, false).noParry();
     private static final Hit BEAM = new Hit(1.5f, Hit.Kind.HIT, 12, 0.5, 0, 20, false, false);
     private static final Hit BEAM_QUICK = new Hit(0.9f, Hit.Kind.HIT, 16, 0.15, 0, 10, false, false);
     private static final Hit BEAM_BLAST = new Hit(1.2f, Hit.Kind.AIR, 20, 0.4, 0.6, 15, false, false);
     private static final Hit MUDA = new Hit(0.35f, Hit.Kind.HIT, 30, 0, 0, 0, true, false).noParry();
-    private static final Hit MUDA_END = new Hit(2.2f, Hit.Kind.KNOCK, 22, 1.4, 0.4, 0, true, false).noParry();
+    private static final Hit MUDA_END = new Hit(2.6f, Hit.Kind.DOWN, 30, 0, -1.2, 0, true, true).noParry();
 
     private static final JobSkills.Set SKILLS = new JobSkills.Set() {
         @Override public JobSkills.Skill[] skills(ServerPlayerEntity p, PlayerData.Entry e) {
@@ -526,7 +525,8 @@ public final class VampireJob implements JobType {
         w.playSound(null, t.getBlockPos(), SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.2f, 0.6f);
     }
 
-    // ① 흡혈 돌진 (땅): 6틱 동안 낮게 달려듦 → 닿으면 목을 쥐고 들어 올림 → 5틱마다 흡혈(다섯 번) → 내던짐
+    // ① 흡혈 돌진 (땅, 참고: '빈약하다!'): 낮게 달려들어(1~6틱) 닿으면 어깨로 들이받고 → 목을 쥐어 머리 위로 들어 올림 →
+    //   4틱마다 손가락을 꽂아 흡혈(다섯 번) → 옆으로 내던짐. 모션 vm_lunge (붙잡는 자세 6틱, 들어 올림 9틱, 내던짐 35틱)에 맞춤
     private static boolean lungeDrain(ServerPlayerEntity p, PlayerData.Entry e) {
         Motion.play(p, "vm_lunge");
         Combat.afterSkill(p, 12);
@@ -545,24 +545,24 @@ public final class VampireJob implements JobType {
                 if (Combat.hit(p, t, GRAB) != Combat.Result.HIT) { Motion.play(p, "stop"); got[0] = p; return; }
                 got[0] = t;
                 Combat.move(p, Vec3d.ZERO);
-                Combat.afterSkill(p, 34 - k);
+                int base = 6 - k;   // 모션 6틱(들이받기)에 맞춰 나머지를 미룸
+                Combat.afterSkill(p, base + 34);
                 Combat.invuln(p, 4);
-                int base = 6 - k;   // 모션 6틱(붙잡는 자세)에 맞춤
-                pin(p, t, 1, base + 26, 0.95, 0.55);
-                root(p, 1, base + 26);
+                Fx.word(w, t.getPos().add(0, 2.0, 0), Fx.Sfx.DOGO, 1.1f);
                 w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 1.0f, 0.7f);
-                for (int s = 0; s < 5; s++) {
-                    final int ss = s;
-                    Tasks.later(base + 8 + s * 5, () -> {
+                pin(p, t, base + 3, 26, 0.75, 0.95);   // 9틱부터 머리 위로 들어 올린 채
+                root(p, 1, base + 32);
+                for (int s2 = 0; s2 < 5; s2++) {
+                    final int ss = s2;
+                    Tasks.later(base + 11 + s2 * 4, () -> {
                         if (!alive(p) || !t.isAlive()) return;
                         Combat.hit(p, t, SIP);
                         if (ss == 0) drink(p, e, t); else addBlood(e, 2);
-                        bloodLine(w, t, p);
-                        w.spawnParticles(BLOOD, t.getX(), t.getY() + t.getHeight() * 0.8, t.getZ(), 12, 0.15, 0.15, 0.15, 0);
+                        bloodSpurt(w, t, p);
                         w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_GENERIC_DRINK, SoundCategory.PLAYERS, 1.0f, 0.5f + ss * 0.06f);
                     });
                 }
-                Tasks.later(base + 27, () -> {
+                Tasks.later(base + 35, () -> {
                     if (!alive(p) || !t.isAlive()) return;
                     Combat.hit(p, t, TOSS);
                     Fx.word(w, t.getPos().add(0, 2.2, 0), Fx.BLUNT, 1.2f);
@@ -571,6 +571,14 @@ public final class VampireJob implements JobType {
             });
         }
         return true;
+    }
+
+    /** 손가락을 꽂을 때: 목에서 피가 뿜어지고 내 손을 타고 흘러듦 */
+    private static void bloodSpurt(ServerWorld w, LivingEntity t, ServerPlayerEntity p) {
+        Vec3d c = t.getPos().add(0, t.getHeight() * 0.8, 0);
+        w.spawnParticles(BLOOD, c.x, c.y, c.z, 14, 0.18, 0.18, 0.18, 0);
+        w.spawnParticles(new DustParticleEffect(new Vector3f(0.85f, 0.02f, 0.05f), 1.6f), c.x, c.y + 0.2, c.z, 6, 0.3, 0.4, 0.3, 0);
+        bloodLine(w, t, p);
     }
 
     // ① 평타 중: 손끝 찌르기 — 빠르게 꽂고 조금 흡혈 (콤보 연장)
@@ -631,7 +639,8 @@ public final class VampireJob implements JobType {
         return true;
     }
 
-    // ② 기화냉동법 (땅): 짧게 내딛으며 왼손바닥을 얼굴에 붙임(4틱) → 얼어붙어 버팀 → 손바닥으로 밀어 올리며 산산조각(19틱)
+    // ② 기화냉동법 (땅): 낮게 파고들며 오른손바닥을 대면(4틱) 상대가 하얗게 얼어붙음 → 손을 머리 위로 들어 올리며 언 상대를 띄워 들고(8~18) →
+    //   21틱에 산산조각 내며 내던짐
     private static boolean vaporFreeze(ServerPlayerEntity p) {
         Motion.play(p, "vm_freeze");
         Combat.afterSkill(p, 10);
@@ -639,19 +648,32 @@ public final class VampireJob implements JobType {
         for (int i = 1; i <= 3; i++) Tasks.later(i, () -> {
             if (!alive(p)) return;
             Vec3d f = Combat.horizontal(p.getRotationVec(1f));
-            Combat.move(p, new Vec3d(f.x * 0.45, p.getVelocity().y, f.z * 0.45));
+            Combat.move(p, new Vec3d(f.x * 0.5, p.getVelocity().y, f.z * 0.5));
         });
         Tasks.later(4, () -> {
             if (!alive(p)) return;
             LivingEntity t = Combat.targets(p, 2.8, 50, 1).stream().findFirst().orElse(null);
-            w.spawnParticles(ParticleTypes.SNOWFLAKE, front(p, 1.0, 1.5).x, front(p, 1.0, 1.5).y, front(p, 1.0, 1.5).z, 12, 0.15, 0.15, 0.15, 0.05);
+            Vec3d hand = front(p, 1.1, 1.0);
+            w.spawnParticles(ParticleTypes.SNOWFLAKE, hand.x, hand.y, hand.z, 14, 0.15, 0.15, 0.15, 0.05);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_HURT_FREEZE, SoundCategory.PLAYERS, 0.7f, 1.4f);
             if (t == null) { Motion.play(p, "stop"); return; }
             if (Combat.hit(p, t, FREEZE_GRAB) != Combat.Result.HIT) return;
-            Combat.afterSkill(p, 22);
-            iceFx(w, t, 16);
-            pin(p, t, 1, 14, 1.05, 0);
-            root(p, 1, 14);
-            Tasks.later(15, () -> {
+            Combat.afterSkill(p, 26);
+            iceFx(w, t, 18);
+            Fx.flash(t, 0.7f);
+            Fx.word(w, t.getPos().add(0, 2.1, 0), Fx.Sfx.GAGIN, 1.2f);
+            for (int i = 1; i <= 16; i++) {   // 손을 들어 올리는 만큼 언 상대가 떠오름 (0 → 1.1칸)
+                final double up = Math.min(1.1, i * 0.1);
+                Tasks.later(i, () -> {
+                    if (!alive(p) || !t.isAlive()) return;
+                    Vec3d at = front(p, 1.05, up);
+                    t.requestTeleport(at.x, at.y, at.z);
+                    t.setVelocity(0, 0, 0);
+                    t.velocityModified = true;
+                });
+            }
+            root(p, 1, 17);
+            Tasks.later(17, () -> {
                 if (!alive(p) || !t.isAlive()) return;
                 Combat.hit(p, t, FREEZE_LIFT);
                 shatterFx(w, t);
@@ -703,27 +725,120 @@ public final class VampireJob implements JobType {
         return true;
     }
 
-    // ③ 괴력: 포효(8틱) — 2.5칸 안을 밀쳐내고 10초 동안 피해 ×1.3, 5타 날려보내기 2배
+    // ③ 괴력 연격 (참고: KUA! 파생기): 짧게 뛰어들며 무릎(5틱) → 맞으면 0.8초 동안 평타로 파생
+    //    평타 = 수도 → 손등 (약, 날려보냄) · 스페이스+평타 = 무릎 → 얼리는 손바닥 → 올려치기 (중, 높이 띄움) ·
+    //    웅크리고(Shift)+평타 = 머리를 움켜쥐어 들었다가 땅에 내리꽂음 (강, 가드 깨기). 파생 안 하면 그대로 끝
     private static boolean might(ServerPlayerEntity p) {
-        Motion.play(p, "vm_might");
+        Motion.play(p, "vm_kua");
         Combat.afterSkill(p, 12);
-        var f = Combat.of(p);
-        f.dmgBuffMul = 1.3f;
-        f.dmgBuffUntil = Combat.now() + 208;
-        f.pushBuffMul = 2f;
-        f.pushBuffUntil = Combat.now() + 208;
         ServerWorld w = p.getServerWorld();
-        Tasks.later(8, () -> {
+        w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.7f, 0.8f);
+        for (int i = 1; i <= 4; i++) Tasks.later(i, () -> {
             if (!alive(p)) return;
-            w.spawnParticles(BLOOD, p.getX(), p.getY() + 1, p.getZ(), 50, 0.5, 0.8, 0.5, 0);
-            Fx.wave(w, p.getPos().add(0, 1, 0), 0.3, 3.2, Fx.RED, 7);
-            Fx.shakeAround(w, p.getPos(), 8, 0.5f);
-            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_RAVAGER_ROAR, SoundCategory.PLAYERS, 1.0f, 1.3f);
-            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WITHER_AMBIENT, SoundCategory.PLAYERS, 0.6f, 1.7f);
-            for (Entity t : w.getOtherEntities(p, p.getBoundingBox().expand(2.5), x -> Targets.canHit(p, x))) Combat.hit(p, (LivingEntity) t, ROAR);
+            Vec3d f = Combat.horizontal(p.getRotationVec(1f));
+            Combat.move(p, new Vec3d(f.x * 0.55, i0(p) ? 0.18 : p.getVelocity().y, f.z * 0.55));
         });
-        for (int i = 20; i < 200; i += 20) Tasks.later(i, () -> { if (!p.isDisconnected()) w.spawnParticles(BLOOD, p.getX(), p.getY() + 1.2, p.getZ(), 4, 0.3, 0.4, 0.3, 0); });
+        Tasks.later(5, () -> {
+            if (!alive(p)) return;
+            LivingEntity t = Combat.targets(p, 2.6, 55, 1).stream().findFirst().orElse(null);
+            if (t == null || Combat.hit(p, t, KUA_KNEE) != Combat.Result.HIT) return;
+            Fx.word(w, t.getPos().add(0, 2.0, 0), Fx.Sfx.DOGO, 1.1f);
+            KUA_UNTIL.put(p.getUuid(), Combat.now() + 16);
+            KUA_TARGET.put(p.getUuid(), t.getUuid());
+            JobSkills.bar(p, "▶ 평타: 수도·손등  |  스페이스+평타: 올려치기  |  웅크리고+평타: 내리꽂기", Formatting.GOLD);
+        });
         return true;
+    }
+
+    private static boolean i0(ServerPlayerEntity p) { return p.isOnGround(); }
+
+    private static final Map<UUID, Long> KUA_UNTIL = new HashMap<>();
+    private static final Map<UUID, UUID> KUA_TARGET = new HashMap<>();
+    private static final Hit KUA_KNEE = new Hit(1.0f, Hit.Kind.HIT, 26, 0.1, 0, 10, false, false);
+    private static final Hit KUA_CHOP = new Hit(0.9f, Hit.Kind.HIT, 18, 0.1, 0, 10, false, false);
+    private static final Hit KUA_BACK = new Hit(1.4f, Hit.Kind.KNOCK, 18, 1.1, 0.3, 15, false, false);
+    private static final Hit KUA_PALM = new Hit(0.8f, Hit.Kind.HIT, 24, 0, 0, 10, false, false);
+    private static final Hit KUA_UPPER = new Hit(1.4f, Hit.Kind.AIR, 30, 0.1, 1.15, 15, false, false);
+    private static final Hit KUA_GRAB = new Hit(0.6f, Hit.Kind.HIT, 30, 0, 0, 0, true, false).noParry();
+    private static final Hit KUA_SLAM = new Hit(2.4f, Hit.Kind.DOWN, 30, 0, -1.2, 0, true, true).noParry();
+
+    /** 괴력 연격 뒤 0.8초 안의 평타 = 파생기 */
+    @Override
+    public boolean m1Override(ServerPlayerEntity p, boolean up) {
+        Long until = KUA_UNTIL.get(p.getUuid());
+        if (until == null) return false;
+        if (Combat.now() > until) { KUA_UNTIL.remove(p.getUuid()); return false; }
+        KUA_UNTIL.remove(p.getUuid());
+        UUID tid = KUA_TARGET.remove(p.getUuid());
+        ServerWorld w = p.getServerWorld();
+        LivingEntity t = tid != null && w.getEntity(tid) instanceof LivingEntity le && le.isAlive() && le.squaredDistanceTo(p) < 25 ? le : null;
+        if (t == null) return false;
+        if (p.isSneaking()) kuaHeavy(p, t);
+        else if (up) kuaMedium(p, t);
+        else kuaLight(p, t);
+        return true;
+    }
+
+    /** 약: 수도(3) → 손등(8, 날려보냄) */
+    private static void kuaLight(ServerPlayerEntity p, LivingEntity t) {
+        ServerWorld w = p.getServerWorld();
+        Motion.play(p, "vm_kua_l");
+        Combat.afterSkill(p, 14);
+        Tasks.later(3, () -> { if (alive(p) && t.isAlive()) { Combat.hit(p, t, KUA_CHOP); Fx.slash(w, p, 2.4, 55, false, Fx.RED); } });
+        Tasks.later(8, () -> {
+            if (!alive(p) || !t.isAlive()) return;
+            if (Combat.hit(p, t, KUA_BACK) == Combat.Result.HIT) Fx.word(w, t.getPos().add(0, 2.0, 0), Fx.BLUNT, 1.2f);
+            Fx.slash(w, p, 2.4, 0, true, Fx.RED);
+        });
+    }
+
+    /** 중: 무릎(3) → 얼리는 손바닥(9) → 올려치기(14, 높이 띄움) */
+    private static void kuaMedium(ServerPlayerEntity p, LivingEntity t) {
+        ServerWorld w = p.getServerWorld();
+        Motion.play(p, "vm_kua_m");
+        Combat.afterSkill(p, 18);
+        Tasks.later(3, () -> { if (alive(p) && t.isAlive()) Combat.hit(p, t, KUA_CHOP); });
+        Tasks.later(9, () -> {
+            if (!alive(p) || !t.isAlive()) return;
+            if (Combat.hit(p, t, KUA_PALM) == Combat.Result.HIT) iceFx(w, t, 6);
+        });
+        Tasks.later(14, () -> {
+            if (!alive(p) || !t.isAlive()) return;
+            if (Combat.hit(p, t, KUA_UPPER) == Combat.Result.HIT) { shatterFx(w, t); Fx.rings(w, t.getBoundingBox().getCenter(), new Vec3d(0, 1, 0), 2.0f, 2); }
+            Fx.slash(w, p, 2.4, 100, true, Fx.RED);
+        });
+    }
+
+    /** 강 (URYYY): 머리를 움켜쥐고(3) 들어 올렸다가(8~12) 땅에 내리꽂음(14, 가드 깨기·다운) */
+    private static void kuaHeavy(ServerPlayerEntity p, LivingEntity t) {
+        ServerWorld w = p.getServerWorld();
+        Motion.play(p, "vm_kua_h");
+        Combat.afterSkill(p, 22);
+        Tasks.later(3, () -> {
+            if (!alive(p) || !t.isAlive()) return;
+            if (Combat.hit(p, t, KUA_GRAB) != Combat.Result.HIT) return;
+            for (int i = 1; i <= 10; i++) {
+                final double up = i <= 5 ? i * 0.2 : 1.0;
+                Tasks.later(i, () -> {
+                    if (!alive(p) || !t.isAlive()) return;
+                    Vec3d at = front(p, 0.9, up);
+                    t.requestTeleport(at.x, at.y, at.z);
+                    t.setVelocity(0, 0, 0);
+                    t.velocityModified = true;
+                });
+            }
+            root(p, 1, 12);
+            Tasks.later(5, () -> w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WITHER_AMBIENT, SoundCategory.PLAYERS, 0.7f, 1.7f));
+            Tasks.later(11, () -> {
+                if (!alive(p) || !t.isAlive()) return;
+                Combat.hit(p, t, KUA_SLAM);
+                Fx.word(w, t.getPos().add(0, 1.4, 0), Fx.SLAM, 1.4f);
+                Fx.debris(w, t.getPos(), 16, 1.4);
+                Fx.wave(w, t.getPos().add(0, 0.1, 0), 0.3, 3.0, Fx.WHITE, 7);
+                Fx.shakeAround(w, t.getPos(), 8, 0.6f);
+                w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.6f, 1.2f);
+            });
+        });
     }
 
     private static boolean regen(ServerPlayerEntity p) {
@@ -737,51 +852,88 @@ public final class VampireJob implements JobType {
         return true;
     }
 
-    /** 피의 하인: 30초 안에 흡혈한 몬스터 */
+    /** 피의 하인: 30초 안에 흡혈한 몬스터 — 손바닥을 위로 들어 올리면 몬스터 발밑에서 피가 소용돌이치며 솟고 눈이 붉게 빛남 */
     private static boolean bloodThrall(ServerPlayerEntity p) {
         UUID id = LAST_PREY.get(p.getUuid());
         Long at = LAST_PREY_AT.get(p.getUuid());
         if (id == null || at == null || Combat.now() - at > 600) { JobSkills.bar(p, "30초 안에 흡혈한 몬스터가 없습니다", Formatting.RED); return false; }
         Entity t = p.getServerWorld().getEntity(id);
         if (!(t instanceof MobEntity m) || !m.isAlive() || m.squaredDistanceTo(p) > 16 * 16) { JobSkills.bar(p, "흡혈한 몬스터가 근처에 없습니다", Formatting.RED); return false; }
-        Motion.play(p, "vm_point");
-        Combat.afterSkill(p, 6);
-        return Thralls.bind(p, m, 60, 2, "피의 하인");
-    }
-
-    // ⑥ 냉동 반격: 14틱 받아내는 자세(패링 판정). 그 사이 맞으면 → 손바닥으로 때린 상대를 얼림(하얀 섬광) → 14틱 뒤 산산조각
-    private static boolean freezeCounter(ServerPlayerEntity p) {
-        Motion.play(p, "vm_counter");
-        Combat.afterSkill(p, 12);
-        ServerWorld w = p.getServerWorld();
-        Combat.parryWindow(p, 14);
-        long before = Combat.parryLock(p);
-        boolean[] done = {false};
-        for (int t = 1; t <= 15; t++) {
-            Tasks.later(t, () -> {
-                if (done[0] || !alive(p) || Combat.parryLock(p) <= before) return;
-                done[0] = true;
-                Motion.play(p, "vm_counter_hit");
-                Combat.afterSkill(p, 14);
-                Combat.invuln(p, 10);
-                Tasks.later(2, () -> {
-                    if (!alive(p)) return;
-                    for (LivingEntity v : Combat.targets(p, 4.5, 90, 2)) {
-                        if (Combat.hit(p, v, COUNTER_FREEZE) != Combat.Result.HIT) continue;
-                        iceFx(w, v, 16);
-                        Fx.flash(v, 1.0f);
-                        Fx.word(w, v.getPos().add(0, 2.2, 0), Fx.Sfx.GAGIN, 1.3f);
-                        Tasks.later(14, () -> { if (alive(p) && v.isAlive()) { Combat.hit(p, v, SHATTER); shatterFx(w, v); } });
-                    }
-                    Fx.flash(p, 0.8f);
-                    w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.4f, 0.6f);
-                });
-            });
-        }
+        if (Thralls.isThrall(m)) { JobSkills.bar(p, "이미 하인입니다", Formatting.GRAY); return false; }
+        Motion.play(p, "vm_thrall");
+        Combat.afterSkill(p, 10);
+        dominateFx(p, m, 16);
+        Tasks.later(12, () -> { if (alive(p) && m.isAlive()) Thralls.bind(p, m, 60, 2, "피의 하인"); });
         return true;
     }
 
-    /** 눈에서 직선 광선: delay 틱 뒤 len 칸, 맞힌 대상마다 h (pierce = 관통 수). 끝(벽·땅)에 닿으면 onEnd */
+    /** 지배 연출: 대상 발밑에서 피가 나선으로 솟아오르고, 마지막에 머리에서 붉은 눈빛 + 일어나는 소리 */
+    private static void dominateFx(ServerPlayerEntity p, LivingEntity t, int len) {
+        ServerWorld w = p.getServerWorld();
+        w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_ZOMBIE_VILLAGER_CONVERTED, SoundCategory.PLAYERS, 0.8f, 0.7f);
+        for (int i = 0; i < len; i++) {
+            final int k = i;
+            Tasks.later(i, () -> {
+                if (!t.isAlive()) return;
+                double h = t.getHeight() * k / (double) len;
+                for (int arm = 0; arm < 3; arm++) {
+                    double a = k * 0.7 + arm * Math.PI * 2 / 3;
+                    double r = 0.75 - 0.3 * k / len;
+                    w.spawnParticles(BLOOD, t.getX() + Math.cos(a) * r, t.getY() + h, t.getZ() + Math.sin(a) * r, 2, 0.02, 0.02, 0.02, 0);
+                }
+                if (k % 4 == 0) w.spawnParticles(ParticleTypes.SQUID_INK, t.getX(), t.getY() + 0.1, t.getZ(), 3, 0.4, 0.05, 0.4, 0.01);
+            });
+        }
+        Tasks.later(len, () -> {
+            if (!t.isAlive()) return;
+            Vec3d eye = t.getEyePos();
+            w.spawnParticles(new DustParticleEffect(new Vector3f(1.0f, 0.05f, 0.05f), 1.2f), eye.x, eye.y, eye.z, 12, 0.15, 0.05, 0.15, 0);
+            w.spawnParticles(BLOOD, t.getX(), t.getY() + 1, t.getZ(), 30, 0.3, 0.6, 0.3, 0);
+            Fx.rings(w, t.getBoundingBox().getCenter(), new Vec3d(0, 1, 0), 1.6f, 1);
+            w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_WITHER_AMBIENT, SoundCategory.PLAYERS, 0.6f, 1.4f);
+        });
+    }
+
+    // ⑥ 냉동 반격 (참고: '순식간에 얼린 것이다'): 오른손바닥을 내밀고 1.5초(30틱) 받아내는 자세 — 가드를 안 눌러도 됨.
+    //    그 사이 (어느 방향이든) 맞으면 피해 없이 → 하얀 섬광 + 손바닥을 꽂아 때린 상대를 얼림 → 14틱 뒤 산산조각
+    private static boolean freezeCounter(ServerPlayerEntity p) {
+        Motion.play(p, "vm_counter");
+        Combat.afterSkill(p, 28);
+        ServerWorld w = p.getServerWorld();
+        for (int i = 3; i < 30; i += 4) Tasks.later(i, () -> {   // 내민 손바닥에 서리
+            if (!alive(p)) return;
+            Vec3d hand = front(p, 0.7, 1.35);
+            w.spawnParticles(ParticleTypes.SNOWFLAKE, hand.x, hand.y, hand.z, 2, 0.08, 0.08, 0.08, 0.01);
+        });
+        Combat.counterWindow(p, 30, atk -> {
+            if (!alive(p)) return;
+            Motion.play(p, "vm_counter_hit");
+            Combat.afterSkill(p, 16);
+            Combat.invuln(p, 12);
+            Fx.flash(p, 0.9f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.6f, 0.6f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_HURT_FREEZE, SoundCategory.PLAYERS, 1.2f, 0.7f);
+            // 때린 상대 쪽으로 몸을 돌림
+            Vec3d to = atk.getPos().subtract(p.getPos());
+            p.setYaw((float) Math.toDegrees(Math.atan2(-to.x, to.z)));
+            p.setHeadYaw(p.getYaw());
+            Tasks.later(2, () -> {
+                if (!alive(p) || !atk.isAlive() || atk.squaredDistanceTo(p) > 36) return;
+                if (Combat.hit(p, atk, COUNTER_FREEZE) != Combat.Result.HIT) return;
+                iceFx(w, atk, 16);
+                Fx.flash(atk, 1.0f);
+                Fx.impactFlash(w, atk.getBoundingBox().getCenter(), 1.2f);
+                Fx.word(w, atk.getPos().add(0, 2.2, 0), Fx.Sfx.GAGIN, 1.4f);
+                Tasks.later(14, () -> { if (alive(p) && atk.isAlive()) { Combat.hit(p, atk, SHATTER); shatterFx(w, atk); } });
+            });
+        });
+        return true;
+    }
+
+    /**
+     * 눈에서 쏘는 광선 (참고: 공열안자경): delay 틱 뒤, 눈앞에 하얀 가시 폭발 → 붉은 심 둘레를 하얀 고리가 감은 나선 광선이 frames 틱 동안 뻗음.
+     * 맞힌 대상마다 h (pierce = 관통 수, 맞은 자리 폭발). 끝(벽·땅)에 닿으면 onEnd
+     */
     private static void beam(ServerPlayerEntity p, int delay, double len0, Hit h, int pierce, int frames, java.util.function.Consumer<Vec3d> onEnd) {
         ServerWorld w = p.getServerWorld();
         Tasks.later(delay, () -> {
@@ -789,16 +941,25 @@ public final class VampireJob implements JobType {
             Vec3d eye = p.getEyePos(), look = p.getRotationVector();
             HitResult hit = p.raycast(len0, 0, false);
             double len = hit.getType() == HitResult.Type.MISS ? len0 : hit.getPos().distanceTo(eye);
-            Vec3d side = new Vec3d(-look.z, 0, look.x).normalize().multiply(0.12);
+            Vec3d up0 = Math.abs(look.y) > 0.95 ? new Vec3d(1, 0, 0) : new Vec3d(0, 1, 0);
+            Vec3d sA = look.crossProduct(up0).normalize(), sB = look.crossProduct(sA).normalize();
+            Vec3d start = eye.add(look.multiply(0.5));
+            // 눈앞 가시 폭발
+            Fx.burst(w, start, look, 1.1f);
+            Fx.rings(w, start, look, 1.2f, 2);
+            w.spawnParticles(ParticleTypes.END_ROD, start.x, start.y, start.z, 14, 0.05, 0.05, 0.05, 0.25);
             Set<UUID> done = new HashSet<>();
+            DustParticleEffect core = new DustParticleEffect(new Vector3f(0.9f, 0.05f, 0.05f), 1.3f);
+            DustParticleEffect coil = new DustParticleEffect(new Vector3f(1.0f, 0.95f, 0.95f), 0.8f);
             for (int i = 0; i < frames; i++) {
                 final int k = i;
                 Tasks.later(i, () -> {
-                    for (double d = 0.4; d < len; d += 0.35) {
-                        Vec3d q = eye.add(look.multiply(d));
-                        w.spawnParticles(ParticleTypes.END_ROD, q.x + side.x, q.y - 0.05, q.z + side.z, 1, 0, 0, 0, 0);
-                        w.spawnParticles(ParticleTypes.END_ROD, q.x - side.x, q.y - 0.05, q.z - side.z, 1, 0, 0, 0, 0);
-                        if (k == 0 && ((int) (d * 3)) % 4 == 0) w.spawnParticles(BLOOD, q.x, q.y - 0.05, q.z, 1, 0.02, 0.02, 0.02, 0);
+                    for (double d = 0.5; d < len; d += 0.22) {
+                        Vec3d q = start.add(look.multiply(d - 0.5));
+                        w.spawnParticles(core, q.x, q.y, q.z, 1, 0, 0, 0, 0);
+                        double a = d * 5.5 + k * 1.3;   // 나선 고리
+                        Vec3d r = sA.multiply(Math.cos(a) * 0.17).add(sB.multiply(Math.sin(a) * 0.17));
+                        w.spawnParticles(coil, q.x + r.x, q.y + r.y, q.z + r.z, 1, 0, 0, 0, 0);
                     }
                     for (Entity t : w.getOtherEntities(p, p.getBoundingBox().stretch(look.multiply(len)).expand(1), x -> Targets.canHit(p, x))) {
                         if (done.contains(t.getUuid()) || done.size() >= pierce) continue;
@@ -807,8 +968,10 @@ public final class VampireJob implements JobType {
                         if (along < 0 || along > len) continue;
                         if (c.distanceTo(eye.add(look.multiply(along))) > t.getWidth() / 2 + 0.6) continue;
                         done.add(t.getUuid());
-                        Combat.hit(p, (LivingEntity) t, h);
-                        w.spawnParticles(ParticleTypes.CRIT, c.x, c.y, c.z, 15, 0.2, 0.2, 0.2, 0.3);
+                        if (Combat.hit(p, (LivingEntity) t, h) == Combat.Result.MISS) continue;
+                        Fx.burst(w, c, look, 1.0f);
+                        Fx.impactFlash(w, c, 0.9f);
+                        w.spawnParticles(BLOOD, c.x, c.y, c.z, 16, 0.2, 0.2, 0.2, 0);
                     }
                 });
             }
@@ -818,43 +981,60 @@ public final class VampireJob implements JobType {
                         hp.x, hp.y, hp.z, 25, 0.2, 0.2, 0.2, 0.2);
                 if (onEnd != null) onEnd.accept(hp);
             }
-            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_GUARDIAN_ATTACK, SoundCategory.PLAYERS, 1.0f, 2.0f);
+            Fx.shake(p, 0.3f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_GUARDIAN_ATTACK, SoundCategory.PLAYERS, 1.2f, 2.0f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_SONIC_BOOM, SoundCategory.PLAYERS, 0.4f, 2.0f);
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.PLAYERS, 0.8f, 1.6f);
         });
     }
 
-    // ⑦ 혈안 광선 (땅): 웅크려 6틱에 직선 20칸 관통
+    /** 광선 기 모으기: 관자놀이에 댄 손 사이 눈에서 붉은 빛이 모임 */
+    private static void beamCharge(ServerPlayerEntity p, int from, int to) {
+        ServerWorld w = p.getServerWorld();
+        for (int i = from; i < to; i++) Tasks.later(i, () -> {
+            if (!alive(p)) return;
+            Vec3d e2 = p.getEyePos().add(p.getRotationVector().multiply(0.35));
+            w.spawnParticles(new DustParticleEffect(new Vector3f(1.0f, 0.1f, 0.1f), 0.7f), e2.x, e2.y, e2.z, 3, 0.12, 0.04, 0.12, 0);
+        });
+        Tasks.later(from, () -> { if (alive(p)) w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 0.6f, 1.8f); });
+    }
+
+    // ⑦ 혈안 광선 (땅): 관자놀이에 손을 대고 고개를 숙여 모음(4~9) → 10틱에 고개를 들며 발사, 20칸 관통
     private static boolean eyeBeam(ServerPlayerEntity p) {
         Motion.play(p, "vm_beam");
-        Combat.afterSkill(p, 14);
-        beam(p, 6, 20, BEAM, 8, 4, null);
+        Combat.afterSkill(p, 18);
+        beamCharge(p, 4, 10);
+        beam(p, 10, 20, BEAM, 8, 5, null);
         return true;
     }
 
-    // ⑦ 평타 중: 고개를 내밀며 짧은 단발 (12칸, 한 명)
+    // ⑦ 평타 중: 관자놀이에 손을 대며 고개를 내밀어 짧은 단발 (12칸, 한 명)
     private static boolean beamQuick(ServerPlayerEntity p) {
         Motion.play(p, "vm_beam_quick");
-        Combat.afterSkill(p, 7);
-        beam(p, 3, 12, BEAM_QUICK, 1, 2, null);
+        Combat.afterSkill(p, 8);
+        beam(p, 4, 12, BEAM_QUICK, 1, 2, null);
         return true;
     }
 
-    // ⑦ 공중: 공중에 멈춰 내려다보며 쏨 — 땅에 닿은 곳이 터져 주변을 띄움
+    // ⑦ 공중: 공중에 멈춰 관자놀이에 손 → 몸을 숙여 내려다보며 쏨(8틱) — 땅에 닿은 곳이 터져 주변을 띄움
     private static boolean beamAir(ServerPlayerEntity p) {
         Motion.play(p, "vm_beam_air");
-        Combat.afterSkill(p, 14);
+        Combat.afterSkill(p, 16);
         ServerWorld w = p.getServerWorld();
-        for (int i = 0; i < 14; i++) Tasks.later(i, () -> { if (alive(p) && !p.isOnGround()) Combat.move(p, new Vec3d(p.getVelocity().x * 0.5, 0.0, p.getVelocity().z * 0.5)); });
-        beam(p, 6, 22, BEAM, 8, 4, hp -> {
-            Fx.burst(w, hp, new Vec3d(0, 1, 0), 1.0f);
-            Fx.debris(w, hp, 14, 1.4);
-            w.playSound(null, BlockPos.ofFloored(hp), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.6f, 1.5f);
+        for (int i = 0; i < 16; i++) Tasks.later(i, () -> { if (alive(p) && !p.isOnGround()) Combat.move(p, new Vec3d(p.getVelocity().x * 0.5, 0.0, p.getVelocity().z * 0.5)); });
+        beamCharge(p, 3, 8);
+        beam(p, 8, 22, BEAM, 8, 5, hp -> {
+            Fx.burst(w, hp, new Vec3d(0, 1, 0), 1.2f);
+            Fx.debris(w, hp, 16, 1.6);
+            Fx.wave(w, hp.add(0, 0.1, 0), 0.3, 2.8, Fx.RED, 7);
+            w.playSound(null, BlockPos.ofFloored(hp), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.7f, 1.4f);
             for (Entity t : w.getOtherEntities(p, new Box(hp, hp).expand(2.2), x -> Targets.canHit(p, x))) Combat.hit(p, (LivingEntity) t, BEAM_BLAST);
         });
         return true;
     }
 
-    // ⑧ 무다 연타: 3틱 달려들어 왼손으로 어깨를 붙잡음 → 3틱마다 손끝 찌르기 8번(흡혈) → 몸을 틀어 깊게 꽂아 날려보냄
+    // ⑧ 무다 연타 (참고: '무다무다무다'): 낮게 달려들어(1~3) 어깨로 들이받아 띄우고(4) → 오른손으로 목을 쥐어 머리 위로 들어 올림(7) →
+    //    3틱마다 손가락을 꽂아 흡혈(9~30, 8번) → 머리 위로 크게 휘둘러(36) 앞의 땅에 내리꽂음(39, 다운). 모션 vm_muda 에 맞춤
     private static boolean muda(ServerPlayerEntity p, PlayerData.Entry e) {
         Motion.play(p, "vm_muda");
         Combat.afterSkill(p, 10);
@@ -862,41 +1042,57 @@ public final class VampireJob implements JobType {
         for (int i = 1; i <= 3; i++) Tasks.later(i, () -> {
             if (!alive(p)) return;
             Vec3d f = Combat.horizontal(p.getRotationVec(1f));
-            Combat.move(p, new Vec3d(f.x * 0.6, p.getVelocity().y, f.z * 0.6));
+            Combat.move(p, new Vec3d(f.x * 0.7, p.getVelocity().y, f.z * 0.7));
+            w.spawnParticles(ParticleTypes.LARGE_SMOKE, p.getX(), p.getY() + 0.2, p.getZ(), 2, 0.2, 0.05, 0.2, 0.01);
         });
-        Tasks.later(3, () -> {
+        Tasks.later(4, () -> {
             if (!alive(p)) return;
             LivingEntity t = Combat.targets(p, 2.8, 55, 1).stream().findFirst().orElse(null);
             if (t == null) { Motion.play(p, "stop"); return; }
             if (Combat.hit(p, t, GRAB) != Combat.Result.HIT) { Motion.play(p, "stop"); return; }
-            Combat.afterSkill(p, 38);
-            pin(p, t, 1, 28, 1.0, 0);
-            root(p, 1, 28);
-            for (int s = 0; s < 8; s++) {
-                final int ss = s;
-                Tasks.later(2 + s * 3, () -> {
+            Combat.afterSkill(p, 44);
+            Combat.move(p, Vec3d.ZERO);
+            Fx.word(w, t.getPos().add(0, 2.0, 0), Fx.Sfx.DOGO, 1.1f);
+            w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 1.0f, 0.7f);
+            for (int i = 1; i <= 3; i++) {   // 들이받아 띄움
+                final double up = i * 0.3;
+                Tasks.later(i, () -> { if (alive(p) && t.isAlive()) { Vec3d at = front(p, 0.8, up); t.requestTeleport(at.x, at.y, at.z); t.setVelocity(0, 0, 0); t.velocityModified = true; } });
+            }
+            pin(p, t, 4, 28, 0.75, 0.95);   // 7틱부터 머리 위로 들어 올린 채
+            root(p, 1, 34);
+            for (int s2 = 0; s2 < 8; s2++) {
+                final int ss = s2;
+                Tasks.later(5 + s2 * 3, () -> {
                     if (!alive(p) || !t.isAlive()) return;
                     Combat.hit(p, t, MUDA);
                     addBlood(e, 1.5);
                     if (ss == 0) addDrink(p, e, 40, false);
-                    Vec3d c = t.getBoundingBox().getCenter();
-                    w.spawnParticles(BLOOD, c.x, c.y + 0.2, c.z, 8, 0.15, 0.2, 0.15, 0);
-                    w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_WEAK, SoundCategory.PLAYERS, 1.0f, 1.2f + ss * 0.05f);
-                    if (ss % 3 == 0) Fx.word(w, c.add(0, 1.0, 0), Fx.Sfx.DODODO, 1.0f);
+                    bloodSpurt(w, t, p);
+                    w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_WEAK, SoundCategory.PLAYERS, 1.0f, 1.0f + ss * 0.05f);
+                    w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_GENERIC_DRINK, SoundCategory.PLAYERS, 0.6f, 0.5f);
+                    if (ss % 3 == 0) Fx.word(w, t.getBoundingBox().getCenter().add(0, 1.0, 0), Fx.Sfx.DODODO, 1.0f);
                 });
             }
-            Tasks.later(29, () -> {
+            for (int i = 32; i <= 34; i++) {   // 머리 위로 휘두름 (뒤로 넘겼다가)
+                final int k = i;
+                Tasks.later(k, () -> { if (alive(p) && t.isAlive()) { Vec3d at = front(p, 0.2 - (k - 32) * 0.15, 1.6); t.requestTeleport(at.x, at.y, at.z); t.setVelocity(0, 0, 0); t.velocityModified = true; } });
+            }
+            Tasks.later(35, () -> {
                 if (!alive(p) || !t.isAlive()) return;
+                Vec3d at = front(p, 1.4, 0.2);
+                t.requestTeleport(at.x, at.y, at.z);
                 Combat.hit(p, t, MUDA_END);
-                Fx.word(w, t.getPos().add(0, 2.2, 0), Fx.BLUNT, 1.4f);
-                Fx.rings(w, t.getBoundingBox().getCenter(), Combat.horizontal(p.getRotationVec(1f)), 1.6f, 2);
-                w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, SoundCategory.PLAYERS, 1.2f, 0.7f);
+                Fx.word(w, t.getPos().add(0, 1.4, 0), Fx.SLAM, 1.5f);
+                Fx.debris(w, t.getPos(), 18, 1.6);
+                Fx.wave(w, t.getPos().add(0, 0.1, 0), 0.3, 3.4, Fx.WHITE, 8);
+                Fx.shakeAround(w, t.getPos(), 10, 0.7f);
+                w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 0.7f, 1.1f);
             });
         });
         return true;
     }
 
-    /** 육아 지배: 주민이나 몬스터 하나 (플레이어·보스 불가) */
+    /** 육아 지배: 이마에서 육아를 떼어(3) 두 손가락으로 튕겨 날림(7) → 붉은 육아가 날아가 대상 이마에 박히면 지배 (플레이어·보스 불가) */
     private static boolean fleshBud(ServerPlayerEntity p) {
         LivingEntity t = aimTarget(p, 8);
         if (t == null) {
@@ -909,33 +1105,94 @@ public final class VampireJob implements JobType {
             JobSkills.bar(p, "주민이나 몬스터를 바라보세요 (8칸)", Formatting.RED);
             return false;
         }
-        Motion.play(p, "vm_point");
-        Combat.afterSkill(p, 6);
+        if (Thralls.isThrall(t)) { JobSkills.bar(p, "이미 하인입니다", Formatting.GRAY); return false; }
+        final LivingEntity tt = t;
+        Motion.play(p, "vm_budshot");
+        Combat.afterSkill(p, 10);
         ServerWorld w = p.getServerWorld();
-        Vec3d from = p.getPos().add(0, 1.2, 0), to = t.getPos().add(0, t.getHeight() * 0.8, 0);
-        for (int i = 0; i <= 8; i++) {
-            Vec3d q = from.lerp(to, i / 8.0);
-            Tasks.later(i, () -> w.spawnParticles(BLOOD, q.x, q.y, q.z, 3, 0.03, 0.03, 0.03, 0));
-        }
-        return Thralls.bind(p, t, 60, 2, "육아에 지배당함");
+        Tasks.later(3, () -> { if (alive(p)) { Vec3d f = p.getEyePos().add(p.getRotationVector().multiply(0.3)); w.spawnParticles(BLOOD, f.x, f.y + 0.1, f.z, 6, 0.05, 0.05, 0.05, 0); w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_SLIME_BLOCK_STEP, SoundCategory.PLAYERS, 0.8f, 1.4f); } });
+        Tasks.later(7, () -> {
+            if (!alive(p) || !tt.isAlive()) return;
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 0.6f, 1.6f);
+            Vec3d from = p.getPos().add(Combat.horizontal(p.getRotationVec(1f)).multiply(0.6)).add(0, 1.45, 0);
+            int n = Math.max(3, (int) (from.distanceTo(tt.getEyePos()) / 1.2));
+            for (int i = 0; i <= n; i++) {
+                final int k = i;
+                Tasks.later(k, () -> {
+                    if (!tt.isAlive()) return;
+                    Vec3d q = from.lerp(tt.getEyePos(), k / (double) n);
+                    w.spawnParticles(new DustParticleEffect(new Vector3f(0.75f, 0.1f, 0.2f), 1.5f), q.x, q.y, q.z, 3, 0.03, 0.03, 0.03, 0);
+                });
+            }
+            Tasks.later(n, () -> {
+                if (!alive(p) || !tt.isAlive()) return;
+                w.playSound(null, tt.getBlockPos(), SoundEvents.ENTITY_SLIME_SQUISH_SMALL, SoundCategory.PLAYERS, 1.0f, 0.6f);
+                dominateFx(p, tt, 12);
+                Tasks.later(12, () -> { if (alive(p) && tt.isAlive()) Thralls.bind(p, tt, 60, 2, "육아에 지배당함"); });
+            });
+        });
+        return true;
     }
 
     // ═════════ 각성 '혈광 해방' · 각성기 '피의 만찬' ═════════
 
+    /**
+     * 각성 '혈광 해방' (80틱 컷신 vm_awaken, 참고: 대전 시작·각성 포즈 '바-ン'): 고개를 숙이고 가슴에 손(0) → 고개를 젖혀 포효(16, 붉은 충격파) →
+     * 오른팔을 머리 위로 크게 휘둘러 올림(32) → 넓게 주저앉으며 두 손을 갈고리처럼 펼침(46, 피의 기둥·박쥐 떼) → 버팀. 컷신 동안 무적, 각성 시간은 그만큼 늘림
+     */
+    private static final int AWAKEN_SCENE = 80;
+
     @Override
     public void onAwaken(ServerPlayerEntity p, PlayerData.Entry e) {
         ServerWorld w = p.getServerWorld();
-        Motion.play(p, "vm_might");
+        Motion.play(p, "vm_awaken");
+        CutscenePayload pl = new CutscenePayload("vm_awaken", p.getId(), -1);
+        if (ServerPlayNetworking.canSend(p, CutscenePayload.ID)) ServerPlayNetworking.send(p, pl);
+        Combat.invuln(p, AWAKEN_SCENE);
+        Combat.afterSkill(p, AWAKEN_SCENE - 6);
+        Awaken.extend(p, AWAKEN_SCENE);
         addBlood(e, 20);
-        Tasks.later(8, () -> {
-            if (!alive(p)) return;
-            w.spawnParticles(BLOOD, p.getX(), p.getY() + 1, p.getZ(), 90, 0.6, 1.0, 0.6, 0);
-            Fx.wave(w, p.getPos().add(0, 0.2, 0), 0.4, 5.0, Fx.RED, 9);
-            Fx.rings(w, p.getPos().add(0, 1, 0), new Vec3d(0, 1, 0), 3.0f, 2);
-            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WITHER_SPAWN, SoundCategory.PLAYERS, 0.6f, 1.8f);
-            JobSkills.bar(p, "🩸 혈광 해방 — 주는 피해 ×1.2, 평타가 맞을 때마다 흡혈  (G = 피의 만찬)", Formatting.DARK_RED);
+        for (int t = 0; t < 16; t += 3) Tasks.later(t, () -> {   // 발밑에 피가 고임
+            if (alive(p)) w.spawnParticles(BLOOD, p.getX(), p.getY() + 0.05, p.getZ(), 8, 0.6, 0.02, 0.6, 0);
         });
-        for (int t = 20; t < 900; t += 20) Tasks.later(t, () -> {
+        Tasks.later(2, () -> { if (alive(p)) w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.PLAYERS, 1.6f, 0.7f); });
+        Tasks.later(10, () -> { if (alive(p)) w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.PLAYERS, 1.8f, 0.8f); });
+        Tasks.later(16, () -> {   // 포효
+            if (!alive(p)) return;
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WITHER_AMBIENT, SoundCategory.PLAYERS, 1.2f, 1.5f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_RAVAGER_ROAR, SoundCategory.PLAYERS, 1.0f, 1.3f);
+            Fx.wave(w, p.getPos().add(0, 1.2, 0), 0.4, 6.0, Fx.RED, 10);
+            Fx.shakeAround(w, p.getPos(), 14, 0.7f);
+            w.spawnParticles(BLOOD, p.getX(), p.getEyeY(), p.getZ(), 40, 0.3, 0.2, 0.3, 0);
+        });
+        Tasks.later(32, () -> { if (alive(p)) { w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 1.0f, 0.6f); Fx.slash(w, p, 1.8, 80, true, Fx.RED); } });
+        Tasks.later(46, () -> {   // 주저앉는 순간: 피의 기둥이 솟고 박쥐 떼가 흩어짐
+            if (!alive(p)) return;
+            Vec3d c = p.getPos();
+            for (int i = 0; i < 24; i++) {
+                final int k = i;
+                Tasks.later(i / 2, () -> {
+                    double a = k * Math.PI * 2 / 12;
+                    double r = 0.9 + (k % 3) * 0.15;
+                    w.spawnParticles(BLOOD, c.x + Math.cos(a) * r, c.y + k * 0.18, c.z + Math.sin(a) * r, 6, 0.05, 0.1, 0.05, 0);
+                });
+            }
+            w.spawnParticles(ParticleTypes.SQUID_INK, c.x, c.y + 1.2, c.z, 40, 0.6, 0.8, 0.6, 0.25);
+            w.spawnParticles(ParticleTypes.LARGE_SMOKE, c.x, c.y + 0.3, c.z, 30, 1.2, 0.2, 1.2, 0.02);
+            Fx.wave(w, c.add(0, 0.1, 0), 0.5, 7.0, Fx.RED, 12);
+            Fx.rings(w, c.add(0, 1, 0), new Vec3d(0, 1, 0), 3.5f, 3);
+            Fx.word(w, c.add(0, 3.0, 0), Fx.Sfx.DOGOOON, 1.6f);
+            Fx.shakeAround(w, c, 16, 0.9f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WITHER_SPAWN, SoundCategory.PLAYERS, 0.7f, 1.6f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_BAT_TAKEOFF, SoundCategory.PLAYERS, 1.4f, 0.7f);
+        });
+        for (int t = 50; t < AWAKEN_SCENE; t += 4) Tasks.later(t, () -> {
+            if (alive(p)) w.spawnParticles(BLOOD, p.getX(), p.getY() + 1.0, p.getZ(), 6, 0.5, 0.7, 0.5, 0);
+        });
+        Tasks.later(AWAKEN_SCENE - 4, () -> {
+            if (alive(p) && Awaken.active(p)) JobSkills.bar(p, "🩸 혈광 해방 — 주는 피해 ×1.2, 평타가 맞을 때마다 흡혈  (G = 피의 만찬)", Formatting.DARK_RED);
+        });
+        for (int t = AWAKEN_SCENE; t < 900 + AWAKEN_SCENE; t += 20) Tasks.later(t, () -> {
             if (alive(p) && Awaken.active(p)) w.spawnParticles(BLOOD, p.getX(), p.getY() + 1.0, p.getZ(), 3, 0.3, 0.5, 0.3, 0);
         });
     }
@@ -997,7 +1254,9 @@ public final class VampireJob implements JobType {
             Tasks.later(20 + s * 3, () -> {
                 if (!alive(p) || !t.isAlive()) return;
                 Combat.hit(p, t, ULT_CLAW);
-                Fx.slash(w, p, 2.2, ss % 2 == 0 ? 30 : 150, ss % 2 == 1, Fx.RED);
+                Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
+                Vec3d sd = new Vec3d(-fw.z, 0, fw.x).multiply(ss % 2 == 0 ? 0.25 : -0.25);
+                Fx.kickStreak(w, p.getPos().add(fw.multiply(1.3)).add(sd).add(0, 1.25, 0), fw);   // 곧게 찌르는 손끝 줄기
                 w.spawnParticles(BLOOD, t.getX(), t.getY() + 1.2, t.getZ(), 8, 0.2, 0.3, 0.2, 0);
                 w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 1.3f + ss * 0.05f);
             });

@@ -81,6 +81,8 @@ public final class Fighter {
     double guardGauge = Tuning.GUARD_MAX;
     long guardUsedAt;
     long parryUntil;
+    long counterUntil;    // 반격 기술 자세 (가드를 안 눌러도 이때 맞으면 counterFn 이 받아침)
+    java.util.function.Consumer<net.minecraft.entity.LivingEntity> counterFn;
     long parryLockUntil;
     long dashCdUntil;
     long evadeCdUntil;
