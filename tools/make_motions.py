@@ -1524,16 +1524,28 @@ _bh += [(28, OQ, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-34, 0), sink=
         (32, EX, G(body=(-28, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, 0), sink=0.14, z=0.2, rightArm=HR((0.2, 0.2, -0.96), (0.25, 1.6, -0.6)), leftArm=HL((-0.2, 0.2, -0.96), (-0.25, 1.6, -0.6)))),
         (38, LIN, dict(body=(-26, 0, 0))), (44, IO, PH_STANCE)]
 anim("ph_blink_hit", 44, seq(_bh))
+#    각성: 노려보지 않고 바로 쏘아 나감 (2~7) → 찌르기(8)
+anim("ph_blink_aw", 18, seq([(0, LIN, PH_STANCE),
+     (2, OQ, G(body=(-40, -4, 0), rl=(-30, 4, 40), ll=(36, 4, 30), look=(-6, 0), sink=0.08, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+     (8, EX, G(body=(-16, 24, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, -6), sink=0.12, z=0.25, rightArm=R_THRUST, leftArm=L_CHAMBER)),
+     (11, LIN, dict(body=(-14, 24, 0))), (18, IO, PH_STANCE)]))
+#    공중: 몸을 앞으로 눕혀 오른손을 내지르며 대각선 아래로 내리꽂음 (2~) → 착지 18
+anim("ph_blink_air", 18, seq([(0, LIN, PH_AIR0),
+     (2, OQ, AIR(body=(-50, 10, 0), rl=(10, 10, 20), ll=(30, 10, 10), look=(36, -4), rightArm=R_THRUST, leftArm=L_BACK_LO)),
+     (12, LIN, AIR(body=(-54, 10, 0), rl=(10, 10, 20), ll=(30, 10, 10), look=(38, -4), rightArm=R_THRUST, leftArm=L_BACK_LO)),
+     (18, IO, PH_STANCE)]))
 # ⑤ 용암 분출 (참고: 모드 발동 클로즈업 — 웅크려 손바닥을 땅에 짚고 ゴゴゴ): 무릎을 꿇듯 깊게 웅크려 오른손바닥을 땅에 짚음 (8) → 18까지 누름
 PH_PRESS = G(body=(-34, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-10, 6), rightArm=R_GROUND, leftArm=L_KNEE)
-anim("ph_lava", 24, seq([(0, LIN, PH_STANCE), (4, IO, G(body=(-14, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 4), sink=0.12, rightArm=R_UP_HIGH, leftArm=L_FLEX)),
-                         (8, EX, PH_PRESS), (18, LIN, dict(body=(-32, -10, 0), rightArm=R_GROUND, leftArm=L_KNEE)), (24, IO, PH_STANCE)]))
 # ⑤ 이미 오래전에 간파했다 (참고 1:08~1:11): 한 무릎을 꿇을 듯 깊게 주저앉아 손바닥을 땅에 꽂음(5) — 혈관이 땅을 타고 달려가 상대 발밑에서
 #    터져 불붙임(≈12) → 손을 꽂은 채 버팀 → 24 일어섬 → 32
 R_SEE = HR((0.2, -0.85, -0.5), (0.24, 0.3, -0.72))   # 손바닥을 땅에 꽂음
 PH_SEE = G(body=(-36, -14, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-16, 8), rightArm=R_SEE, leftArm=L_KNEE)
 anim("ph_see", 32, seq([(0, LIN, PH_STANCE), (3, IO, G(body=(-12, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 6), sink=0.12, rightArm=R_UP_HIGH, leftArm=L_FLEX)),
                         (5, EX, PH_SEE), (20, LIN, dict(PH_SEE, body=(-34, -14, 0))), (26, IO, G(body=(-8, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)), (32, IO, PH_STANCE)]))
+#    평타 중: 반쯤 숙여 손바닥으로 땅을 탁 내리침(4) — 가까운 상대 발밑에서 바로 터짐
+anim("ph_see_q", 16, seq([(0, LIN, PH_STANCE), (2, IO, G(body=(-10, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 6), sink=0.1, rightArm=R_UP_HIGH, leftArm=L_FLEX)),
+                          (4, EX, G(body=(-34, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 8), sink=0.3, rightArm=R_SEE, leftArm=L_KNEE)),
+                          (9, LIN, G(body=(-32, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 8), sink=0.3, rightArm=R_SEE, leftArm=L_KNEE)), (16, IO, PH_STANCE)]))
 # ⑥ 분노의 열 (모드, 참고: '괴염왕의 모드'): 웅크려 두 주먹에 힘을 줬다가(5) 몸을 펴며 가슴을 내밀고 포효 — 온몸에서 김이 터짐 (14)
 anim("ph_rage", 30, seq([(0, LIN, PH_STANCE),
      (5, IO, G(body=(-18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(16, 0), sink=0.16, rightArm=R_FLEX, leftArm=L_FLEX)),
@@ -1572,14 +1584,6 @@ anim("ph_dash", 16, seq([(0, LIN, PH_STANCE),
      (10, LIN, G(body=(-40, 0, 0), rl=(-30, 4, 40), ll=(36, 4, 30), look=(-6, 0), sink=0.08, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
      (12, IO, G(body=(-12, -10, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, 4), sink=0.12, rightArm=R_CHIN, leftArm=L_FACE)),
      (16, IO, PH_STANCE)]))
-# 혈관 포박: 두 팔을 가슴 앞에 엇갈렸다가(3) 앞으로 활짝 뿌려 혈관을 뻗음(6) → 몸을 젖히며 당김(12) → 두 팔을 위로 휘둘러 띄움(16)
-anim("ph_bind", 26, seq([(0, LIN, PH_STANCE),
-     (3, IO, G(body=(-6, 0, 0), rl=PH_RL, ll=PH_LL, look=(8, 0), sink=0.06, rightArm=R_SWING_IN, leftArm=L_SWING_IN)),
-     (6, EX, G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, 0), sink=0.12, z=0.12, rightArm=HR((0.45, 0.05, -0.9), (0.6, 1.45, -0.5)), leftArm=HL((-0.45, 0.05, -0.9), (-0.6, 1.45, -0.5)))),
-     (12, IO, G(body=(12, 0, 0), rl=PH_RL, ll=PH_LL, look=(-6, 0), sink=0.06, rightArm=R_PUMP, leftArm=L_PUMP)),
-     (16, EX, G(body=(16, 0, 0), rl=PH_RL, ll=PH_LL, look=(-36, 0), sink=0.02, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
-     (20, LIN, dict(body=(17, 0, 0))),
-     (26, IO, PH_STANCE)]))
 # 용암탄 난사: 오른팔(5) → 왼팔(11) → 오른팔(17)로 번갈아 뿌림
 _bar = [(0, LIN, PH_STANCE)]
 for k, t in enumerate((5, 11, 17)):
