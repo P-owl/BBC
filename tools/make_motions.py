@@ -1361,8 +1361,8 @@ anim("vm_ult", 290, seq(_ult))
 #          폭발 · 두 손으로 얼굴을 감싸고 울다가 고개를 젖혀 울부짖음 · 웅크려 손바닥을 땅에 짚고 열을 끌어올림(ゴゴゴ)
 #   각성기 = 만화 칸 속 얼굴 → 가슴·등에서 혈관이 사방으로 터져 나옴(팔을 위로 활짝) → 혈관이 상대에게 꽂힘 → 웅크려 혈관을 움켜쥐고
 #           끓는 피를 펌프질 → 상대가 거듭 폭발 (약 12.5초)
-R_CHIN = HR((0.65, -0.55, -0.35), (0.12, 1.52, -0.32))       # 오른주먹 턱 앞 (팔꿈치 벌림)
-L_FACE = HL((-0.45, -0.45, -0.75), (-0.08, 1.6, -0.55))       # 왼주먹 얼굴 앞
+R_CHIN = HR((0.22, -0.8, -0.56), (0.17, 1.48, -0.4))        # 오른주먹 턱 앞 (팔꿈치를 몸에 붙임 — 벌리면 마크 몸에선 팔이 W 자로 꺾여 보임)
+L_FACE = HL((-0.18, -0.62, -0.77), (-0.12, 1.55, -0.52))     # 왼주먹 얼굴 앞 (조금 더 앞)
 R_PUNCH = HR((0.05, -0.05, -1), (0.08, 1.38, -0.62))          # 곧게 뻗은 주먹
 L_PUNCH = HL((-0.05, -0.05, -1), (-0.08, 1.38, -0.62))
 R_HOOK = HR((0.8, 0.05, -0.6), (-0.05, 1.45, -0.52))          # 팔꿈치를 옆으로 든 훅 (주먹이 가운데로)
@@ -1384,7 +1384,7 @@ L_PUMP = HL((-0.35, -0.7, -0.6), (-0.18, 1.05, -0.5))
 PH_RL, PH_LL = (20, 9, 12), (-22, 9, 20)                     # 왼발 앞, 넓게
 
 PH_STANCE = solved(G(body=(2, -18, 0), rl=PH_RL, ll=PH_LL, look=(10, 4), rightArm=R_CHIN, leftArm=L_FACE))
-anim("stance_ph", 40, seq([(0, LIN, PH_STANCE), (20, IO, dict(body=(3, -18, 0), rightArm=HR((0.65, -0.57, -0.33), (0.12, 1.5, -0.32)))), (40, IO, PH_STANCE)]), loop=True, ret=0)
+anim("stance_ph", 40, seq([(0, LIN, PH_STANCE), (20, IO, dict(body=(3, -18, 0), rightArm=HR((0.22, -0.82, -0.53), (0.17, 1.46, -0.4)))), (40, IO, PH_STANCE)]), loop=True, ret=0)
 PH_WALK = dict(body=(4, -10, 0), head=(10, -10, 0), rightArm=R_CHIN, leftArm=L_FACE)
 anim("stance_ph_walk", 40, seq([(0, LIN, PH_WALK), (20, IO, dict(body=(5, -10, 0))), (40, IO, PH_WALK)]), loop=True, ret=0)
 
@@ -1401,14 +1401,14 @@ _prun = []
 for t in range(0, 21):
     rw, lw = _ph_leg(t), _ph_leg(t + 5)
     sw = max(-1.0, min(1.0, -(rw[0] - lw[0]) / 90.0))   # 오른다리가 앞이면 +
-    BP = -25
+    BP = -22
     body = (BP, round(-10 * sw, 1), 0)
     rl = (round(rw[0] + BP, 1), round(5 * sw, 1), 4, round(rw[1], 1)); ll = (round(lw[0] + BP, 1), round(5 * sw, 1), -4, round(lw[1], 1))
     low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
     fly = 0.07 if t % 5 == 0 else 0.04 if t % 5 in (1, 4) else 0.0
     # 팔: 오른다리가 앞(sw>0)이면 왼팔이 앞. 팔꿈치 90°로 굽혀 주먹을 크게 흔듦
     _prun.append((t, LIN, dict(body=body, head=(BP + 18, round(10 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
-                               rightArm=(round(-10 + 50 * sw, 1), 0, 8, -90), leftArm=(round(-10 - 50 * sw, 1), 0, -8, -90))))
+                               rightArm=(round(-15 + 45 * sw, 1), 0, 6, round(-95 + 25 * sw, 1)), leftArm=(round(-15 - 45 * sw, 1), 0, -6, round(-95 - 25 * sw, 1)))))
 anim("run_ph", 20, seq(_prun), loop=True, ret=0)
 
 # 가드: 두 팔뚝을 얼굴 앞에 세로로 붙여 세움
@@ -1543,6 +1543,42 @@ anim("ph_stew", 50, seq([(0, LIN, PH_STANCE), (2, IO, G(body=(0, -34, 0), rl=PH_
      + [(31, IO, G(body=(-4, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(4, 0), sink=0.1, z=0.15, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
         (34, EX, G(body=(-16, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, 0), sink=0.14, z=0.3, rightArm=HR((0.2, 0.0, -0.98), (0.2, 1.4, -0.62)), leftArm=HL((-0.2, 0.0, -0.98), (-0.2, 1.4, -0.62)))),
         (42, LIN, dict(body=(-14, 0, 0))), (50, IO, PH_STANCE)]))
+
+# ── 각성(비등점) 중 바뀌는 기술 · 공중/평타 중 변형 ──
+L_SWING_IN = HL((0.5, -0.1, -0.85), (0.45, 1.4, -0.35))
+L_SWING_OUT = HL((-0.85, 0.1, -0.5), (-0.85, 1.42, -0.3))
+R_PALM = HR((0.2, 0.0, -0.98), (0.2, 1.4, -0.62))
+L_PALM = HL((-0.2, 0.0, -0.98), (-0.2, 1.4, -0.62))
+# 증기 분사: 웅크렸다(2) 등에서 김을 뿜으며 몸을 눕혀 쏘아 나감(4~10) → 12 버팀 → 16
+anim("ph_dash", 16, seq([(0, LIN, PH_STANCE),
+     (2, IO, G(body=(-24, -8, 0), rl=WIDE_RL, ll=WIDE_LL, look=(18, 4), sink=0.18, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
+     (4, EX, G(body=(-42, 0, 0), rl=(-30, 4, 40), ll=(36, 4, 30), look=(-6, 0), sink=0.08, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+     (10, LIN, G(body=(-40, 0, 0), rl=(-30, 4, 40), ll=(36, 4, 30), look=(-6, 0), sink=0.08, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+     (12, IO, G(body=(-12, -10, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, 4), sink=0.12, rightArm=R_CHIN, leftArm=L_FACE)),
+     (16, IO, PH_STANCE)]))
+# 혈관 포박: 두 팔을 가슴 앞에 엇갈렸다가(3) 앞으로 활짝 뿌려 혈관을 뻗음(6) → 몸을 젖히며 당김(12) → 두 팔을 위로 휘둘러 띄움(16)
+anim("ph_bind", 26, seq([(0, LIN, PH_STANCE),
+     (3, IO, G(body=(-6, 0, 0), rl=PH_RL, ll=PH_LL, look=(8, 0), sink=0.06, rightArm=R_SWING_IN, leftArm=L_SWING_IN)),
+     (6, EX, G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, 0), sink=0.12, z=0.12, rightArm=HR((0.45, 0.05, -0.9), (0.6, 1.45, -0.5)), leftArm=HL((-0.45, 0.05, -0.9), (-0.6, 1.45, -0.5)))),
+     (12, IO, G(body=(12, 0, 0), rl=PH_RL, ll=PH_LL, look=(-6, 0), sink=0.06, rightArm=R_PUMP, leftArm=L_PUMP)),
+     (16, EX, G(body=(16, 0, 0), rl=PH_RL, ll=PH_LL, look=(-36, 0), sink=0.02, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+     (20, LIN, dict(body=(17, 0, 0))),
+     (26, IO, PH_STANCE)]))
+# 용암탄 난사: 오른팔(5) → 왼팔(11) → 오른팔(17)로 번갈아 뿌림
+_bar = [(0, LIN, PH_STANCE)]
+for k, t in enumerate((5, 11, 17)):
+    right = k % 2 == 0
+    _bar.append((t - 2, IO, G(body=(0, 38 if right else -38, 0), rl=PH_RL, ll=PH_LL, look=(8, -10 if right else 10), sink=0.05,
+                             rightArm=R_SWING_IN if right else R_CHIN, leftArm=L_FACE if right else L_SWING_IN)))
+    _bar.append((t, EX, G(body=(-8, -26 if right else 26, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(8, 10 if right else -10), sink=0.08, z=0.1,
+                         rightArm=HR((0.4, 0.0, -0.92), (0.55, 1.4, -0.55)) if right else R_CHAMBER, leftArm=L_CHAMBER if right else HL((-0.4, 0.0, -0.92), (-0.55, 1.4, -0.55)))))
+_bar.append((24, IO, PH_STANCE))
+anim("ph_barrage", 24, seq(_bar))
+# 손바닥 폭발 (평타 중 열사 방벽·전신 비등): 두 손을 허리로 당겼다가(2) 앞으로 밀어 터뜨림(4)
+anim("ph_palm", 11, pstrike(11, [
+    (2, IO, G(body=(-4, -10, 0), rl=PH_RL, ll=PH_LL, look=(8, 4), sink=0.08, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
+    (4, EX, G(body=(-16, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, 0), sink=0.14, z=0.25, rightArm=R_PALM, leftArm=L_PALM)),
+], hold_to=7))
 
 # ── 각성 '비등점' (90틱, 참고: 모드 발동 클로즈업 1:21.75~1:22.75 + 혈관 터짐) ──
 #   8 깊게 웅크려 손바닥을 땅에 짚음 → 8~40 몸에서 김이 피어오르며 숨을 몰아쉼 (ゴゴゴ) → 46 몸을 펴며 고개를 젖혀 포효, 두 팔을 벌리고

@@ -1,0 +1,610 @@
+{
+ "version": 3,
+ "name": "ph_barrage",
+ "author": "bbc",
+ "description": "",
+ "emote": {
+  "isLoop": false,
+  "returnTick": 0,
+  "beginTick": 0,
+  "endTick": 24,
+  "stopTick": 25,
+  "degrees": true,
+  "easeBeforeKeyframe": true,
+  "nsfw": false,
+  "moves": [
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "pitch": 2,
+     "yaw": -18,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "head": {
+     "pitch": 12,
+     "yaw": -14,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 19.3,
+     "yaw": 12.6,
+     "roll": 9,
+     "bend": 17.9
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -35.5,
+     "yaw": 12.6,
+     "roll": -9,
+     "bend": 49.0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": 0.003,
+     "z": 0.0
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -34.9,
+     "yaw": -12.1,
+     "roll": 23.7,
+     "bend": -108.4
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -51.0,
+     "yaw": 9.5,
+     "roll": -27.7,
+     "bend": -89.3
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": 38,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "head": {
+     "pitch": 8,
+     "yaw": 28,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 14.1,
+     "yaw": -26.6,
+     "roll": 9,
+     "bend": 24.8
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -39.4,
+     "yaw": -26.6,
+     "roll": -9,
+     "bend": 52.3
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.025,
+     "z": 0.0
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -119.3,
+     "yaw": -10.6,
+     "roll": 83.2,
+     "bend": -48.5
+    }
+   },
+   {
+    "tick": 3,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -51.0,
+     "yaw": 9.5,
+     "roll": -27.7,
+     "bend": -89.3
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "pitch": -8,
+     "yaw": -26,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": -16,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 8.2,
+     "yaw": 18.2,
+     "roll": 8,
+     "bend": 29.5
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -54.4,
+     "yaw": 18.2,
+     "roll": -8,
+     "bend": 60.7
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.015,
+     "z": 0.1
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -74.8,
+     "yaw": 18.2,
+     "roll": 41.0,
+     "bend": -4.1
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftArm": {
+     "pitch": 45.5,
+     "yaw": 24.7,
+     "roll": -8.6,
+     "bend": -111.0
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": -38,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "head": {
+     "pitch": 8,
+     "yaw": -28,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 14.1,
+     "yaw": 26.6,
+     "roll": 9,
+     "bend": 24.8
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -39.4,
+     "yaw": 26.6,
+     "roll": -9,
+     "bend": 52.3
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": 0.008,
+     "z": 0.0
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -34.9,
+     "yaw": -12.1,
+     "roll": 23.7,
+     "bend": -108.4
+    }
+   },
+   {
+    "tick": 9,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -119.3,
+     "yaw": 10.6,
+     "roll": -83.2,
+     "bend": -48.5
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "pitch": -8,
+     "yaw": 26,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": 16,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 8.2,
+     "yaw": -18.2,
+     "roll": 8,
+     "bend": 29.5
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -54.4,
+     "yaw": -18.2,
+     "roll": -8,
+     "bend": 60.7
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.042,
+     "z": 0.1
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightArm": {
+     "pitch": 45.5,
+     "yaw": -24.7,
+     "roll": 8.6,
+     "bend": -111.0
+    }
+   },
+   {
+    "tick": 11,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -74.8,
+     "yaw": -18.2,
+     "roll": -41.0,
+     "bend": -4.1
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 0,
+     "yaw": 38,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "head": {
+     "pitch": 8,
+     "yaw": 28,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 14.1,
+     "yaw": -26.6,
+     "roll": 9,
+     "bend": 24.8
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -39.4,
+     "yaw": -26.6,
+     "roll": -9,
+     "bend": 52.3
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.025,
+     "z": 0.0
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -119.3,
+     "yaw": -10.6,
+     "roll": 83.2,
+     "bend": -48.5
+    }
+   },
+   {
+    "tick": 15,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -51.0,
+     "yaw": 9.5,
+     "roll": -27.7,
+     "bend": -89.3
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "pitch": -8,
+     "yaw": -26,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "head": {
+     "pitch": 0,
+     "yaw": -16,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 8.2,
+     "yaw": 18.2,
+     "roll": 8,
+     "bend": 29.5
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -54.4,
+     "yaw": 18.2,
+     "roll": -8,
+     "bend": 60.7
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.015,
+     "z": 0.1
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -74.8,
+     "yaw": 18.2,
+     "roll": 41.0,
+     "bend": -4.1
+    }
+   },
+   {
+    "tick": 17,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftArm": {
+     "pitch": 45.5,
+     "yaw": 24.7,
+     "roll": -8.6,
+     "bend": -111.0
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "pitch": 2,
+     "yaw": -18,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "head": {
+     "pitch": 12,
+     "yaw": -14,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": 19.3,
+     "yaw": 12.6,
+     "roll": 9,
+     "bend": 17.9
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -35.5,
+     "yaw": 12.6,
+     "roll": -9,
+     "bend": 49.0
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": 0.003,
+     "z": 0.0
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -34.9,
+     "yaw": -12.1,
+     "roll": 23.7,
+     "bend": -108.4
+    }
+   },
+   {
+    "tick": 24,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -51.0,
+     "yaw": 9.5,
+     "roll": -27.7,
+     "bend": -89.3
+    }
+   }
+  ]
+ }
+}

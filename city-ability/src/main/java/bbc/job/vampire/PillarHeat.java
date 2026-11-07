@@ -101,6 +101,19 @@ public final class PillarHeat {
             new JobSkills.Skill("전신 비등", "비등", 3, 30, 18, "낮게 달려들어 무릎 → 쌓인 열을 모두 터뜨림 (열 1당 피해 +0.5, 날려보냄)"),
     };
 
+    /** 각성 '비등점' 중 기술 카드 (같은 칸이 통째로 바뀜) */
+    static final JobSkills.Skill[] AWAKE = {
+            new JobSkills.Skill("혈관 바늘", "바늘", 3, 15, 6, "혈관 바늘 8개를 부채꼴로 · 평타 중: 한 상대를 세 번 꿰뚫음 · 공중: 아래로 바늘 비"),
+            new JobSkills.Skill("증기 분사", "분사", 3, 15, 8, "등에서 김을 뿜어 6칸 쏘아 나가며 지나간 상대를 태움 (공중에서도)"),
+            new JobSkills.Skill("용암탄 난사", "난사", 3, 20, 10, "두 팔을 번갈아 끓는 피 다섯 덩이씩 세 번 · 평타 중: 가까이 산탄 일곱"),
+            new JobSkills.Skill("혈관 포박", "포박", 3, 20, 12, "혈관을 뻗어 8칸 안 셋까지 끌어와 띄움 · 공중: 끌어와 내리꽂음"),
+            new JobSkills.Skill("끓는 대지", "대지", 3, 25, 18, "따라다니는 용암 장판 + 앞으로 용암 기둥 셋 · 공중: 내리꽂아 착지점 분출"),
+            new JobSkills.Skill("끓는 스튜", "스튜", 3, 25, 14, "주먹을 꽂고 혈관으로 네 번 끓여 터뜨림 (잡기) · 공중: 혈관 내리치기"),
+            new JobSkills.Skill("증기 폭발권", "폭발", 3, 30, 14, "달려들어 무릎 → 반지름 3칸 대폭발 (가드 깨기) · 평타 중: 손바닥 폭발 · 공중: 내리꽂으며 폭발"),
+    };
+
+    static JobSkills.Skill[] list(ServerPlayerEntity p) { return Awaken.active(p) ? AWAKE : LIST; }
+
     // ───────── 상태 ─────────
     private static final Map<UUID, Integer> HEAT = new HashMap<>();
     private static final Map<UUID, Long> HEAT_AT = new HashMap<>();
@@ -320,19 +333,28 @@ public final class PillarHeat {
 
     static boolean use(ServerPlayerEntity p, PlayerData.Entry e, int idx) {
         boolean air = !p.isOnGround(), chain = Combat.inM1Chain(p), aw = Awaken.active(p), md = mode(p);
-        boolean ok = switch (idx) {
-            case 0 -> air ? veinsAir(p) : chain ? veinsQuick(p) : aw ? needles(p) : md ? stew(p) : veins(p);
-            case 1 -> counter(p);
-            case 2 -> bullets(p, md || aw ? 5 : 3);
+        boolean ok = aw ? switch (idx) {
+            case 0 -> air ? needleRain(p) : chain ? veinsTriple(p) : needles(p);
+            case 1 -> steamDash(p, air);
+            case 2 -> chain ? shotgun(p) : barrage(p);
+            case 3 -> bind(p, air);
+            case 4 -> air ? dive(p, false) : boilingGround(p);
+            case 5 -> air ? veinsAir(p) : stew(p);
+            case 6 -> air ? dive(p, true) : chain ? palmBurst(p, true) : boil(p, true);
+            default -> false;
+        } : switch (idx) {
+            case 0 -> air ? veinsAir(p) : chain ? veinsQuick(p) : md ? stew(p) : veins(p);
+            case 1 -> chain ? palmBurst(p, false) : counter(p);
+            case 2 -> chain ? shotgun(p) : bullets(p, md ? 5 : 3, air);
             case 3 -> cry(p);
-            case 4 -> lava(p, aw);
+            case 4 -> air ? dive(p, false) : lava(p, false);
             case 5 -> rage(p);
-            case 6 -> boil(p);
+            case 6 -> air ? dive(p, true) : boil(p, false);
             default -> false;
         };
         if (ok) {
-            SoundEvent s = switch (idx) { case 0 -> !air && !chain && !aw && md ? S_STEW : S_VEINS; case 1 -> null; case 2 -> S_BULLET; case 3 -> S_CRY;
-                case 4 -> S_LAVA; case 5 -> S_RAGE; case 6 -> S_BOIL; default -> null; };
+            SoundEvent s = switch (idx) { case 0 -> S_VEINS; case 1 -> aw ? S_RAGE : null; case 2 -> S_BULLET; case 3 -> aw ? S_VEINS : S_CRY;
+                case 4 -> S_LAVA; case 5 -> aw || md ? S_STEW : S_RAGE; case 6 -> S_BOIL; default -> null; };
             if (s != null) bbc.job.alchemy.AlchemySounds.play(p, s, 1.6f);
         }
         return ok;
@@ -511,14 +533,14 @@ public final class PillarHeat {
     }
 
     // ③ 끓는 피탄: 6틱에 n덩이 부채꼴 (덩이당 14칸, 1.1칸/틱)
-    private static boolean bullets(ServerPlayerEntity p, int n) {
+    private static boolean bullets(ServerPlayerEntity p, int n, boolean air) {
         Motion.play(p, "ph_bullet");
         Combat.afterSkill(p, 10);
         ServerWorld w = p.getServerWorld();
         Tasks.later(6, () -> {
             if (!alive(p)) return;
             Vec3d from = p.getPos().add(Combat.horizontal(p.getRotationVec(1f)).multiply(0.7)).add(0, 1.35, 0);
-            Vec3d look = p.getRotationVector();
+            Vec3d look = air ? p.getRotationVector().add(0, -0.5, 0).normalize() : p.getRotationVector();   // 공중: 비스듬히 아래로
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.PLAYERS, 0.8f, 1.2f);
             for (int k = 0; k < n; k++) {
                 double a = Math.toRadians((k - (n - 1) / 2.0) * (n > 3 ? 9 : 12));
@@ -597,11 +619,15 @@ public final class PillarHeat {
         Motion.play(p, "ph_lava");
         Combat.afterSkill(p, 14);
         ServerWorld w = p.getServerWorld();
-        Tasks.later(8, () -> {
-            if (!alive(p)) return;
+        Tasks.later(8, () -> { if (alive(p)) lavaAt(p, w, follow ? p.getPos() : p.getPos().add(Combat.horizontal(p.getRotationVec(1f)).multiply(2.0)), follow); });
+        return true;
+    }
+
+    /** c0 에서 땅이 끓어올라 띄우고 160틱 용암 장판 (follow = 나를 따라다님) */
+    static void lavaAt(ServerPlayerEntity p, ServerWorld w, Vec3d c0, boolean follow) {
+        {
             double r = follow ? 3.0 : 2.5;
-            Vec3d c0 = follow ? p.getPos() : p.getPos().add(Combat.horizontal(p.getRotationVec(1f)).multiply(2.0));
-            double gy = p.getY();
+            double gy = c0.y;
             for (Entity x : w.getOtherEntities(p, new Box(c0, c0).expand(r, 2, r), x -> Targets.canHit(p, x))) {
                 if (Combat.hit(p, (LivingEntity) x, ERUPT) != Combat.Result.MISS) x.setOnFireFor(3);
             }
@@ -628,8 +654,7 @@ public final class PillarHeat {
                 });
             }
             Tasks.later(161, () -> { if (plate != null) plate.discard(); });
-        });
-        return true;
+        }
     }
 
     // ⑥ 분노의 열: 14틱에 포효 — 김이 터져 주위 3칸 밀쳐냄, 10초 모드
@@ -662,7 +687,7 @@ public final class PillarHeat {
     }
 
     // ⑦ 전신 비등: 3~9 낮게 달려듦 → 10 무릎 → 18 손바닥으로 쌓인 열을 모두 터뜨림 (열 1당 +0.5)
-    private static boolean boil(ServerPlayerEntity p) {
+    private static boolean boil(ServerPlayerEntity p, boolean big) {
         Motion.play(p, "ph_boil");
         Combat.afterSkill(p, 14);
         ServerWorld w = p.getServerWorld();
@@ -688,13 +713,232 @@ public final class PillarHeat {
             if (!alive(p)) return;
             int h = heat(p);
             if (!Awaken.active(p) && !mode(p)) setHeat(p, 0);
-            Hit hit = new Hit(1.2f + 0.5f * h, Hit.Kind.KNOCK, 20, 1.3, 0.5, 20, h >= 3, false);
+            Hit hit = new Hit(1.2f + 0.5f * h + (big ? 0.8f : 0), Hit.Kind.KNOCK, 20, 1.3, 0.5, 20, big || h >= 3, false);
             Vec3d c = got[0] != null && got[0].isAlive() ? got[0].getBoundingBox().getCenter() : front(p, 1.6, 1.1);
-            for (Entity x : w.getOtherEntities(p, new Box(c, c).expand(1.6), x -> Targets.canHit(p, x))) {
+            for (Entity x : w.getOtherEntities(p, new Box(c, c).expand(big ? 3.0 : 1.6), x -> Targets.canHit(p, x))) {
                 if (Combat.hit(p, (LivingEntity) x, hit) != Combat.Result.MISS) x.setOnFireFor(2 + h);
             }
-            explode(w, c, 0.8f + 0.15f * h);
+            explode(w, c, 0.8f + 0.15f * h + (big ? 0.8f : 0));
             Fx.word(w, c.add(0, 1.6, 0), Fx.Sfx.DOGOOON, 1.2f + 0.08f * h);
+        });
+        return true;
+    }
+
+    // ── 변형 · 각성 기술 ──
+    private static final Hit PALM = new Hit(0.9f, Hit.Kind.KNOCK, 16, 0.9, 0.3, 12, false, false);
+    private static final Hit PALM_BIG = new Hit(1.5f, Hit.Kind.KNOCK, 18, 1.1, 0.4, 20, true, false);
+    private static final Hit DASH = new Hit(1.0f, Hit.Kind.HIT, 20, 0.2, 0, 12, false, false);
+    private static final Hit BIND = new Hit(0.4f, Hit.Kind.HIT, 30, 0, 0, 0, false, false).noParry();
+    private static final Hit BIND_UP = new Hit(1.3f, Hit.Kind.AIR, 26, 0.1, 1.0, 15, false, false);
+    private static final Hit BIND_DOWN = new Hit(1.5f, Hit.Kind.DOWN, 30, 0, -1.1, 15, false, true);
+    private static final Hit PILLAR_HIT = new Hit(1.0f, Hit.Kind.AIR, 20, 0.1, 0.8, 12, false, false);
+
+    // 평타 중 손바닥 폭발 (열사 방벽 · 각성 중 증기 폭발권): 4틱에 앞 2.2칸 터뜨림
+    private static boolean palmBurst(ServerPlayerEntity p, boolean big) {
+        Motion.play(p, "ph_palm");
+        Combat.afterSkill(p, 7);
+        ServerWorld w = p.getServerWorld();
+        Tasks.later(4, () -> {
+            if (!alive(p)) return;
+            Vec3d c = front(p, 1.6, 1.1);
+            for (Entity x : w.getOtherEntities(p, new Box(c, c).expand(big ? 1.8 : 1.3), x -> Targets.canHit(p, x)))
+                if (Combat.hit(p, (LivingEntity) x, big ? PALM_BIG : PALM) != Combat.Result.MISS) x.setOnFireFor(2);
+            explode(w, c, big ? 1.0f : 0.6f);
+        });
+        return true;
+    }
+
+    // 평타 중 산탄 (끓는 피탄 · 용암탄 난사): 일곱 덩이 짧게
+    private static boolean shotgun(ServerPlayerEntity p) {
+        Motion.play(p, "ph_bullet");
+        Combat.afterSkill(p, 8);
+        ServerWorld w = p.getServerWorld();
+        Tasks.later(6, () -> {
+            if (!alive(p)) return;
+            Vec3d from = front(p, 0.7, 1.35);
+            Vec3d look = p.getRotationVector();
+            for (int k = 0; k < 7; k++) glob(p, w, from, rotY(look, Math.toRadians((k - 3) * 8)).add(0, ((k % 3) - 1) * 0.06, 0).normalize(), 5);
+            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.PLAYERS, 1.0f, 0.9f);
+        });
+        return true;
+    }
+
+    // 용암탄 난사: 5·11·17 에 다섯 덩이씩
+    private static boolean barrage(ServerPlayerEntity p) {
+        Motion.play(p, "ph_barrage");
+        Combat.afterSkill(p, 20);
+        ServerWorld w = p.getServerWorld();
+        for (int v = 0; v < 3; v++) {
+            final int vv = v;
+            Tasks.later(5 + v * 6, () -> {
+                if (!alive(p)) return;
+                Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
+                Vec3d side = new Vec3d(-fw.z, 0, fw.x).multiply(vv % 2 == 0 ? 0.3 : -0.3);
+                Vec3d from = p.getPos().add(fw.multiply(0.7)).add(side).add(0, 1.35, 0);
+                Vec3d look = p.getRotationVector();
+                for (int k = 0; k < 5; k++) glob(p, w, from, rotY(look, Math.toRadians((k - 2) * 9 + (vv - 1) * 4)), 13);
+                w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_LAVA_EXTINGUISH, SoundCategory.PLAYERS, 0.8f, 1.0f + vv * 0.15f);
+            });
+        }
+        return true;
+    }
+
+    // 증기 분사: 4~10틱 6칸 쏘아 나감, 지나간 상대 한 번씩
+    private static boolean steamDash(ServerPlayerEntity p, boolean air) {
+        Motion.play(p, "ph_dash");
+        Combat.afterSkill(p, 10);
+        Combat.invuln(p, 6);
+        ServerWorld w = p.getServerWorld();
+        Set<UUID> done = new HashSet<>();
+        Vec3d fw0 = Combat.horizontal(p.getRotationVec(1f));
+        Tasks.later(4, () -> { if (alive(p)) { w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.PLAYERS, 1.4f, 0.6f); Fx.wave(w, p.getPos().add(0, 0.1, 0), 0.2, 2.2, ORANGE, 5); } });
+        for (int i = 4; i <= 10; i++) Tasks.later(i, () -> {
+            if (!alive(p)) return;
+            Combat.move(p, new Vec3d(fw0.x * 1.1, air ? 0.02 : p.getVelocity().y, fw0.z * 1.1));
+            Vec3d back = p.getPos().subtract(fw0.multiply(0.6)).add(0, 1.1, 0);
+            w.spawnParticles(ParticleTypes.CLOUD, back.x, back.y, back.z, 6, 0.2, 0.3, 0.2, 0.05);
+            w.spawnParticles(ParticleTypes.FLAME, back.x, back.y, back.z, 4, 0.2, 0.3, 0.2, 0.02);
+            for (Entity x : w.getOtherEntities(p, p.getBoundingBox().expand(1.0), x -> Targets.canHit(p, x))) {
+                if (!done.add(x.getUuid())) continue;
+                if (Combat.hit(p, (LivingEntity) x, DASH) != Combat.Result.MISS) { x.setOnFireFor(3); heatHit(w, x.getBoundingBox().getCenter(), fw0, 0.8f, null, false); }
+            }
+        });
+        Tasks.later(11, () -> { if (alive(p)) Combat.move(p, new Vec3d(fw0.x * 0.2, p.getVelocity().y, fw0.z * 0.2)); });
+        return true;
+    }
+
+    // 혈관 포박: 6틱에 8칸 부채꼴 셋까지 혈관을 꽂아 → 7~12 끌어옴 → 16 띄움 (공중이면 내리꽂음)
+    private static boolean bind(ServerPlayerEntity p, boolean air) {
+        Motion.play(p, "ph_bind");
+        Combat.afterSkill(p, 16);
+        ServerWorld w = p.getServerWorld();
+        Tasks.later(6, () -> {
+            if (!alive(p)) return;
+            List<LivingEntity> ts = Combat.targets(p, 8.0, 45, 3);
+            Vec3d hand = front(p, 0.6, 1.35);
+            if (ts.isEmpty()) { vein(w, hand, hand.add(p.getRotationVector().multiply(7)), new Vec3d(0, 0.4, 0), 6, true); return; }
+            for (LivingEntity t : ts) {
+                if (Combat.hit(p, t, BIND) == Combat.Result.MISS) continue;
+                for (int i = 1; i <= 6; i++) {
+                    final int k = i;
+                    Tasks.later(i, () -> {
+                        if (!alive(p) || !t.isAlive()) return;
+                        Vec3d want = front(p, 1.8, 0);
+                        Vec3d now = t.getPos().lerp(new Vec3d(want.x, t.getY(), want.z), 0.35);
+                        t.requestTeleport(now.x, now.y, now.z);
+                        t.setVelocity(0, Math.min(0, t.getVelocity().y), 0);
+                        t.velocityModified = true;
+                        if (k % 2 == 1) vein(w, front(p, 0.5, 1.2), t.getBoundingBox().getCenter(), new Vec3d(0, 0.2, 0), 3, true);
+                    });
+                }
+                Tasks.later(10, () -> {
+                    if (!alive(p) || !t.isAlive()) return;
+                    if (Combat.hit(p, t, air ? BIND_DOWN : BIND_UP) != Combat.Result.MISS) { t.setOnFireFor(3); heatHit(w, t.getBoundingBox().getCenter(), new Vec3d(0, air ? -1 : 1, 0), 1.0f, air ? Fx.Sfx.ZUDON : Fx.Sfx.DOGON, true); }
+                });
+            }
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_SLIME_SQUISH, SoundCategory.PLAYERS, 1.4f, 0.6f);
+        });
+        return true;
+    }
+
+    // 끓는 대지: 따라다니는 장판 + 앞으로 용암 기둥 셋 (8·12·16, 2·4·6칸)
+    private static boolean boilingGround(ServerPlayerEntity p) {
+        lava(p, true);
+        ServerWorld w = p.getServerWorld();
+        Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
+        Vec3d base = p.getPos();
+        for (int k = 0; k < 3; k++) {
+            final int kk = k;
+            Tasks.later(8 + k * 4, () -> {
+                if (!alive(p)) return;
+                Vec3d c = base.add(fw.multiply(2 + kk * 2));
+                for (Entity x : w.getOtherEntities(p, new Box(c, c).expand(1.5, 2.5, 1.5), x -> Targets.canHit(p, x)))
+                    if (Combat.hit(p, (LivingEntity) x, PILLAR_HIT) != Combat.Result.MISS) x.setOnFireFor(3);
+                for (int h = 0; h < 8; h++) w.spawnParticles(ParticleTypes.FLAME, c.x, c.y + h * 0.4, c.z, 6, 0.3, 0.15, 0.3, 0.02);
+                w.spawnParticles(ParticleTypes.LAVA, c.x, c.y + 0.5, c.z, 10, 0.4, 0.8, 0.4, 0);
+                AlchemyFx.display(w, Blocks.MAGMA_BLOCK.getDefaultState(), c.x, c.y, c.z, 1.0f, 2.6f, 1.0f, 0, 10, 2);
+                Fx.ring3d(w, c.add(0, 0.2, 0), new Vec3d(0, 1, 0), 0.3, 2.0, 0.2f, 6, ORANGE);
+                w.playSound(null, BlockPos.ofFloored(c), SoundEvents.BLOCK_LAVA_POP, SoundCategory.PLAYERS, 1.4f, 0.6f);
+            });
+        }
+        return true;
+    }
+
+    // 공중: 내리꽂아 착지점에서 터뜨림 (boom = 전신 비등·증기 폭발권, 아니면 용암 분출)
+    private static boolean dive(ServerPlayerEntity p, boolean boom) {
+        Motion.play(p, "ph_slam");
+        Combat.afterSkill(p, 14);
+        ServerWorld w = p.getServerWorld();
+        Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
+        boolean[] landed = {false};
+        boolean big = Awaken.active(p);
+        for (int i = 2; i <= 20; i++) {
+            final int k = i;
+            Tasks.later(i, () -> {
+                if (!alive(p) || landed[0]) return;
+                if (!p.isOnGround() && k < 20) { Combat.move(p, new Vec3d(fw.x * 0.5, -1.4, fw.z * 0.5)); w.spawnParticles(ParticleTypes.FLAME, p.getX(), p.getY() + 1, p.getZ(), 3, 0.2, 0.3, 0.2, 0.02); return; }
+                landed[0] = true;
+                Vec3d c = p.getPos();
+                if (boom) {
+                    int h = heat(p);
+                    if (!big && !mode(p)) setHeat(p, 0);
+                    Hit hit = new Hit(1.0f + 0.4f * h + (big ? 0.6f : 0), Hit.Kind.DOWN, 26, 0, -0.8, 15, big, true);
+                    for (Entity x : w.getOtherEntities(p, new Box(c, c).expand(big ? 3.2 : 2.4, 1.5, big ? 3.2 : 2.4), x -> Targets.canHit(p, x)))
+                        if (Combat.hit(p, (LivingEntity) x, hit) != Combat.Result.MISS) x.setOnFireFor(3);
+                    explode(w, c.add(0, 0.5, 0), big ? 1.6f : 1.1f);
+                    Fx.debris(w, c, 16, 1.4);
+                } else {
+                    lavaAt(p, w, c, false);
+                }
+            });
+        }
+        return true;
+    }
+
+    // 각성 · 평타 중: 혈관 바늘로 한 상대를 세 번 꿰뚫음 (4·6·8)
+    private static boolean veinsTriple(ServerPlayerEntity p) {
+        Motion.play(p, "ph_veins_q");
+        Combat.afterSkill(p, 9);
+        ServerWorld w = p.getServerWorld();
+        for (int k = 0; k < 3; k++) {
+            final int kk = k;
+            Tasks.later(4 + k * 2, () -> {
+                if (!alive(p)) return;
+                LivingEntity t = Combat.targets(p, 6.0, 25, 1).stream().findFirst().orElse(null);
+                Vec3d hand = front(p, 0.7, 1.35);
+                Vec3d end = t != null ? t.getBoundingBox().getCenter().add(0, (kk - 1) * 0.3, 0) : hand.add(p.getRotationVector().multiply(5.5));
+                vein(w, hand, end, new Vec3d(0, (kk - 1) * 0.3, 0), 5, true);
+                if (t != null && Combat.hit(p, t, kk == 2 ? STAB : NEEDLE) != Combat.Result.MISS) { t.setOnFireFor(3); heatHit(w, end, p.getRotationVector(), 0.6f, null, false); }
+            });
+        }
+        return true;
+    }
+
+    // 각성 · 공중: 아래 앞으로 바늘 비 (6) — 반지름 1~4칸 여덟 곳
+    private static boolean needleRain(ServerPlayerEntity p) {
+        Motion.play(p, "ph_veins_air");
+        Combat.afterSkill(p, 12);
+        ServerWorld w = p.getServerWorld();
+        for (int i = 0; i < 8; i++) Tasks.later(i, () -> { if (alive(p) && !p.isOnGround()) Combat.move(p, new Vec3d(p.getVelocity().x * 0.4, Math.max(p.getVelocity().y, -0.05), p.getVelocity().z * 0.4)); });
+        Tasks.later(6, () -> {
+            if (!alive(p)) return;
+            Vec3d from = p.getPos().add(0, 1.0, 0);
+            Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
+            Set<UUID> got = new HashSet<>();
+            for (int k = 0; k < 8; k++) {
+                Vec3d dir = rotY(fw, Math.toRadians(-60 + k * 17));
+                Vec3d g = p.getPos().add(dir.multiply(1.5 + (k % 3) * 1.2)).add(0, -3, 0);
+                BlockPos gp = BlockPos.ofFloored(g);
+                for (int dy = 0; dy < 6 && w.getBlockState(gp.up()).isSolidBlock(w, gp.up()); dy++) gp = gp.up();
+                Vec3d tip = new Vec3d(g.x, gp.getY() + 1.0, g.z);
+                vein(w, from, tip, Vec3d.ZERO, 8, true);
+                w.spawnParticles(ParticleTypes.LAVA, tip.x, tip.y, tip.z, 2, 0.1, 0.1, 0.1, 0);
+                for (Entity x : w.getOtherEntities(p, new Box(tip, tip).expand(1.0, 2.0, 1.0), x -> Targets.canHit(p, x))) {
+                    if (!got.add(x.getUuid())) continue;
+                    if (Combat.hit(p, (LivingEntity) x, DOWNLASH) != Combat.Result.MISS) x.setOnFireFor(3);
+                }
+            }
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0f, 0.5f);
         });
         return true;
     }

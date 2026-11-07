@@ -539,7 +539,7 @@ public final class VampireJob implements JobType {
                 e.str(P + "equip", "");
                 Jobs.dirty(p);
             }
-            return ph ? PillarHeat.LIST : LIST;
+            return ph ? PillarHeat.list(p) : LIST;   // 기둥 속 사내: 각성(비등점) 중엔 카드가 통째로 바뀜
         }
         @Override public String costName() { return "피"; }
         @Override public double resource(ServerPlayerEntity p, PlayerData.Entry e) { return blood(e); }
