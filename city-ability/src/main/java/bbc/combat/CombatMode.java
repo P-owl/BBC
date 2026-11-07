@@ -49,7 +49,7 @@ public final class CombatMode {
             p.getServerWorld().playSound(null, p.getBlockPos(), SoundEvents.ITEM_ARMOR_EQUIP_NETHERITE.value(), SoundCategory.PLAYERS, 0.8f, 1.2f);
             JobSkills.bar(p, "⚔ 전투 모드", Formatting.GOLD);
             bbc.job.JobType jt0 = bbc.job.Jobs.type(bbc.job.Jobs.entry(p));
-            Motion.play(p, jt0 != null && jt0.stance() != null ? "#stance:" + jt0.stance() : "#stance");
+            Motion.play(p, jt0 != null && jt0.stance(p) != null ? "#stance:" + jt0.stance(p) : "#stance");
         } else {
             ACTIVE.remove(p.getUuid());
             Combat.releaseInputs(p);
@@ -127,7 +127,7 @@ public final class CombatMode {
             if (!Jobs.hasCombat(Jobs.entry(p))) { set(p, false); continue; } // 직업을 잃음
             if (clock % 40 == 0) {   // 싸움 자세를 2초마다 다시 알림 (되살아나 엔티티 번호가 바뀌거나, 나중에 시야에 들어온 사람도 직업 자세·달리기가 나오게)
                 bbc.job.JobType jt0 = Jobs.type(Jobs.entry(p));
-                Motion.play(p, jt0 != null && jt0.stance() != null ? "#stance:" + jt0.stance() : "#stance");
+                Motion.play(p, jt0 != null && jt0.stance(p) != null ? "#stance:" + jt0.stance(p) : "#stance");
             }
             Weapon.Type w = Weapon.current(p);
             // 기술 칸은 화면 아래 카드로 (ABA), 액션바엔 가드·패링·회피 상태만

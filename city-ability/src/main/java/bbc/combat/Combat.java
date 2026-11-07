@@ -303,7 +303,7 @@ public final class Combat {
     }
 
     /** 공중 평타를 따로 가진 평타 세트 (모션 이름 = 접두어 + "a" + 1~3) */
-    private static final java.util.Set<String> AIR_SETS = java.util.Set.of("vm_");
+    private static final java.util.Set<String> AIR_SETS = java.util.Set.of("vm_", "ph_");
 
     /** 평타마다 앞으로 붙기: 앞에 상대가 있으면 그쪽으로 조금 미끄러짐 */
     private static void track(LivingEntity p) {
@@ -609,7 +609,7 @@ public final class Combat {
         if (t == null) {   // 맨손: 직업마다 다른 가드 자세 (예: 뱀파이어 = 젖힌 채 팔뚝 하나로)
             if (e instanceof net.minecraft.server.network.ServerPlayerEntity sp) {
                 bbc.job.JobType jt = bbc.job.Jobs.type(bbc.job.Jobs.entry(sp));
-                if (jt != null && jt.guardMotion() != null) return jt.guardMotion();
+                if (jt != null && jt.guardMotion(sp) != null) return jt.guardMotion(sp);
             }
             return "guard";
         }

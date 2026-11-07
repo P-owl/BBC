@@ -25,8 +25,11 @@ public interface JobType {
     default bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { return m1(); }
     /** 직업 대기 자세 모션 (맨손일 때 전투 모드 아래층). null 이면 공통 'stance' */
     default String stance() { return null; }
+    /** 지금 이 플레이어의 대기 자세 (예: 뱀파이어 → 기둥 속 사내). 기본은 stance() */
+    default String stance(ServerPlayerEntity p) { return stance(); }
     /** 맨손 가드 자세 모션 (null = 공통 하이 가드) */
     default String guardMotion() { return null; }
+    default String guardMotion(ServerPlayerEntity p) { return guardMotion(); }
     /** 평타 판정 순간 (모션 이름으로) — 직업별 연출 (예: 연금술사 4·5타 연성) */
     default void m1Fx(ServerPlayerEntity p, String motion) {}
     /** 전투 기술 (없으면 null) */
@@ -58,4 +61,5 @@ public interface JobType {
     default String hudTitle(ServerPlayerEntity p, PlayerData.Entry e) { return name(); }
     /** 궁극기 이름 (HUD 기술 목록 맨 아래). 직업 궁극기가 없으면 공통 '난무' */
     default String ultimateName() { return "난무"; }
+    default String ultimateName(PlayerData.Entry e) { return ultimateName(); }
 }

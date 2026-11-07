@@ -63,7 +63,7 @@ public final class JobSkills {
 
     public static String ultName(PlayerData.Entry e) {
         JobType j = Jobs.type(e);
-        return j == null ? "난무" : j.ultimateName();
+        return j == null ? "난무" : j.ultimateName(e);
     }
 
     /** HUD 카드: 장착한 5칸 */
