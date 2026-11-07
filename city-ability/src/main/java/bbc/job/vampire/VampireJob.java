@@ -121,7 +121,33 @@ public final class VampireJob implements JobType {
         e.num(P + "blood", 60);
     }
 
+    @Override public void onAwakenEnd(ServerPlayerEntity p, PlayerData.Entry e) { stopTheme(p); }
+
+    /** 각성 테마곡: 각성한 사람과 주변 24칸 사람에게 (각성이 끝나면 같은 사람들에게서 멈춤) */
+    private static final Map<UUID, List<UUID>> THEME_LISTENERS = new HashMap<>();
+    private static void startTheme(ServerPlayerEntity p) {
+        List<UUID> ls = new ArrayList<>();
+        CutscenePayload pl = new CutscenePayload("#music:" + VampireSounds.THEME, p.getId(), -1);
+        for (ServerPlayerEntity o : p.getServerWorld().getPlayers()) {
+            if (o != p && o.squaredDistanceTo(p) > 24 * 24) continue;
+            if (!ServerPlayNetworking.canSend(o, CutscenePayload.ID)) continue;
+            ServerPlayNetworking.send(o, pl);
+            ls.add(o.getUuid());
+        }
+        THEME_LISTENERS.put(p.getUuid(), ls);
+    }
+    private static void stopTheme(ServerPlayerEntity p) {
+        List<UUID> ls = THEME_LISTENERS.remove(p.getUuid());
+        if (ls == null || p.getServer() == null) return;
+        CutscenePayload pl = new CutscenePayload("#music_stop", p.getId(), -1);
+        for (UUID id : ls) {
+            ServerPlayerEntity o = p.getServer().getPlayerManager().getPlayer(id);
+            if (o != null && ServerPlayNetworking.canSend(o, CutscenePayload.ID)) ServerPlayNetworking.send(o, pl);
+        }
+    }
+
     @Override public void onQuit(ServerPlayerEntity p, PlayerData.Entry e) {
+        stopTheme(p);
         setThirst(p, false);
         Thralls.releaseAll(p.getUuid());
         p.removeStatusEffect(StatusEffects.NIGHT_VISION);
@@ -512,7 +538,7 @@ public final class VampireJob implements JobType {
         }
         @Override public boolean use(ServerPlayerEntity p, PlayerData.Entry e, int idx) {
             boolean air = !p.isOnGround(), chain = Combat.inM1Chain(p);
-            return switch (idx) {
+            boolean ok = switch (idx) {
                 case 0 -> air ? diveDrain(p, e) : chain ? fingerStab(p, e) : lungeDrain(p, e);
                 case 1 -> air ? iceDrop(p) : chain ? iceClaw(p) : vaporFreeze(p);
                 case 2 -> might(p);
@@ -524,6 +550,19 @@ public final class VampireJob implements JobType {
                 case 8 -> fleshBud(p);
                 default -> false;
             };
+            // 기술 음성 (리소스팩 'BBC 뱀파이어 사운드'). 괴력 연격은 고른 파생기에서, 냉동 반격은 받아쳤을 때
+            var snd = switch (idx) {
+                case 0 -> air ? VampireSounds.DIVE : chain ? VampireSounds.STAB : VampireSounds.LUNGE;
+                case 1 -> air ? VampireSounds.ICEDROP : chain ? VampireSounds.ICECLAW : VampireSounds.FREEZE;
+                case 3 -> VampireSounds.REGEN;
+                case 4 -> VampireSounds.THRALL;
+                case 6 -> air ? VampireSounds.BEAM_AIR : chain ? VampireSounds.BEAM_QUICK : VampireSounds.BEAM;
+                case 7 -> VampireSounds.MUDA;
+                case 8 -> VampireSounds.BUD;
+                default -> null;
+            };
+            if (ok && snd != null) VampireSounds.play(p, snd);
+            return ok;
         }
     };
     @Override public JobSkills.Set skills() { return SKILLS; }
@@ -949,9 +988,9 @@ public final class VampireJob implements JobType {
         LivingEntity t = tid != null && w.getEntity(tid) instanceof LivingEntity le && le.isAlive() && le.squaredDistanceTo(p) < 25 ? le : null;
         if (t == null) return true;
         switch (slot) {
-            case 0 -> kuaLight(p, t);
-            case 1 -> kuaMedium(p, t);
-            case 2 -> kuaHeavy(p, t);
+            case 0 -> { kuaLight(p, t); VampireSounds.play(p, VampireSounds.KUA_L); }
+            case 1 -> { kuaMedium(p, t); VampireSounds.play(p, VampireSounds.KUA_M); }
+            case 2 -> { kuaHeavy(p, t); VampireSounds.play(p, VampireSounds.KUA_H); }
             default -> kuaDrain(p, t);
         }
         return true;
@@ -1127,6 +1166,7 @@ public final class VampireJob implements JobType {
         Tasks.later(3, () -> { if (alive(p)) Combat.counterWindow(p, 14, true, 4.5, atk -> {
             if (!alive(p)) return;
             Motion.play(p, "vm_counter_hit");
+            VampireSounds.play(p, VampireSounds.COUNTER);
             Combat.afterSkill(p, 16);
             var cf = Combat.of(p);   // 받아치는 동안도 다른 기술 잠금
             cf.skillStart = Combat.now(); cf.skillMotion = "vm_counter_hit"; cf.skillBusyUntil = Combat.now() + 19;
@@ -1403,6 +1443,8 @@ public final class VampireJob implements JobType {
         Combat.afterSkill(p, AWAKEN_SCENE - 6);
         Awaken.extend(p, AWAKEN_SCENE);
         addBlood(e, 20);
+        startTheme(p);
+        Tasks.later(18, () -> { if (alive(p)) VampireSounds.voice(p, VampireSounds.AWAKEN, List.of(p)); });   // 해는 저물었다… (얼굴 클로즈업에 맞춰)
         for (int t = 0; t < 16; t += 3) Tasks.later(t, () -> {   // 발밑에 피가 고임
             if (alive(p)) w.spawnParticles(BLOOD, p.getX(), p.getY() + 0.05, p.getZ(), 8, 0.6, 0.02, 0.6, 0);
         });
@@ -1488,6 +1530,11 @@ public final class VampireJob implements JobType {
         if (t instanceof ServerPlayerEntity sp) viewers.add(sp);
         CutscenePayload pl = new CutscenePayload("vm_ult", p.getId(), t.getId());
         for (ServerPlayerEntity v : viewers) if (ServerPlayNetworking.canSend(v, CutscenePayload.ID)) ServerPlayNetworking.send(v, pl);
+        // 대사 (리소스팩 음성 길이에 맞춤: 발동 1.9초 · 1 4.1초 · 2 2.0초 · 3 2.7초 — 겹치지 않게)
+        VampireSounds.voice(p, VampireSounds.ULT_START, viewers);
+        Tasks.later(46, () -> { if (alive(p)) VampireSounds.voice(p, VampireSounds.ULT1, viewers); });
+        Tasks.later(128, () -> { if (alive(p)) VampireSounds.voice(p, VampireSounds.ULT2, viewers); });
+        Tasks.later(190, () -> { if (alive(p)) VampireSounds.voice(p, VampireSounds.ULT3, viewers); });
         // 날아들기 전까지 상대를 제자리에 묶어 둠
         Vec3d hold0 = t.getPos();
         for (int i = 0; i < 46; i++) Tasks.later(i, () -> {
