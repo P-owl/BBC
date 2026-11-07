@@ -11,12 +11,27 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import net.minecraft.util.Identifier;
+import bbc.client.StoneSkin;
 
 /** 진리의 통행료로 잃은 팔(오른팔)·다리(왼다리)를 모델에서 숨김 (클라이언트) */
 @Mixin(PlayerEntityRenderer.class)
 public abstract class PlayerRendererMixin {
+    /** 석화: 전신을 돌 피부로 (모든 사람에게 보임) */
+    @Inject(method = "getTexture(Lnet/minecraft/client/network/AbstractClientPlayerEntity;)Lnet/minecraft/util/Identifier;",
+            at = @At("HEAD"), cancellable = true)
+    private void bbc$stoneTexture(AbstractClientPlayerEntity player, CallbackInfoReturnable<Identifier> cir) {
+        if (StoneSkin.is(player.getId())) cir.setReturnValue(StoneSkin.TEXTURE);
+    }
+
     @Inject(method = "setModelPose", at = @At("TAIL"))
     private void bbc$hideLostParts(AbstractClientPlayerEntity player, CallbackInfo ci) {
+        if (StoneSkin.is(player.getId())) {   // 겉옷 층은 돌 껍질 위로 뜨지 않게 숨김
+            PlayerEntityModel<AbstractClientPlayerEntity> sm = ((PlayerEntityRenderer) (Object) this).getModel();
+            sm.hat.visible = false; sm.jacket.visible = false; sm.leftSleeve.visible = false;
+            sm.rightSleeve.visible = false; sm.leftPants.visible = false; sm.rightPants.visible = false;
+        }
         AutomailRender.Body b = AutomailRender.body(player.getUuid());
         if (b == null) return;
         PlayerEntityModel<AbstractClientPlayerEntity> m = ((PlayerEntityRenderer) (Object) this).getModel();

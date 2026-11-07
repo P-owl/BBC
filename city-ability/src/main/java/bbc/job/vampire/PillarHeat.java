@@ -164,6 +164,7 @@ public final class PillarHeat {
                 w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.PLAYERS, 1.2f, 0.6f);
                 Motion.play(p, "stop");
             }
+            Motion.play(p, "#stone:on");   // 1초마다 다시 보내서 나중에 본 사람도 돌로 보이게
             p.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 30, 9, false, false));
             p.addStatusEffect(new StatusEffectInstance(StatusEffects.MINING_FATIGUE, 30, 4, false, false));
             p.addStatusEffect(new StatusEffectInstance(StatusEffects.JUMP_BOOST, 30, 128, false, false));   // 점프 못 함
@@ -171,6 +172,7 @@ public final class PillarHeat {
             w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.STONE.getDefaultState()), p.getX(), p.getY() + 1, p.getZ(), 10, 0.3, 0.6, 0.3, 0.05);
             p.extinguish();
         } else if (PETRIFIED.remove(p.getUuid())) {
+            Motion.play(p, "#stone:off");
             p.removeStatusEffect(StatusEffects.SLOWNESS);
             p.removeStatusEffect(StatusEffects.MINING_FATIGUE);
             p.removeStatusEffect(StatusEffects.JUMP_BOOST);
