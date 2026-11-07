@@ -467,7 +467,7 @@ public final class VampireJob implements JobType {
             new JobSkills.Skill("괴력 연격", "연격", 1, 10, 10, "뛰어들며 무릎 → 맞으면 1.5초 동안 기술 카드가 선택지로 바뀜, 1~4 로 고름: 수도 연타 · 얼려 올려치기 · 머리 잡아 내리꽂기 · 목 물어 흡혈(피 +15)"),
             new JobSkills.Skill("재생", "재생", 1, 20, 15, "체력 6 회복 + 불 끄기"),
             new JobSkills.Skill("피의 하인", "하인", 1, 25, 45, "30초 안에 흡혈한 몬스터를 60초 하인으로 (최대 2)"),
-            new JobSkills.Skill("냉동 반격", "반격", 2, 20, 12, "1.5초 동안 손바닥을 내밀고 받아냄 (가드 안 눌러도 됨) — 맞으면 때린 상대를 순식간에 얼리고 산산조각"),
+            new JobSkills.Skill("냉동 반격", "반격", 2, 25, 16, "손바닥을 내밀고 0.7초 받아냄 — 앞에서 가까이 때린 공격만, 맞으면 때린 상대를 순식간에 얼리고 산산조각 (헛치면 빈틈)"),
             new JobSkills.Skill("혈안 광선", "광선", 2, 30, 18, "눈에서 고압 체액을 쏴 20칸 관통 · 평타 중: 짧은 단발 · 공중: 내려다보며 쏴 땅이 터짐"),
             new JobSkills.Skill("무다 연타", "무다", 2, 25, 16, "들이받아 목을 쥐고 머리 위로 들어 올린 채 손가락을 여덟 번 꽂아 흡혈 → 휘둘러 땅에 내리꽂음 (잡기)"),
             new JobSkills.Skill("육아 지배", "육아", 2, 40, 60, "주민이나 몬스터 하나를 60초 하인으로 (플레이어 불가)"),
@@ -485,8 +485,8 @@ public final class VampireJob implements JobType {
     private static final Hit FREEZE_LIFT = new Hit(1.6f, Hit.Kind.AIR, 26, 0.2, 0.9, 0, true, false).noParry();
     private static final Hit ICE_CLAW = new Hit(1.1f, Hit.Kind.HIT, 22, 0.2, 0, 15, false, false);
     private static final Hit ICE_DROP = new Hit(2.2f, Hit.Kind.DOWN, 28, 0, -1.2, 0, true, true).noParry();
-        private static final Hit COUNTER_FREEZE = new Hit(2.0f, Hit.Kind.HIT, 40, 0, 0, 0, true, false).noParry();
-    private static final Hit SHATTER = new Hit(1.8f, Hit.Kind.KNOCK, 20, 1.0, 0.4, 0, true, false).noParry();
+        private static final Hit COUNTER_FREEZE = new Hit(1.4f, Hit.Kind.HIT, 28, 0, 0, 0, true, false).noParry();
+    private static final Hit SHATTER = new Hit(1.3f, Hit.Kind.KNOCK, 20, 1.0, 0.4, 0, true, false).noParry();
     private static final Hit BEAM = new Hit(1.5f, Hit.Kind.HIT, 12, 0.5, 0, 20, false, false);
     private static final Hit BEAM_QUICK = new Hit(0.9f, Hit.Kind.HIT, 16, 0.15, 0, 10, false, false);
     private static final Hit BEAM_BLAST = new Hit(1.2f, Hit.Kind.AIR, 20, 0.4, 0.6, 15, false, false);
@@ -1112,8 +1112,8 @@ public final class VampireJob implements JobType {
         });
     }
 
-    // ⑥ 냉동 반격 (참고: '순식간에 얼린 것이다'): 오른손바닥을 내밀고 1.5초(30틱) 받아내는 자세 — 가드를 안 눌러도 됨.
-    //    그 사이 (어느 방향이든) 맞으면 피해 없이 → 하얀 섬광 + 손바닥을 꽂아 때린 상대를 얼림 → 14틱 뒤 산산조각
+    // ⑥ 냉동 반격 (참고: '순식간에 얼린 것이다'): 오른손바닥을 내밀고 받아내는 자세 — 가드를 안 눌러도 됨.
+    //    너프: 3~17틱(0.7초)만, 앞쪽에서 4.5칸 안에서 때린 공격만 → 하얀 섬광 + 손바닥을 꽂아 때린 상대를 얼림 → 14틱 뒤 산산조각. 헛치면 32틱 자세 그대로 빈틈
     private static boolean freezeCounter(ServerPlayerEntity p) {
         Motion.play(p, "vm_counter");
         Combat.afterSkill(p, 28);
@@ -1123,10 +1123,13 @@ public final class VampireJob implements JobType {
             Vec3d hand = front(p, 0.7, 1.35);
             w.spawnParticles(ParticleTypes.SNOWFLAKE, hand.x, hand.y, hand.z, 2, 0.08, 0.08, 0.08, 0.01);
         });
-        Combat.counterWindow(p, 30, atk -> {
+        // 너프: 손바닥이 다 나온 3틱부터 14틱(0.7초)만, 앞쪽에서 4.5칸 안에서 때린 것만 받아침
+        Tasks.later(3, () -> { if (alive(p)) Combat.counterWindow(p, 14, true, 4.5, atk -> {
             if (!alive(p)) return;
             Motion.play(p, "vm_counter_hit");
             Combat.afterSkill(p, 16);
+            var cf = Combat.of(p);   // 받아치는 동안도 다른 기술 잠금
+            cf.skillStart = Combat.now(); cf.skillMotion = "vm_counter_hit"; cf.skillBusyUntil = Combat.now() + 19;
             Combat.invuln(p, 12);
             Fx.flash(p, 0.9f);
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.6f, 0.6f);
@@ -1144,7 +1147,7 @@ public final class VampireJob implements JobType {
                 Fx.word(w, atk.getPos().add(0, 2.2, 0), Fx.Sfx.GAGIN, 1.4f);
                 Tasks.later(14, () -> { if (alive(p) && atk.isAlive()) { Combat.hit(p, atk, SHATTER); shatterFx(w, atk); } });
             });
-        });
+        }); });
         return true;
     }
 

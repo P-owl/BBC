@@ -68,6 +68,11 @@ public final class Fighter {
     int m1Index;          // 0~4 (다음에 나갈 평타, 땅·공중 합쳐서)
     long m1ReadyAt;       // 이 틱부터 다음 평타 가능
     long m1ChainUntil;    // 이 틱이 지나면 평타 사슬 처음부터
+    boolean counterFront;         // 반격 자세: 앞에서 때린 것만
+    double counterReach;          // 반격 자세: 이 거리 안에서 때린 것만 (0 = 상관없음)
+    public long skillBusyUntil;   // 기술 모션이 끝나는 틱 (그 전엔 다른 기술 못 씀)
+    public long skillStart;       // 그 기술 모션을 튼 틱
+    public String skillMotion;    // 그 기술 모션 (헛쳐서 'stop' 으로 끊기거나 다른 모션으로 바뀌면 잠금도 풀림)
     long recoveryUntil;   // 후딜이 끝나는 틱 (대시 캔슬 판정)
     long airComboUntil;   // 공중 콤보 중 (나도 낙하가 느려짐)
     public UUID lastTarget;      // 마지막으로 때린 상대 (대시 추격, 뱀파이어 하인)

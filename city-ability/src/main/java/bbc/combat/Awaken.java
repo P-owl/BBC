@@ -24,7 +24,7 @@ import org.joml.Vector3f;
 /**
  * 각성 (기획안 1부 ‘각성 시스템’ 공통 규칙). 플레이어·몬스터 공통.
  *  - 게이지 0~100: 때릴 때 피해 × DEAL, 맞을 때 피해 × TAKE 만큼 참 (맞는 쪽이 더 많이 → 역전 수단)
- *  - 100에서 G → 45초 각성. 순간 최대 체력 30% 회복 + 주위 4칸 밀어내기 + 1초 무적. 콤보를 맞는 중엔 못 함 (회피기가 그 역할)
+ *  - 100에서 G → 45초 각성. 체력을 가득 채움(보스는 15%만, BOSS_HEAL) + 주위 4칸 밀어내기 + 1초 무적. 콤보를 맞는 중엔 못 함 (회피기가 그 역할)
  *  - 각성 중 G → 각성기 (각성 한 번에 1번, 쓰면 각성 10초 짧아짐). 직업마다 다르고, 없으면 공통 각성기 ‘난무’
  *  - 각성 중 공통 강화: 평타 피해 ×1.25. 직업별 강화·교체는 JobType.onAwaken 에서
  */
@@ -35,8 +35,15 @@ public final class Awaken {
     public static final double DEAL = 2.0, TAKE = 3.2;          // 피해 1당 게이지 (평타 1대 ≈ 때리면 2, 맞으면 3.2)
     public static final int DURATION = 900, ULT_COST = 200, PUSH_RADIUS = 4, INVULN = 20;
     public static final float M1_BONUS = 1.25f;
-    /** 각성 순간 최대 체력의 이만큼 회복 */
-    public static final float HEAL = 0.3f;
+    /** 각성 순간 체력: 플레이어·일반 몹은 가득 채움, 보스는 이만큼만 (2페이즈 느낌. 0 이면 안 채움) */
+    public static final float BOSS_HEAL = 0.15f;
+
+    /** 보스: 전투 AI 보스 태그(bbc_ai_boss) 또는 바닐라 보스 */
+    public static boolean isBoss(LivingEntity e) {
+        return e.getCommandTags().contains("bbc_ai_boss") || e instanceof net.minecraft.entity.boss.WitherEntity
+                || e instanceof net.minecraft.entity.boss.dragon.EnderDragonEntity || e instanceof net.minecraft.entity.mob.WardenEntity
+                || e instanceof net.minecraft.entity.mob.ElderGuardianEntity;
+    }
 
     public static boolean active(LivingEntity e) {
         Fighter f = Combat.peek(e);
@@ -78,7 +85,8 @@ public final class Awaken {
         f.awakenUntil = Combat.now + DURATION;
         f.ultUsed = false;
         f.invulnUntil = Math.max(f.invulnUntil, Combat.now + INVULN);
-        e.heal(e.getMaxHealth() * HEAL);   // ABA: 각성하면 체력 회복
+        if (isBoss(e)) { if (BOSS_HEAL > 0) e.heal(e.getMaxHealth() * BOSS_HEAL); }   // 보스는 조금만 (2페이즈)
+        else e.setHealth(e.getMaxHealth());                                           // 각성하면 체력을 가득
         ServerWorld w = (ServerWorld) e.getWorld();
         w.spawnParticles(ParticleTypes.HEART, e.getX(), e.getY() + 1.6, e.getZ(), 6, 0.4, 0.3, 0.4, 0);
         for (Entity en : w.getOtherEntities(e, e.getBoundingBox().expand(PUSH_RADIUS), x -> x instanceof LivingEntity && x.isAlive() && !(x instanceof ArmorStandEntity))) {
@@ -98,7 +106,9 @@ public final class Awaken {
         Motion.play(e, "awaken");
         if (e instanceof ServerPlayerEntity p) {
             JobType job = Jobs.type(Jobs.entry(p));
+            long t0 = Combat.now;
             if (job != null) job.onAwaken(p, Jobs.entry(p));
+            lockSkills(f, e, t0);
             JobSkills.bar(p, "각성! (45초)  G = 각성기", Formatting.GOLD);
         }
     }
@@ -108,12 +118,23 @@ public final class Awaken {
         boolean done = false;
         if (e instanceof ServerPlayerEntity p) {
             JobType job = Jobs.type(Jobs.entry(p));
+            long t0 = Combat.now;
             if (job != null) done = job.ultimate(p, Jobs.entry(p));
+            if (done) lockSkills(f, e, t0);
         }
         if (!done) done = flurry(e);
         if (!done) return;
         f.ultUsed = true;
         f.awakenUntil = Math.max(Combat.now + 20, f.awakenUntil - ULT_COST);
+    }
+
+    /** 각성 컷신·각성기 모션이 끝날 때까지 기술 못 씀 (CombatMode 의 기술 잠금과 같은 방식) */
+    private static void lockSkills(Fighter f, LivingEntity e, long t0) {
+        String m = Motion.startedSince(e, t0);
+        if (m == null) return;
+        f.skillBusyUntil = Math.max(f.skillBusyUntil, t0 + Motion.length(m) - 3);
+        f.skillStart = t0;
+        f.skillMotion = m;
     }
 
     // ═════════ 공통 각성기: 난무 ═════════

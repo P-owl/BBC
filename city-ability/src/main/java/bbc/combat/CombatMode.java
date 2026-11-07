@@ -79,8 +79,19 @@ public final class CombatMode {
             int k = action - KeyPayload.SKILL_BASE;
             bbc.job.JobType jt0 = Jobs.type(Jobs.entry(p));
             if (jt0 != null && jt0.slotOverride(p, k)) { pushHud(p); return; }   // 선택지 고르기 등
-            if (Weapon.current(p) != null) { if (Weapon.useSkill(p, k)) Combat.afterSkill(p, 6); return; } // 무기 칸: 1·2 = 무기 기술
-            if (JobSkills.useSlot(p, k)) Combat.afterSkill(p, 6);
+            // 기술을 쓰는 동안(그 기술 모션이 끝날 때까지)은 다른 기술을 못 씀
+            Fighter f = Combat.of(p);
+            if (Combat.now() < f.skillBusyUntil && f.skillMotion != null && f.skillMotion.equals(Motion.startedSince(p, f.skillStart))) return;
+            long t0 = Combat.now();
+            boolean used = Weapon.current(p) != null ? Weapon.useSkill(p, k) : JobSkills.useSlot(p, k);   // 무기 칸: 1·2 = 무기 기술
+            if (used) {
+                Combat.afterSkill(p, 6);
+                String m = Motion.startedSince(p, t0);
+                // 모션 끝 3틱 전까지 잠금 (꼬리는 대기 자세로 돌아가는 부분). 모션이 없으면 짧게
+                f.skillBusyUntil = m != null ? t0 + Math.max(6, Motion.length(m) - 3) : t0 + 6;
+                f.skillStart = t0;
+                f.skillMotion = m;
+            }
             return;
         }
         if (action == KeyPayload.AWAKEN) { Awaken.press(p); return; }

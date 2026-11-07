@@ -156,15 +156,22 @@ public final class Combat {
      * 반격 기술 (냉동 반격·연성 방벽 등): ticks 동안 어느 방향에서든 패링 가능한 공격에 맞으면 피해 없이 onHit(때린 상대) 를 부름.
      * 가드를 누를 필요가 없고 기술 후딜 중에도 됨 (parryWindow 는 가드를 누르고 있어야만 패링이라 반격 기술엔 안 맞았음)
      */
-    public static void counterWindow(LivingEntity e, int ticks, java.util.function.Consumer<LivingEntity> onHit) {
+    public static void counterWindow(LivingEntity e, int ticks, java.util.function.Consumer<LivingEntity> onHit) { counterWindow(e, ticks, false, 0, onHit); }
+
+    /** frontOnly = 앞쪽(가드 판정과 같은 각)에서 때린 것만, reach > 0 = 그 거리 안에서 때린 것만 받아침 (멀리서 쏜 건 안 됨) */
+    public static void counterWindow(LivingEntity e, int ticks, boolean frontOnly, double reach, java.util.function.Consumer<LivingEntity> onHit) {
         Fighter f = of(e);
         f.counterUntil = now + ticks;
         f.counterFn = onHit;
+        f.counterFront = frontOnly;
+        f.counterReach = reach;
     }
 
     /** 반격 자세에 걸렸으면 받아치고 true */
     private static boolean counter(Fighter v, LivingEntity atk) {
         if (v.counterFn == null || now > v.counterUntil || atk == null || atk == v.e) return false;
+        if (v.counterFront && !front(v.e, atk.getPos())) return false;
+        if (v.counterReach > 0 && atk.squaredDistanceTo(v.e) > v.counterReach * v.counterReach) return false;
         var fn = v.counterFn;
         v.counterFn = null;
         v.counterUntil = 0;
