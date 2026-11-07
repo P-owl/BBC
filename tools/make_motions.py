@@ -1507,17 +1507,33 @@ anim("ph_bullet", 18, pstrike(18, [
     (3, IO, G(body=(0, 40, 0), rl=PH_RL, ll=PH_LL, look=(8, -12), sink=0.05, rightArm=R_SWING_IN, leftArm=L_FACE)),
     (6, EX, G(body=(-8, -28, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(8, 10), sink=0.08, z=0.12, rightArm=HR((0.4, 0.0, -0.92), (0.55, 1.4, -0.55)), leftArm=L_CHAMBER)),
 ], hold_to=10))
-# ④ 울어서 식히기 (참고: '무해에에에~!' 26~31초): 두 손으로 얼굴을 감싸고 몸을 웅크려 흐느낌 → 고개를 젖히고 두 팔을 벌려 울부짖음 (20) → 44
-anim("ph_cry", 44, seq([(0, LIN, PH_STANCE),
-     (4, IO, G(body=(-14, 0, 0), rl=STAND_RL, ll=STAND_LL, look=(20, 0), sink=0.04, rightArm=R_FACE_COVER, leftArm=L_FACE_COVER)),
-     (9, IO, dict(body=(-12, 4, 0), rightArm=R_FACE_COVER, leftArm=L_FACE_COVER)), (13, IO, dict(body=(-15, -4, 0), rightArm=R_FACE_COVER, leftArm=L_FACE_COVER)), (17, IO, dict(body=(-13, 2, 0), rightArm=R_FACE_COVER, leftArm=L_FACE_COVER)),
-     (20, EX, G(body=(18, 0, 0), rl=(6, 10, 8), ll=(-6, 10, 8), look=(-56, 0), rightArm=R_WAIL, leftArm=L_WAIL)),
-     (36, LIN, dict(body=(20, 0, 0))),
-     (44, IO, PH_STANCE)]))
+# ④ 눈 깜짝할 사이의 일격 (참고 1:40~1:44): 주먹을 낮게 쥐고 버텨 선 채 노려봄(3~9, 컷인) → 몸을 눕혀 낮게 쏘아 나감(11) → 오른손 찌르기(14)
+PH_GLARE = G(body=(4, -12, 0), rl=PH_RL, ll=PH_LL, look=(-4, 6), sink=0.06, rightArm=R_FLEX, leftArm=L_FLEX)
+anim("ph_blink", 26, seq([(0, LIN, PH_STANCE), (3, IO, PH_GLARE), (9, LIN, dict(PH_GLARE, body=(5, -12, 0))),
+     (11, OQ, G(body=(-40, -4, 0), rl=(-30, 4, 40), ll=(36, 4, 30), look=(-6, 0), sink=0.08, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+     (14, EX, G(body=(-16, 24, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, -6), sink=0.12, z=0.25, rightArm=R_THRUST, leftArm=L_CHAMBER)),
+     (18, LIN, dict(body=(-14, 24, 0))), (26, IO, PH_STANCE)]))
+#    맞으면: 왼손으로 멱살을 잡고(0) 무릎·주먹 넷(4·10·16·22, '놓치지 않는다!') → 두 손으로 머리 위로 들어 올렸다가(28) 앞으로 내던짐(32) → 폭발(34)
+PH_HOLD = G(body=(-6, 10, 0), rl=PH_RL, ll=PH_LL, look=(6, -4), sink=0.06, z=0.1, rightArm=R_CHAMBER, leftArm=L_COLLAR)
+PH_HKNEE = dict(G(body=(8, 6, 0), rl=(0, 0, 0), ll=(-6, 10, 18), look=(-2, -2), leftArm=L_COLLAR, rightArm=R_CHAMBER), rightLeg=(-100, 0, 10, 106))
+PH_HPUNCH = G(body=(-12, -24, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(10, 8), sink=0.1, z=0.15, rightArm=HR((0.3, -0.05, -0.95), (0.15, 1.4, -0.62)), leftArm=L_COLLAR)
+_bh = [(0, LIN, PH_HOLD)]
+for k, t in enumerate((4, 10, 16, 22)):
+    _bh += [(t - 2, IO, PH_HOLD), (t, EX, PH_HKNEE if k % 2 == 0 else PH_HPUNCH)]
+_bh += [(28, OQ, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-34, 0), sink=0.06, rightArm=HR((0.25, 0.95, -0.1), (0.25, 2.25, -0.2)), leftArm=HL((-0.25, 0.95, -0.1), (-0.25, 2.25, -0.2)))),
+        (32, EX, G(body=(-28, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, 0), sink=0.14, z=0.2, rightArm=HR((0.2, 0.2, -0.96), (0.25, 1.6, -0.6)), leftArm=HL((-0.2, 0.2, -0.96), (-0.25, 1.6, -0.6)))),
+        (38, LIN, dict(body=(-26, 0, 0))), (44, IO, PH_STANCE)]
+anim("ph_blink_hit", 44, seq(_bh))
 # ⑤ 용암 분출 (참고: 모드 발동 클로즈업 — 웅크려 손바닥을 땅에 짚고 ゴゴゴ): 무릎을 꿇듯 깊게 웅크려 오른손바닥을 땅에 짚음 (8) → 18까지 누름
 PH_PRESS = G(body=(-34, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-10, 6), rightArm=R_GROUND, leftArm=L_KNEE)
 anim("ph_lava", 24, seq([(0, LIN, PH_STANCE), (4, IO, G(body=(-14, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 4), sink=0.12, rightArm=R_UP_HIGH, leftArm=L_FLEX)),
                          (8, EX, PH_PRESS), (18, LIN, dict(body=(-32, -10, 0), rightArm=R_GROUND, leftArm=L_KNEE)), (24, IO, PH_STANCE)]))
+# ⑤ 이미 오래전에 간파했다 (참고 1:08~1:11): 한 무릎을 꿇을 듯 깊게 주저앉아 손바닥을 땅에 꽂음(5) — 혈관이 땅을 타고 달려가 상대 발밑에서
+#    터져 불붙임(≈12) → 손을 꽂은 채 버팀 → 24 일어섬 → 32
+R_SEE = HR((0.2, -0.85, -0.5), (0.24, 0.3, -0.72))   # 손바닥을 땅에 꽂음
+PH_SEE = G(body=(-36, -14, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-16, 8), rightArm=R_SEE, leftArm=L_KNEE)
+anim("ph_see", 32, seq([(0, LIN, PH_STANCE), (3, IO, G(body=(-12, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 6), sink=0.12, rightArm=R_UP_HIGH, leftArm=L_FLEX)),
+                        (5, EX, PH_SEE), (20, LIN, dict(PH_SEE, body=(-34, -14, 0))), (26, IO, G(body=(-8, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)), (32, IO, PH_STANCE)]))
 # ⑥ 분노의 열 (모드, 참고: '괴염왕의 모드'): 웅크려 두 주먹에 힘을 줬다가(5) 몸을 펴며 가슴을 내밀고 포효 — 온몸에서 김이 터짐 (14)
 anim("ph_rage", 30, seq([(0, LIN, PH_STANCE),
      (5, IO, G(body=(-18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(16, 0), sink=0.16, rightArm=R_FLEX, leftArm=L_FLEX)),
@@ -1580,44 +1596,54 @@ anim("ph_palm", 11, pstrike(11, [
     (4, EX, G(body=(-16, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, 0), sink=0.14, z=0.25, rightArm=R_PALM, leftArm=L_PALM)),
 ], hold_to=7))
 
-# ── 각성 '비등점' (90틱, 참고: 모드 발동 클로즈업 1:21.75~1:22.75 + 혈관 터짐) ──
-#   8 깊게 웅크려 손바닥을 땅에 짚음 → 8~40 몸에서 김이 피어오르며 숨을 몰아쉼 (ゴゴゴ) → 46 몸을 펴며 고개를 젖혀 포효, 두 팔을 벌리고
-#   등·가슴에서 혈관이 사방으로 터져 나옴 → 80까지 버팀 → 90 대기
-anim("ph_awaken", 90, seq([(0, LIN, PH_STANCE),
-     (8, IO, PH_PRESS),
-     (16, IO, G(body=(-30, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-12, 6), rightArm=R_GROUND, leftArm=L_KNEE)), (24, IO, G(body=(-33, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-10, 6), rightArm=R_GROUND, leftArm=L_KNEE)),
-     (32, IO, G(body=(-30, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-12, 6), rightArm=R_GROUND, leftArm=L_KNEE)), (40, IO, G(body=(-34, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-10, 6), rightArm=R_GROUND, leftArm=L_KNEE)),
-     (46, EX, G(body=(16, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-52, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
-     (60, LIN, dict(body=(18, 0, 0))),
-     (66, IO, G(body=(4, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 8), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
-     (80, LIN, dict(body=(5, -14, 0))),
-     (90, IO, PH_STANCE)]))
+# ── 각성 '비등점' (84틱, 참고 0:29.8~0:34.3 '너어어무해에에에~!'): 움찔(3) → 고개를 뒤로 젖히고 두 팔을 늘어뜨려 울부짖음(6~18, 얼굴 클로즈업) →
+#   선 채로 두 팔뚝을 얼굴 앞에 올려 엉엉 욺 (8틱마다 어깨가 들썩, 팔을 번갈아 비빔, 22~72) → 팔을 내리고 열이 다시 오름(76) → 84
+R_SOB_HI = HR((0.85, 0.15, -0.5), (-0.08, 1.66, -0.36))     # 오른팔뚝을 눈앞에 가로로
+L_SOB_LO = HL((-0.45, -0.45, -0.77), (-0.12, 1.6, -0.34))    # 왼주먹을 눈가에
+R_SOB_LO = HR((0.45, -0.45, -0.77), (0.12, 1.6, -0.34))
+L_SOB_HI = HL((-0.85, 0.15, -0.5), (0.08, 1.66, -0.36))
+PH_SOB_A = G(body=(8, -8, 0), rl=STAND_RL, ll=STAND_LL, look=(-24, 12), sink=0.02, rightArm=R_SOB_HI, leftArm=L_SOB_LO)
+PH_SOB_B = G(body=(4, 8, 0), rl=STAND_RL, ll=STAND_LL, look=(-18, -10), sink=0.05, rightArm=R_SOB_LO, leftArm=L_SOB_HI)
+_aw = [(0, LIN, PH_STANCE),
+       (3, EX, G(body=(-6, 0, 0), rl=PH_RL, ll=PH_LL, look=(10, 0), sink=0.06, rightArm=R_FLEX, leftArm=L_FLEX)),
+       (6, EX, G(body=(16, 0, 0), rl=STAND_RL, ll=STAND_LL, look=(-56, 8), rightArm=R_WAIL, leftArm=L_WAIL)),
+       (12, LIN, G(body=(18, 0, 0), rl=STAND_RL, ll=STAND_LL, look=(-58, 6), rightArm=R_WAIL, leftArm=L_WAIL)),
+       (18, LIN, G(body=(17, 0, 0), rl=STAND_RL, ll=STAND_LL, look=(-56, 10), rightArm=R_WAIL, leftArm=L_WAIL))]
+for k, t in enumerate(range(22, 72, 8)):
+    _aw.append((t, IO, PH_SOB_A if k % 2 == 0 else PH_SOB_B))
+    _aw.append((t + 3, EX, dict(PH_SOB_A if k % 2 == 0 else PH_SOB_B, body=(12, -8 if k % 2 == 0 else 8, 0))))   # 흐느낄 때 어깨가 들썩
+_aw += [(76, IO, G(body=(-4, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
+        (84, IO, PH_STANCE)]
+anim("ph_awaken", 84, seq(_aw))
 
-# ── 각성기 '증기 폭발' (250틱 ≈ 자료 영상 각성기 12.5초, 같은 흐름) ──
-#   0~14 웅크려 힘을 모음 → 16~27 만화 칸 속 얼굴 (고개를 들어 노려봄) → 28 가슴을 내밀고 두 팔을 위로 활짝 — 몸에서 혈관이 사방으로 터짐 →
-#   56 두 팔을 앞으로 내지르면 혈관이 날아가 상대에게 꽂힘 → 60~96 두 팔을 앞으로 뻗은 채 혈관을 당김 → 100 웅크려 두 손으로 혈관을 움켜쥠 →
-#   104~168 펌프질 (6틱마다 몸이 들썩, 끓는 피를 밀어넣음) → 172 몸을 펴며 두 팔을 바깥으로 뿌림 → 상대가 거듭 폭발 → 222 마지막 대폭발 (팔을 활짝, 몸을 젖힘) → 250
-PH_HUNCH = G(body=(-28, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(16, 0), sink=0.22, rightArm=R_PUMP, leftArm=L_PUMP)
-PH_HUNCH2 = G(body=(-22, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(12, 0), sink=0.18, rightArm=HR((0.4, -0.6, -0.68), (0.25, 1.1, -0.6)), leftArm=HL((-0.4, -0.6, -0.68), (-0.25, 1.12, -0.58)))
+# ── 각성기 '증기 폭발' (256틱, 참고 1:59~2:12 '불을 붙여 태워주마!' 같은 시간·흐름) ──
+#   0~12 웅크려 힘을 모음 → 12~21 만화 칸 속 얼굴 → 22 두 팔을 위로 활짝 — 몸에서 혈관이 사방으로 터짐(バババ) → 36 팔을 당겼다 40 앞으로 내지르면
+#   혈관이 날아가 56에 꽂힘 → 100까지 팔을 뻗어 혈관을 붙들고 → 104 웅크려 두 손으로 혈관을 움켜쥠 → 112·128·144 크게 세 번 펌프질 (ドォ) →
+#   150~230 서서 혈관을 당긴 채 끓는 피가 흘러 들어가 상대가 타며 거듭 터짐 → 234 팔을 활짝 뿌리며 마지막 대폭발 → 256
+PH_HUNCH = G(body=(-30, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(18, 0), sink=0.24, rightArm=R_PUMP, leftArm=L_PUMP)
+PH_HEAVE = G(body=(-8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 0), sink=0.12, rightArm=HR((0.6, -0.5, 0.62), (0.3, 1.3, -0.15)), leftArm=HL((-0.6, -0.5, 0.62), (-0.3, 1.32, -0.15)))
+PH_PULL = G(body=(4, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(-2, 0), sink=0.1, rightArm=HR((0.3, -0.3, -0.9), (0.22, 1.25, -0.55)), leftArm=HL((-0.3, -0.3, -0.9), (-0.22, 1.27, -0.55)))
 _pu = [(0, LIN, PH_STANCE),
        (6, IO, G(body=(-18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(14, 0), sink=0.16, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (14, LIN, dict(body=(-20, 0, 0))),
-       (18, IO, G(body=(-4, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (26, LIN, G(body=(-3, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (28, EX, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-48, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
-       (50, LIN, dict(body=(20, 0, 0))),
-       (53, IO, G(body=(8, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(-10, 0), sink=0.1, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
-       (56, EX, G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=HR((0.2, 0.05, -0.98), (0.22, 1.42, -0.62)), leftArm=HL((-0.2, 0.05, -0.98), (-0.22, 1.42, -0.62)))),
-       (96, LIN, dict(body=(-10, 0, 0))),
-       (100, IO, PH_HUNCH)]
-for k in range(11):
-    _pu.append((106 + k * 6, EX if k % 2 == 0 else IO, PH_HUNCH2 if k % 2 == 0 else PH_HUNCH))
-_pu += [(172, EX, G(body=(10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-20, 0), sink=0.08, rightArm=HR((0.85, 0.0, -0.5), (0.9, 1.4, -0.35)), leftArm=HL((-0.85, 0.0, -0.5), (-0.9, 1.4, -0.35)))),
-        (200, LIN, dict(body=(12, 0, 0))),
-        (222, EX, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-50, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
-        (238, LIN, dict(body=(18, 0, 0))),
-        (250, IO, PH_STANCE)]
-anim("ph_ult", 250, seq(_pu))
+       (12, LIN, G(body=(-20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(16, 0), sink=0.16, rightArm=R_FLEX, leftArm=L_FLEX)),
+       (15, IO, G(body=(-6, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
+       (21, LIN, G(body=(-5, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
+       (23, EX, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-48, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (34, LIN, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (37, IO, G(body=(8, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(-10, 0), sink=0.1, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
+       (40, EX, G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=HR((0.2, 0.05, -0.98), (0.22, 1.42, -0.62)), leftArm=HL((-0.2, 0.05, -0.98), (-0.22, 1.42, -0.62)))),
+       (56, LIN, G(body=(-12, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=HR((0.2, 0.05, -0.98), (0.22, 1.42, -0.62)), leftArm=HL((-0.2, 0.05, -0.98), (-0.22, 1.42, -0.62)))),
+       (64, IO, PH_PULL), (100, LIN, dict(PH_PULL, body=(6, 0, 0))),
+       (104, IO, PH_HUNCH)]
+for t in (112, 128, 144):   # 크게 세 번: 몸을 펴며 혈관을 가슴으로 끌어당김 → 다시 웅크림
+    _pu += [(t - 4, IO, PH_HUNCH), (t, EX, PH_HEAVE), (t + 6, IO, dict(PH_HEAVE, body=(-14, 0, 0)))]
+_pu += [(154, IO, PH_PULL)]
+for k, t in enumerate(range(160, 232, 6)):   # 끓는 동안 버티며 몸이 떨림
+    _pu.append((t, IO, dict(PH_PULL, body=(4 + (k % 2) * 3, (k % 3 - 1) * 3, 0))))
+_pu += [(234, EX, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-50, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+        (246, LIN, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+        (256, IO, PH_STANCE)]
+anim("ph_ult", 256, seq(_pu))
 
 
 # ── 달리기 (전투 모드 중 달릴 때 자세 층에 깔림) ──
