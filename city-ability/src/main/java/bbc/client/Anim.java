@@ -48,7 +48,7 @@ final class Anim {
             int id = en.getKey();
             if (sp > 0.03) MOVED_AT.put(id, c.world.getTime());
             boolean moving = c.world.getTime() - MOVED_AT.getOrDefault(id, -100L) <= 3;
-            if (sp > 0.19 || pl.isSprinting() && moving) RAN_AT.put(id, c.world.getTime());
+            if (sp > 0.235 || pl.isSprinting() && moving) RAN_AT.put(id, c.world.getTime());   // 전력질주(0.28)만 달리기, 걷기(0.22)는 걷기 자세
             boolean running = moving && c.world.getTime() - RAN_AT.getOrDefault(id, -100L) <= 3;
             if (running) want = weapon ? "run_w" : RUN_VARIANT.getOrDefault(STANCE_BASE.get(id), "run");
             else if (moving && WALK_VARIANT.contains(want)) want = want + "_walk";
@@ -79,7 +79,7 @@ final class Anim {
     /** 싸움 자세를 켠 플레이어 → 지금 깔린 자세 이름 (손에 든 무기에 따라 바뀜) */
     private static final java.util.Map<Integer, String> STANCE_ON = new java.util.HashMap<>();
     /** 직업 대기 자세 (맨손일 때) */
-    private static final java.util.Map<Integer, String> STANCE_BASE = new java.util.HashMap<>();
+    private static final java.util.Map<Integer, String> STANCE_BASE = new java.util.HashMap<>(), LAST_BASE = new java.util.HashMap<>();
     /** 마지막으로 움직인·달린 틱 (잠깐 멈칫해도 모션이 깜빡이지 않게 3틱 여유) */
     private static final java.util.Map<Integer, Long> MOVED_AT = new java.util.HashMap<>(), RAN_AT = new java.util.HashMap<>();
     /** 다리까지 잡은 대기 자세 → 걸을 땐 팔만 잡은 '_walk' 판으로 */
@@ -101,7 +101,12 @@ final class Anim {
             ModifierLayer<IAnimation> st = layer(player, STANCE);
             if (motion.startsWith("#stance:")) STANCE_BASE.put(player.getId(), motion.substring(8));   // 직업 대기 자세 (예: stance_al)
             else if (motion.equals("#stance")) STANCE_BASE.remove(player.getId());
-            if (!motion.equals("#stance_off")) STANCE_ON.put(player.getId(), "");
+            if (!motion.equals("#stance_off")) {
+                String base = STANCE_BASE.get(player.getId());
+                // 이미 켜져 있으면 지금 틀고 있는 자세는 그대로 (2초마다 오는 재알림에 깜빡이지 않게), 직업 자세가 바뀌었으면 다시 고름
+                if (!STANCE_ON.containsKey(player.getId()) || !java.util.Objects.equals(base, LAST_BASE.get(player.getId()))) STANCE_ON.put(player.getId(), "");
+                if (base == null) LAST_BASE.remove(player.getId()); else LAST_BASE.put(player.getId(), base);
+            }
             else { STANCE_ON.remove(player.getId()); if (st != null) st.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(5, Ease.INOUTSINE), null); }
             return;
         }

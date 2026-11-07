@@ -72,43 +72,59 @@ public final class Cutscene {
                 kT(90, -4.6, 8.5, 3.6, 0.6)));
         // 뱀파이어 각성 '혈광 해방' (80틱, 참고: 대전 시작·각성 포즈): 고개 숙인 얼굴 앞 → 낮은 앞에서 포효를 올려다봄 →
         //   옆에서 팔을 휘둘러 올리는 모습 → 주저앉아 고개를 돌린 쪽(왼앞)에서 '바-ン' 포즈로 천천히 다가감
-        SHOTS.put("vm_awaken", new Shot(80, 10, true, "혈광 해방", "뱀파이어 · 각성", 48, NO_LINES,
-                cut(0, 1.35, 1.75, 0.2, 0, 1.65, 0),
-                k(14, 1.55, 1.6, 0.3, 0, 1.7, 0),
-                cut(16, 2.1, 0.55, 0.9, 0, 1.6, 0),
-                k(29, 2.6, 0.5, 1.3, 0, 1.7, 0),
-                cut(30, 3.2, 1.4, 2.2, 0, 1.5, 0),
-                k(45, 3.5, 1.6, 2.4, 0, 1.4, 0),
-                cut(46, 2.7, 1.3, -1.7, 0, 1.0, 0),
-                k(74, 2.1, 1.2, -1.3, 0, 1.0, 0)));
-        // 뱀파이어 각성기 '피의 만찬' (110틱, 참고: 다른 게임의 디오 각성기 연출 흐름 — 우리 대사·구도):
-        //   X자로 교차한 팔과 얼굴 앞 클로즈업 → 옆에서 낮게 날아드는 모습 → 낮은 뒤에서 들어 올린 얼음 덩어리를 올려다봄 →
-        //   찔러 올리는 연타를 낮은 옆에서 → 웃는 얼굴 → 낮은 뒤에서 뛰어오름을 올려다봄 → 바로 위에서 착지 →
-        //   올려다보는 얼굴 → 마지막 찌르기를 낮은 옆에서 → 일어나 웃는 모습으로 천천히 다가감
-        SHOTS.put("vm_ult", new Shot(110, 10, true, null, null, 0,
-                new Line[]{new Line(2, "인간 따위가.."), new Line(49, " 이 몸의 만찬이 되어라!")},
-                cut(0, 1.45, 1.35, 0.45, 0, 1.35, 0),
-                k(8, 1.2, 1.45, 0.35, 0, 1.4, 0),
-                cut(9, 0.8, 0.8, 3.2, 1.2, 0.7, 0),
-                k(14, 1.8, 0.9, 3.0, 1.4, 0.9, 0),
-                cutT(15, -1.9, 0.35, 0.9, 1.8),
-                kT(23, -2.2, 0.35, 1.3, 2.0),
-                cut(24, 1.0, 0.5, 3.0, 1.0, 1.7, 0),
-                k(34, 0.6, 0.35, 2.4, 1.0, 1.9, 0),
-                cutT(35, -1.4, 0.25, 1.1, 1.6),
-                kT(47, -1.7, 0.25, 1.6, 1.9),
-                cut(48, 1.3, 1.6, 0.3, 0, 1.55, 0),
-                k(56, 1.15, 1.65, 0.25, 0, 1.6, 0),
-                cutT(57, -2.6, 0.3, 1.4, 2.6),
-                kT(63, -2.9, 0.3, 1.6, 3.2),
-                cut(64, 0.3, 7.0, 0.3, 0.3, 0, 0),
-                k(67, 0.3, 6.4, 0.3, 0.3, 0, 0),
-                cut(68, 1.1, 0.95, 0.35, 0, 1.4, 0),
-                k(75, 1.0, 1.0, 0.3, 0, 1.45, 0),
-                cutT(76, 0.5, 0.3, 2.8, 2.2),
-                kT(86, 0.3, 0.3, 3.4, 1.8),
-                cut(87, 2.4, 1.1, 0.4, 0, 1.3, 0),
-                k(104, 1.7, 1.5, 0.2, 0, 1.6, 0)));
+        // 뱀파이어 각성 '혈광 해방' (116틱 = 자료 영상 첫 등장 장면 5.8초, 같은 구도·흐름):
+        //   만화 칸 속 전신 (등 뒤 비스듬히, 어깨 너머로 돌아봄) → 얼굴 옆 클로즈업 (고개를 젖혀 외침 + 대사) →
+        //   가슴을 쓸어내리는 손 → 발밑에서 올려다보는 구도로 아주 천천히 다가감 (두 팔을 늘어뜨리고 내려다봄)
+        SHOTS.put("vm_awaken", new Shot(116, 10, true, null, null, 0,
+                new Line[]{new Line(20, "해는 저물었다. 네놈의 생명도 저물 때다!")},
+                cut(0, -2.6, 1.3, 1.1, 0, 1.2, 0),
+                k(17, -2.3, 1.35, 1.25, 0, 1.25, 0),
+                cut(18, 0.35, 1.55, 0.95, 0.1, 1.68, 0),
+                k(33, 0.3, 1.5, 0.85, 0.1, 1.72, 0),
+                cut(34, 1.3, 1.25, 0.55, 0, 1.15, 0),
+                k(39, 1.2, 1.25, 0.5, 0, 1.1, 0),
+                cut(40, 1.25, 0.15, 0.35, 0, 1.75, 0),
+                k(112, 0.95, 0.2, 0.25, 0, 1.75, 0)));
+        // 뱀파이어 각성기 '피의 만찬' (290틱 ≈ 자료 영상 1부 디오 GHA 14.5초, 같은 흐름 — 대사·구도는 우리 것):
+        //   기운이 터짐 → 웃는 얼굴 클로즈업 → 카메라 쪽으로 손끝을 내지름 → 옆에서 낮게 날아드는 모습 → 낮은 뒤에서 얼어 들어 올려지는 상대 →
+        //   웅크려 웃는 얼굴(대사 1) → 낮은 옆에서 올려치기 → 웃는 얼굴(대사 2) → 낮은 뒤·옆에서 연타 → 뛰어오름을 올려다봄 → 바로 위에서 착지 →
+        //   올려다보는 얼굴(대사 3) → 손끝 클로즈업 → 낮은 옆에서 마지막 찌르기·산산조각 → 선 모습 → 웃는 얼굴
+        SHOTS.put("vm_ult", new Shot(290, 10, true, null, null, 0,
+                new Line[]{new Line(64, "조금이라도 내게 이길 줄 알았더냐! 머저리!"), new Line(110, "|빈약하다 빈약해..."), new Line(190, "|죽음의 망각을 맞이해라!")},
+                cut(0, 2.3, 1.2, 0.6, 0, 1.1, 0),
+                cut(6, 0.75, 1.6, 0.28, 0, 1.6, 0),
+                k(20, 0.65, 1.62, 0.22, 0, 1.62, 0),
+                cut(21, 1.7, 1.15, -0.5, 0, 1.3, 0),
+                k(35, 1.35, 1.2, -0.4, 0, 1.3, 0),
+                cut(36, 1.0, 0.8, 3.4, 1.4, 0.7, 0),
+                k(46, 2.2, 0.9, 3.0, 1.6, 0.9, 0),
+                cutT(47, -1.8, 0.4, 1.0, 1.4),
+                kT(59, -2.1, 0.35, 1.3, 1.9),
+                cut(60, 1.0, 1.0, 0.35, 0, 1.3, 0),
+                k(85, 0.85, 1.05, 0.3, 0, 1.3, 0),
+                cut(86, 1.2, 0.5, 2.6, 1.0, 1.9, 0),
+                k(108, 1.4, 0.55, 3.0, 1.0, 1.9, 0),
+                cut(109, 0.9, 1.5, 0.4, 0, 1.6, 0),
+                k(133, 0.8, 1.55, 0.3, 0, 1.6, 0),
+                cutT(134, -1.4, 0.25, 1.1, 1.7),
+                kT(150, -1.6, 0.25, 1.5, 1.9),
+                cut(151, 1.0, 0.5, 3.0, 1.0, 1.8, 0),
+                k(170, 1.3, 0.6, 3.4, 1.0, 2.0, 0),
+                cutT(171, -2.6, 0.3, 1.4, 2.6),
+                kT(181, -2.9, 0.3, 1.6, 3.2),
+                cut(182, 0.3, 7.0, 0.3, 0.3, 0, 0),
+                k(189, 0.3, 6.4, 0.3, 0.3, 0, 0),
+                cut(190, 1.0, 1.25, 0.3, 0, 1.45, 0),
+                k(228, 0.85, 1.3, 0.25, 0, 1.5, 0),
+                cut(229, 1.4, 1.5, 0.9, 0, 1.7, 0),
+                k(237, 1.2, 1.6, 0.7, 0, 1.8, 0),
+                cutT(238, 0.5, 0.25, 2.8, 2.2),
+                kT(256, 0.3, 0.3, 3.4, 1.8),
+                cut(257, 2.6, 1.0, 0.6, 0, 1.4, 0),
+                k(270, 2.0, 1.2, 0.4, 0, 1.5, 0),
+                cut(271, 0.9, 1.55, 0.2, 0, 1.6, 0),
+                k(290, 0.75, 1.6, 0.15, 0, 1.65, 0)));
+
         // 가시밭 마무리: 시전자 뒤 낮은 곳에서 가시 숲 위로 날아가는 대상을 올려다봄
         SHOTS.put("al_forest", new Shot(22, 7, true, null, null, 0, NO_LINES,
                 cutT(0, -1.7, 0.7, 0.7, 1.0),
@@ -117,6 +133,7 @@ public final class Cutscene {
 
     private static Shot shot;
     private static int actorId, targetId;
+    private static String shotName = "";
     private static double clock;   // 클라이언트 틱
     private static double start;
     private static float baseYaw, basePitch;
@@ -148,6 +165,7 @@ public final class Cutscene {
         Entity a = c.world.getEntityById(p.actor());
         if (a == null) return;
         shot = s;
+        shotName = p.shot();
         actorId = p.actor();
         targetId = p.target();
         start = clock;
@@ -243,10 +261,13 @@ public final class Cutscene {
         int W = ctx.getScaledWindowWidth(), H = ctx.getScaledWindowHeight();
         double in = smooth(t / 5.0), out = smooth((s.len() - t) / 6.0);
         int bar = (int) Math.round(H * 0.13 * Math.min(in, out));
+        int[][] ps = PANELS.get(shotName);
+        if (ps != null) for (int[] p : ps) if (t >= p[0] && t < p[1]) bar = 0;   // 만화 칸일 땐 검은 띠 대신 칸 테두리
         if (bar > 0) {
             ctx.fill(0, 0, W, bar, 0xFF000000);
             ctx.fill(0, H - bar, W, H, 0xFF000000);
         }
+        panels(ctx, t, W, H);
         if (s.lines().length > 0) subtitle(ctx, s, t, W, H, bar, out);
         if (s.title() == null || t < s.titleAt()) return;
         double a = Math.min(smooth((t - s.titleAt()) / 4.0), out);
@@ -273,13 +294,60 @@ public final class Cutscene {
         ctx.fill(W / 2 - lw, H - bar - 13, W / 2 + lw, H - bar - 12, (alpha << 24) | 0x8C6A1E);
     }
 
+    /** 만화 칸 연출 (참고 영상 첫 등장·각성기 도입처럼 화면이 만화 쪽 칸으로 나뉨): 컷신 이름 → {시작, 끝, 모양} (0 = 양옆에 칸, 1 = 왼쪽에 좁은 칸) */
+    private static final Map<String, int[][]> PANELS = Map.of(
+            "vm_awaken", new int[][]{{0, 18, 0}, {18, 34, 1}},
+            "vm_ult", new int[][]{{6, 21, 1}, {21, 36, 0}});
+
+    private static void panels(DrawContext ctx, double t, int W, int H) {
+        int[][] ps = PANELS.get(shotName);
+        if (ps == null) return;
+        for (int[] p : ps) {
+            if (t < p[0] || t >= p[1]) continue;
+            double in = smooth((t - p[0]) / 3.0);
+            int paper = 0xFFF2EEE4, ink = 0xFF101010, g = 6;
+            int Lw = p[2] == 0 ? (int) (W * 0.22) : (int) (W * 0.07), Rw = p[2] == 0 ? (int) (W * 0.2) : 0;
+            int lx = (int) (-Lw * (1 - in)), rx = W - Rw + (int) (Rw * (1 - in));
+            // 종이 여백 (위아래 + 칸 사이)
+            ctx.fill(0, 0, W, g, paper);
+            ctx.fill(0, H - g, W, H, paper);
+            // 왼쪽 칸: 누런 종이에 먹 선 몇 개 (그림 칸 느낌)
+            ctx.fill(lx, 0, lx + Lw + g, H, paper);
+            ctx.fill(lx + g, g, lx + Lw, H - g, 0xFFE6D8B4);
+            for (int i = 0; i < 7; i++) {
+                float y0 = g + (H - 2 * g) * (0.12f + i * 0.12f);
+                Ui.quad(ctx, lx + g + 4, y0, lx + Lw - 4, y0 - Lw * 0.35f, lx + Lw - 4, y0 - Lw * 0.35f + 1.5f, lx + g + 4, y0 + 1.5f, 0x90302010);
+            }
+            outline(ctx, lx + g, g, lx + Lw, H - g, ink, 2);
+            // 오른쪽 칸: 흰 종이에 세로 줄 (건물 칸 느낌)
+            if (Rw > 0) {
+                ctx.fill(rx - g, 0, W, H, paper);
+                ctx.fill(rx, g, W - g, H - g, 0xFFF7F7F2);
+                for (int i = 1; i < 6; i++) { int x = rx + (W - g - rx) * i / 6; ctx.fill(x, g + 8, x + 1, H - g - 8, 0xA0202020); }
+                for (int i = 1; i < 8; i++) { int y = g + (H - 2 * g) * i / 8; ctx.fill(rx + 4, y, W - g - 4, y + 1, 0x70202020); }
+                outline(ctx, rx, g, W - g, H - g, ink, 2);
+            }
+            // 가운데 칸 테두리
+            outline(ctx, lx + Lw + g, g, Rw > 0 ? rx - g : W - g, H - g, ink, 3);
+        }
+    }
+
+    private static void outline(DrawContext ctx, int x0, int y0, int x1, int y1, int col, int w) {
+        ctx.fill(x0, y0, x1, y0 + w, col);
+        ctx.fill(x0, y1 - w, x1, y1, col);
+        ctx.fill(x0, y0, x0 + w, y1, col);
+        ctx.fill(x1 - w, y0, x1, y1, col);
+    }
+
     /** 대사 자막: 아이템창·체력칸 위, 흰 글씨. 토막마다 정해진 틱부터 한 글자씩 (틱당 0.6자) 이어 붙음 */
     private static void subtitle(DrawContext ctx, Shot s, double t, int W, int H, int bar, double out) {
         StringBuilder b = new StringBuilder();
         for (Line l : s.lines()) {
             if (t < l.at()) break;
-            int n = (int) Math.min(l.text().length(), Math.floor((t - l.at()) * 0.6) + 1);
-            b.append(l.text(), 0, n);
+            String tx = l.text();
+            if (tx.startsWith("|")) { b.setLength(0); tx = tx.substring(1); }   // '|' 로 시작하면 새 자막 (앞 대사는 지움)
+            int n = (int) Math.min(tx.length(), Math.floor((t - l.at()) * 0.6) + 1);
+            b.append(tx, 0, n);
         }
         if (b.length() == 0) return;
         int alpha = (int) (255 * Math.max(0, Math.min(1, out)));
