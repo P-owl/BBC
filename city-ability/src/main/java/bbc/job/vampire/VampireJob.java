@@ -991,7 +991,7 @@ public final class VampireJob implements JobType {
             case 0 -> { kuaLight(p, t); VampireSounds.play(p, VampireSounds.KUA_L); }
             case 1 -> { kuaMedium(p, t); VampireSounds.play(p, VampireSounds.KUA_M); }
             case 2 -> { kuaHeavy(p, t); VampireSounds.play(p, VampireSounds.KUA_H); }
-            default -> kuaDrain(p, t);
+            default -> { kuaDrain(p, t); VampireSounds.play(p, VampireSounds.KUA_D); }
         }
         return true;
     }

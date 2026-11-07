@@ -26,6 +26,7 @@ public final class VampireSounds {
     public static final SoundEvent KUA_L = reg("vampire.kua_l");            // 괴력 연격 ① 수도 연타
     public static final SoundEvent KUA_M = reg("vampire.kua_m");            // 괴력 연격 ② 얼려 올려치기
     public static final SoundEvent KUA_H = reg("vampire.kua_h");            // 괴력 연격 ③ 머리 잡아 내리꽂기
+    public static final SoundEvent KUA_D = reg("vampire.kua_d");            // 괴력 연격 ④ 목 물어 흡혈
     public static final SoundEvent REGEN = reg("vampire.regen");            // 재생
     public static final SoundEvent THRALL = reg("vampire.thrall");          // 피의 하인
     public static final SoundEvent COUNTER = reg("vampire.counter");        // 냉동 반격 (받아쳤을 때)
