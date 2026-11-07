@@ -1000,10 +1000,10 @@ anim("stance_vm", 100, seq([(0, LIN, VM_STANCE),
 VM_WALK = dict(body=(5, -8, 0), head=(-3, -8, 0), rightArm=R_HIP)
 anim("stance_vm_walk", 40, seq([(0, LIN, VM_WALK), (20, IO, dict(body=(6, -8, 0))), (40, IO, VM_WALK)]), loop=True, ret=0)
 
-# 달리기 (참고: 아이즈 오브 헤븐 디오의 달리기 — 0.067초 간격으로 떼어 봄): 상체는 거의 세운 채(16° 앞으로) 가슴을 펴고,
-#   두 팔은 몸 옆으로 벌려 팔꿈치를 굽힌 채 손을 허리 높이 바깥에 두고 거의 흔들지 않음(어깨만 조금), 무릎을 높이 끌어올리며 통통 튀듯 뜀.
-#   한 걸음 ≈ 0.23초 → 20틱에 두 걸음씩(바닐라 전력질주 걸음과 비슷). 몸통이 다리와 반대로 ±10° 비틀림, 걸음마다 몸이 뜸
-RUN_LEG = [(0, (-40, 22)), (2, (-12, 26)), (4, (30, 12)), (5, (38, 50)), (7, (-20, 118)), (8, (-58, 100)), (9, (-52, 46)), (10, (-40, 22))]   # (세계 앞뒤 각, 무릎)
+# 달리기 (참고: 아이즈 오브 헤븐 디오의 달리기 — 뒤에서 본 장면을 0.067초 간격으로 다시 떼어 봄. 앞선 판은 앞뒤를 거꾸로 읽어 팔을 앞으로 내민 좀비 같았음):
+#   상체를 40° 앞으로 숙여 어깨·등이 보이고 고개는 숙인 채 앞을 봄, 두 팔은 몸 뒤 아래로 비스듬히 벌려(날개처럼) 거의 편 채 조금만 흔듦,
+#   뒷발은 차고 나서 뒤꿈치를 엉덩이 쪽으로 높이 접어 올림, 앞 무릎을 끌어올려 성큼 내딛음. 20틱에 두 걸음씩, 걸음마다 살짝 뜸
+RUN_LEG = [(0, (-42, 20)), (2, (-12, 24)), (4, (32, 10)), (5, (40, 60)), (6, (26, 128)), (8, (-46, 104)), (9, (-52, 46)), (10, (-42, 20))]   # (세계 앞뒤 각, 무릎) 6틱에 뒤꿈치를 높이 접음
 def _run_leg(t):
     t %= 10
     for (t0, a), (t1, b) in zip(RUN_LEG, RUN_LEG[1:]):
@@ -1012,16 +1012,16 @@ def _run_leg(t):
             return tuple(a[i] + (b[i] - a[i]) * f for i in range(2))
     return RUN_LEG[0][1]
 _run = []
-RUN_BP = -16
+RUN_BP = -40
 for t in range(0, 21):
     rw, lw = _run_leg(t), _run_leg(t + 5)
     sw = max(-1.0, min(1.0, -(rw[0] - lw[0]) / 90.0))   # 오른다리가 앞이면 +
-    body = (RUN_BP, round(-10 * sw, 1), 0)
+    body = (RUN_BP, round(-8 * sw, 1), 0)
     rl = (round(rw[0] + RUN_BP, 1), round(5 * sw, 1), 4, round(rw[1], 1)); ll = (round(lw[0] + RUN_BP, 1), round(5 * sw, 1), -4, round(lw[1], 1))
     low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
-    fly = 0.12 if t % 5 == 0 else 0.07 if t % 5 in (1, 4) else 0.0   # 걸음마다 통통 뜸
-    _run.append((t, LIN, dict(body=body, head=(RUN_BP + 10, round(10 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
-                              rightArm=(round(-14 + 10 * sw, 1), 0, 36, -72), leftArm=(round(-14 - 10 * sw, 1), 0, -36, -72))))
+    fly = 0.07 if t % 5 == 0 else 0.04 if t % 5 in (1, 4) else 0.0   # 걸음마다 살짝 뜸
+    _run.append((t, LIN, dict(body=body, head=(RUN_BP - 6, round(8 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
+                              rightArm=(round(8 + 8 * sw, 1), 0, 18, -10), leftArm=(round(8 - 8 * sw, 1), 0, -18, -10))))
 anim("run_vm", 20, seq(_run), loop=True, ret=0)
 
 # 가드: 상체를 젖힌 채 왼팔뚝을 얼굴 앞에 세워 받아냄, 오른손은 허리 높이에서 받아칠 준비
