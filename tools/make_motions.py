@@ -997,14 +997,19 @@ KNEEL_RL, KNEEL_LL = (30, 22, 100), (-70, 22, 100)           # 한쪽 무릎
 #   · 공중에서 앞발은 엉덩이 앞 0.55칸까지 무릎을 들어 뻗고, 뒷발은 뒤로 0.53칸 (뒤꿈치가 올라감)
 #   · 팔은 팔꿈치를 40~70° 굽힌 채 작게: 앞으로 48°, 뒤로 34° (몸 기준). 어깨선이 앞으로 가는 팔 쪽으로 20° 가까이 돎
 #   · 무기를 든 팔은 옆으로 벌려 허리 뒤쪽 낮게, 거의 안 흔듦
-def run_cycle(lean=16, thigh=(35, -42), knee=(18, 117), arm=(-8, 21), forearm=(-96, -34), arm_yaw=16, twist=4, weapon=False, n=12, **_):
+def run_cycle(lean=16, thigh=(35, -42), knee=(18, 117), arm=(-8, 21), forearm=(-96, -34), arm_yaw=16, twist=4, weapon=False, n=12,
+              bob=0.0, lean_osc=2, sway=0, leg_roll=4, head_k=0.85, arms=None, **_):
     """각도 기반 달리기. 원리 (YSM 모델팩 달리기 6종·TaCZ·Epic Fight 를 같은 렌더러에 올려 잰 공통점 — 값은 우리 곡선으로 새로 만듦):
     · 허벅지: 뒤 +35° → 앞 −42° 로 빠르게 차 올리고 (걸음의 3/8), 디딘 채 천천히 뒤로 밀어냄 (5/8). 뒤로도 충분히 뻗음
     · 무릎: 뒤에서 앞으로 넘어올 때 뒤꿈치를 엉덩이까지 차올림 (117°), 앞으로 뻗어 디딜 땐 거의 폄 (18°)
     · 팔: 위팔은 작게 (앞 −8° ~ 뒤 21°), 아래팔을 크게 펌프 — 팔이 앞일 때 주먹이 가슴까지 (96°), 뒤일 때 펴짐 (34°). 앞으로 갈 때 몸 안쪽으로 모임
     · 비틀림은 4°만. YSM 의 비틀림은 윗몸(UpBody)만 도는 값인데, 마크 몸통은 어깨~엉덩이가 한 덩어리라 그대로 옮기면
       엉덩이째 ±15° 씰룩이고 앞으로 든 다리가 옆으로 쓸려 보임 (게임 정면 영상으로 확인). 어깨가 도는 느낌은 팔 흔들기로만
-    · 숙임 16°, 허리 출렁임은 발이 땅에 붙는 만큼만 (따로 안 줌)"""
+    · 숙임 16°, 허리 출렁임은 발이 땅에 붙는 만큼만 (따로 안 줌)
+    직업별 성격 (아래 인자):
+    · bob = 두 발이 다 뜨는 순간(차고 나갈 때) 몸이 떠오르는 높이(블록) — 무겁게 쿵쿵 / 0 이면 미끄러지듯
+    · lean_osc = 걸음마다 숙임이 출렁이는 양, sway = 디딘 발 쪽으로 몸이 기우는 각 (다리는 되돌려 발은 그대로)
+    · head_k = 숙인 만큼 고개를 드는 비율 (1 = 시선 수평), arms(cc, side, p) = 팔을 통째로 바꿀 때 (cc +1 = 그 팔이 앞)"""
     import math as _m
     def sm(x): x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
     def th(p):
@@ -1018,20 +1023,39 @@ def run_cycle(lean=16, thigh=(35, -42), knee=(18, 117), arm=(-8, 21), forearm=(-
     for t in range(n + 1):
         p = t / n
         c = _m.cos(2 * _m.pi * p)                     # +1 = 오른팔 앞·오른다리 뒤
-        bp = -(lean + 2 * _m.cos(4 * _m.pi * p))
+        bp = -(lean + lean_osc * _m.cos(4 * _m.pi * p))
         yaw = round(twist * c, 1)
-        rl = (round(th(p) + bp, 1), -yaw, 4, round(kn(p), 1)); ll = (round(th(p + 0.5) + bp, 1), -yaw, -4, round(kn(p + 0.5), 1))
-        body = (round(bp, 1), yaw, 0)
+        roll = round(sway * _m.sin(2 * _m.pi * p), 1)    # 디딘 발 쪽으로 기욺 (렌더러 정면으로 확인)
+        rl = (round(th(p) + bp, 1), -yaw, leg_roll - roll, round(kn(p), 1))
+        ll = (round(th(p + 0.5) + bp, 1), -yaw, -leg_roll - roll, round(kn(p + 0.5), 1))
+        body = (round(bp, 1), yaw, roll)
         low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
+        hop = bob * max(0.0, _m.cos(4 * _m.pi * p)) ** 1.5    # p=0·0.5 = 뒷발이 차고 나가 두 발이 다 뜬 때
         def armv(cc, side):
+            if arms: return arms(cc, side, p)
             pitch = (arm[0] + arm[1]) / 2 - (arm[1] - arm[0]) / 2 * cc
             bend = (forearm[0] + forearm[1]) / 2 + (forearm[0] - forearm[1]) / 2 * cc
             return (round(pitch, 1), round(side * arm_yaw * max(0.0, cc), 1), side * 6, round(bend, 1))
         ra = (round(18 - 6 * c, 1), 0, 26, -28) if weapon else armv(c, 1)
         la = armv(-c, -1)
-        keys.append((t, LIN, dict(body=body, head=(round(bp + 0.85 * -bp, 1), -yaw, 0), rightLeg=rl, leftLeg=ll,
-                                  bodyPos=(0, round(-low, 3), 0), rightArm=ra, leftArm=la)))
+        keys.append((t, LIN, dict(body=body, head=(round(bp + head_k * -bp, 1), -yaw, -roll), rightLeg=rl, leftLeg=ll,
+                                  bodyPos=(0, round(-low + hop, 3), 0), rightArm=ra, leftArm=la)))
     return seq(keys)
+
+
+def _r(*v): return tuple(round(x, 1) for x in v)
+
+# 직업별 팔 (cc +1 = 그 팔이 앞, side +1 = 오른팔)
+def ARMS_AL(cc, side, p):
+    """연금술사: 맞붙기 직전 복서처럼 주먹을 가슴 앞에 모아 짧게 펌프. 오른팔(기계 의수)은 무거워 덜 흔들고 팔꿈치 고정"""
+    if side > 0: return _r(-22 - 9 * cc, 8 * max(0, cc), 8, -100)
+    return _r(-14 - 20 * cc, -14 * max(0, cc), -8, -92 - 22 * cc)
+def ARMS_VM(cc, side, p):
+    """뱀파이어: 팔을 뒤로 쭉 늘어뜨려 펼친 채 거의 안 흔듦 — 숙인 몸만 앞으로 미끄러지는 포식자 질주. 손끝은 살짝 갈고리"""
+    return _r(32 - 4 * cc, 0, side * 20, -12 - 4 * cc)
+def ARMS_PH(cc, side, p):
+    """열(비등점): 주먹 쥐고 팔꿈치를 옆으로 벌려 크게 휘두름 — 씩씩거리며 밀고 들어가는 힘 질주"""
+    return _r(5 - 32 * cc, side * 10 * max(0, cc), side * 12, -92 - 30 * cc)
 
 
 # ── 대기: 키를 다 펴고 선 자세 — 오른손 허리, 왼팔 늘어뜨림, 오른다리에 체중, 턱을 살짝 듦 (참고: 대전 중 선 자세) ──
@@ -1067,7 +1091,7 @@ for t in range(0, 21):
     fly = 0.07 if t % 5 == 0 else 0.04 if t % 5 in (1, 4) else 0.0   # 걸음마다 살짝 뜸
     _run.append((t, LIN, dict(body=body, head=(RUN_BP - 6, round(8 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                               rightArm=(round(8 + 8 * sw, 1), 0, 18, -10), leftArm=(round(8 - 8 * sw, 1), 0, -18, -10))))
-anim("run_vm", 12, run_cycle(), loop=True, ret=0)   # 공용 달리기 (위 run_cycle)
+anim("run_vm", 12, run_cycle(lean=24, thigh=(40, -52), knee=(14, 122), twist=0, lean_osc=0.5, head_k=1.0, arms=ARMS_VM), loop=True, ret=0)   # 숙이고 팔을 뒤로 펼친 질주 — 보폭 크고 출렁임 없음
 
 # 가드: 상체를 젖힌 채 왼팔뚝을 얼굴 앞에 세워 받아냄, 오른손은 허리 높이에서 받아칠 준비
 VM_GUARD = G(body=(4, -20, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(-6, 0), sink=0.02, leftArm=HL((0.25, -0.4, -0.88), (-0.05, 1.62, -0.32)),
@@ -1454,7 +1478,7 @@ for t in range(0, 21):
     # 팔: 오른다리가 앞(sw>0)이면 왼팔이 앞. 팔꿈치 90°로 굽혀 주먹을 크게 흔듦
     _prun.append((t, LIN, dict(body=body, head=(BP + 18, round(10 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                                rightArm=(round(-15 + 45 * sw, 1), 0, 6, round(-95 + 25 * sw, 1)), leftArm=(round(-15 - 45 * sw, 1), 0, -6, round(-95 - 25 * sw, 1)))))
-anim("run_ph", 12, run_cycle(forearm=(-110, -60)), loop=True, ret=0)   # 주먹을 쥐고 팔꿈치를 더 굽힘
+anim("run_ph", 12, run_cycle(lean=18, thigh=(32, -46), knee=(22, 112), twist=5, bob=0.09, lean_osc=3, sway=4, leg_roll=6, head_k=0.75, arms=ARMS_PH), loop=True, ret=0)   # 무겁게 쿵쿵 — 뜨고 내려앉고 디딘 발로 기욺, 다리 넓게
 
 # 가드: 두 팔뚝을 얼굴 앞에 세로로 붙여 세움
 PH_GUARD = G(body=(-4, -14, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(10, 0), sink=0.04,
@@ -1733,7 +1757,7 @@ for t in range(0, 21):
     fly = 0.06 if t % 5 == 0 else 0.03 if t % 5 in (1, 4) else 0.0
     _wrun.append((t, LIN, dict(body=body, head=(BP + 34, round(14 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                                rightArm=(round(5 + 62 * sw, 1), 0, 12, round(-30 + 12 * sw, 1)), leftArm=(round(5 - 62 * sw, 1), 0, -12, round(-30 - 12 * sw, 1)))))
-anim("run_pw", 12, run_cycle(lean=26, arm=(-50, 60), forearm=(-110, -40), thigh=(38, -50)), loop=True, ret=0)   # 더 숙이고 팔을 크게 (참고 영상 질주)
+anim("run_pw", 12, run_cycle(lean=26, arm=(-50, 60), forearm=(-110, -40), thigh=(40, -54), lean_osc=0, leg_roll=3, head_k=0.9), loop=True, ret=0)   # 더 숙이고 팔을 크게 — 출렁임 없이 바람 타듯 미끄러짐 (참고 영상 질주)
 
 # 가드: 두 아래팔을 얼굴 앞에서 X 자로 겹침
 PW_GUARD = G(body=(-4, -8, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(8, 0), sink=0.05,
@@ -1946,7 +1970,8 @@ anim("pw_ult", 170, seq(_ul))
 # (예전엔 10틱 고정 주기로 다리를 따로 움직여서 실제 속도와 안 맞아 미끄러지듯 어색했음)
 RUN = dict(body=(-12, None, None), rightArm=(None, None, 7, -78), leftArm=(None, None, -7, -78),
            rightLeg=(None, None, None, 18), leftLeg=(None, None, None, 18))
-anim("run", 12, run_cycle(), loop=True, ret=0)
+anim("run", 12, run_cycle(bob=0.03), loop=True, ret=0)
+anim("run_al", 12, run_cycle(lean=20, thigh=(32, -44), knee=(20, 120), twist=5, bob=0.05, lean_osc=2.5, arms=ARMS_AL), loop=True, ret=0)   # 연금술사: 가볍고 통통 튀는 잔걸음 + 주먹 모은 펌프
 RUN_W = dict(RUN, rightArm=(28, 4, 16, -24))   # 오른손 무기는 허리 뒤로 낮게
 anim("run_w", 12, run_cycle(weapon=True), loop=True, ret=0)
 
