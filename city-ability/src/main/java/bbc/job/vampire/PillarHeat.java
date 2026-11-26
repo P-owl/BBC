@@ -79,9 +79,19 @@ public final class PillarHeat {
     public static final String EQV = "p3h";
 
     // ───────── 소리 (리소스팩 BBC 뱀파이어 사운드에 파일이 들어오면 남. 없으면 조용) ─────────
-    static final SoundEvent S_VEINS = snd("pillar_heat.veins"), S_COUNTER = snd("pillar_heat.counter"), S_BULLET = snd("pillar_heat.bullet"),
-            S_CRY = snd("pillar_heat.cry"), S_LAVA = snd("pillar_heat.lava"), S_RAGE = snd("pillar_heat.rage"), S_BOIL = snd("pillar_heat.boil"),
-            S_STEW = snd("pillar_heat.stew"), S_AWAKEN = snd("pillar_heat.awaken"), S_ULT = snd("pillar_heat.ult");
+    // 기술 음성: 이벤트만 모드에 등록, 소리 파일은 따로 주는 리소스팩 'BBC 기둥 속 사내 사운드' (BBC_Pillar_Heat_Sounds.zip)
+    static final SoundEvent S_VEINS = snd("pillar_heat.veins"), S_VEINS_Q = snd("pillar_heat.veins_q"), S_AIR = snd("pillar_heat.air"),
+            S_STEW = snd("pillar_heat.stew"), S_COUNTER = snd("pillar_heat.counter"), S_COUNTER_HIT = snd("pillar_heat.counter_hit"),
+            S_PALM = snd("pillar_heat.palm"), S_BULLET = snd("pillar_heat.bullet"), S_BARRAGE = snd("pillar_heat.barrage"),
+            S_BLINK = snd("pillar_heat.blink"), S_BLINK_GO = snd("pillar_heat.blink_go"), S_BLINK_GRAB = snd("pillar_heat.blink_grab"),
+            S_BLINK_THROW = snd("pillar_heat.blink_throw"), S_BLINK_AIR = snd("pillar_heat.blink_air"),
+            S_SEE = snd("pillar_heat.see"), S_SEE_Q = snd("pillar_heat.see_q"), S_RAGE = snd("pillar_heat.rage"), S_BOIL = snd("pillar_heat.boil"),
+            S_NEEDLES = snd("pillar_heat.needles"), S_STEAM = snd("pillar_heat.steam"),
+            S_AWAKEN = snd("pillar_heat.awaken"), S_AWAKEN_END = snd("pillar_heat.awaken_end"),
+            S_ULT1 = snd("pillar_heat.ult1"), S_ULT2 = snd("pillar_heat.ult2"), S_ULT3 = snd("pillar_heat.ult3"),
+            S_PETRIFY = snd("pillar_heat.petrify"), S_M1 = snd("pillar_heat.m1"), S_M1_HEAVY = snd("pillar_heat.m1_heavy"), S_M1_AIR = snd("pillar_heat.m1_air");
+
+    private static void say(ServerPlayerEntity p, SoundEvent s) { bbc.job.alchemy.AlchemySounds.play(p, s, 1.6f); }
     private static SoundEvent snd(String path) {
         Identifier id = Identifier.of(Bbc.MOD_ID, path);
         return Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
@@ -161,6 +171,7 @@ public final class PillarHeat {
         if (sunlit) {
             if (PETRIFIED.add(p.getUuid())) {
                 p.sendMessage(Text.literal("☀ 햇빛을 받아 몸이 돌로 굳는다…! 그늘·밤까지 움직일 수 없다").formatted(Formatting.GOLD), false);
+                say(p, S_PETRIFY);
                 w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.PLAYERS, 1.2f, 0.6f);
                 Motion.play(p, "stop");
             }
@@ -196,6 +207,13 @@ public final class PillarHeat {
         LivingEntity t = f.lastTargetAt == Combat.now() && f.lastTarget != null && w.getEntity(f.lastTarget) instanceof LivingEntity le ? le : null;
         Vec3d c = t != null ? t.getBoundingBox().getCenter() : p.getPos().add(fw.multiply(1.4)).add(0, 1.1, 0);
         boolean hot = mode(p) || Awaken.active(p);
+        SoundEvent v = switch (motion) {   // 평타 기합 (가벼운 건 반쯤만)
+            case "ph_1", "ph_2", "ph_3", "ph_4" -> p.getRandom().nextFloat() < 0.55f ? S_M1 : null;
+            case "ph_5", "ph_rise" -> S_M1_HEAVY;
+            case "ph_a1", "ph_a2", "ph_a3" -> p.getRandom().nextFloat() < 0.6f ? S_M1_AIR : null;
+            case "ph_slam" -> S_AIR;
+            default -> null; };
+        if (v != null) bbc.job.alchemy.AlchemySounds.play(p, v, 1.3f);
         switch (motion) {
             case "ph_2" -> veinArc(w, p, 2.2, -70, 40, 1.15, 6);          // 훅에 혈관이 따라 휘어짐
             case "ph_4" -> veinArc(w, p, 2.4, 70, -50, 1.25, 6);
@@ -355,9 +373,15 @@ public final class PillarHeat {
             default -> false;
         };
         if (ok) {
-            SoundEvent s = switch (idx) { case 0 -> S_VEINS; case 1 -> aw ? S_RAGE : null; case 2 -> S_BULLET; case 3 -> S_BOIL;
-                case 4 -> S_LAVA; case 5 -> aw || md ? S_STEW : S_RAGE; case 6 -> S_BOIL; default -> null; };
-            if (s != null) bbc.job.alchemy.AlchemySounds.play(p, s, 1.6f);
+            SoundEvent s = switch (idx) {   // ④는 기술 안에서 장면마다 따로
+                case 0 -> air ? S_AIR : chain ? S_VEINS_Q : aw ? S_NEEDLES : md ? S_STEW : S_VEINS;
+                case 1 -> aw ? S_STEAM : chain ? S_PALM : S_COUNTER;
+                case 2 -> aw && !chain ? S_BARRAGE : S_BULLET;
+                case 4 -> air ? S_AIR : chain ? S_SEE_Q : S_SEE;
+                case 5 -> aw ? (air ? S_AIR : S_STEW) : S_RAGE;
+                case 6 -> air ? S_AIR : aw && chain ? S_PALM : S_BOIL;
+                default -> null; };
+            if (s != null) say(p, s);
         }
         return ok;
     }
@@ -511,7 +535,7 @@ public final class PillarHeat {
             Combat.counterWindow(p, 14, true, 4.5, atk -> {
                 if (!alive(p)) return;
                 Motion.play(p, "ph_counter_hit");
-                bbc.job.alchemy.AlchemySounds.play(p, S_COUNTER, 1.6f);
+                say(p, S_COUNTER_HIT);
                 Combat.afterSkill(p, 16);
                 var cf = Combat.of(p);
                 cf.skillStart = Combat.now(); cf.skillMotion = "ph_counter_hit"; cf.skillBusyUntil = Combat.now() + 19;
@@ -606,12 +630,14 @@ public final class PillarHeat {
         long t0 = Combat.now();
         ServerWorld w = p.getServerWorld();
         int d0 = aw ? 2 : 10, d1 = aw ? 7 : 14;
+        if (aw) say(p, S_BLINK_GO);
         double sp = aw ? 2.0 : 1.6;
         if (!aw) {
             if (ServerPlayNetworking.canSend(p, CutscenePayload.ID)) ServerPlayNetworking.send(p, new CutscenePayload("ph_blink", p.getId(), -1));
             root(p, 1, 9);
             Tasks.later(3, () -> {
                 if (!alive(p)) return;
+                say(p, S_BLINK);   // 흥!
                 Fx.word(w, p.getPos().add(0, 2.4, 0), Fx.Sfx.DON, 1.3f);
                 w.spawnParticles(ParticleTypes.WHITE_SMOKE, p.getX(), p.getY() + 1.0, p.getZ(), 10, 0.35, 0.5, 0.35, 0.02);
                 w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.PLAYERS, 1.6f, 0.8f);
@@ -656,6 +682,7 @@ public final class PillarHeat {
     // 공중: 몸을 눕혀 대각선 아래로 내리꽂음 (2~16) → 닿으면 붙잡고 같이 떨어져 땅에 박음 (착지 폭발, 다운) · 빈손이면 착지 충격만
     private static boolean blinkAir(ServerPlayerEntity p, boolean aw) {
         Motion.play(p, "ph_blink_air");
+        say(p, S_BLINK_AIR);
         Combat.afterSkill(p, 14);
         ServerWorld w = p.getServerWorld();
         Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
@@ -715,6 +742,7 @@ public final class PillarHeat {
         Combat.afterSkill(p, 40);
         root(p, 1, 40);
         Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
+        say(p, S_BLINK_GRAB);   // 놓치지 않는다!
         heatHit(w, t.getBoundingBox().getCenter(), fw, 1.1f, Fx.Sfx.DOGO, true);
         w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_STRONG, SoundCategory.PLAYERS, 1.2f, 0.7f);
         for (int i = 1; i <= 31; i++) {
@@ -741,7 +769,7 @@ public final class PillarHeat {
                 w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_KNOCKBACK, SoundCategory.PLAYERS, 1.0f, 0.8f + kk * 0.1f);
             });
         }
-        Tasks.later(28, () -> { if (alive(p) && t.isAlive()) w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_IRON_GOLEM_ATTACK, SoundCategory.PLAYERS, 1.2f, 0.7f); });
+        Tasks.later(28, () -> { if (alive(p) && t.isAlive()) { say(p, S_BLINK_THROW); w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_IRON_GOLEM_ATTACK, SoundCategory.PLAYERS, 1.2f, 0.7f); } });
         Tasks.later(32, () -> {   // 내던짐
             if (!alive(p) || !t.isAlive()) return;
             Vec3d at = front(p, 1.6, 0.8);
@@ -1199,8 +1227,8 @@ public final class PillarHeat {
         Awaken.extend(p, AWAKEN_SCENE);
         VampireJob.addBlood(e, 20);
         p.extinguish();
-        bbc.job.alchemy.AlchemySounds.voice(p, S_AWAKEN, List.of(p));
-        bbc.job.alchemy.AlchemySounds.play(p, S_CRY, 1.6f);
+        Tasks.later(4, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_AWAKEN, List.of(p)); });      // 너무해에에에~!
+        Tasks.later(80, () -> { if (alive(p)) say(p, S_AWAKEN_END); });                                              // 후우, 개운하다
         Tasks.later(3, () -> { if (alive(p)) Fx.flash(p, 0.8f); });
         Tasks.later(6, () -> {   // 울부짖음
             if (!alive(p)) return;
@@ -1270,7 +1298,9 @@ public final class PillarHeat {
         if (t instanceof ServerPlayerEntity sp) viewers.add(sp);
         CutscenePayload pl = new CutscenePayload("ph_ult", p.getId(), t.getId());
         for (ServerPlayerEntity v : viewers) if (ServerPlayNetworking.canSend(v, CutscenePayload.ID)) ServerPlayNetworking.send(v, pl);
-        bbc.job.alchemy.AlchemySounds.voice(p, S_ULT, viewers);
+        Tasks.later(12, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_ULT1, viewers); });    // 만화 칸: 열을 다루는 유법!
+        Tasks.later(62, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_ULT2, viewers); });    // 꽂힌 뒤: 열혈을 흘려 넣어 불을 붙여 태워주마!
+        Tasks.later(238, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_ULT3, viewers); });   // 대폭발: 다 태워 버렸다!
         root(p, 1, ULT_SCENE - 10);
         Vec3d hold = t.getPos();
         for (int i = 0; i < 236; i++) Tasks.later(i, () -> {   // 상대를 제자리에 묶어 둠
