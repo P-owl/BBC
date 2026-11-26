@@ -6,6 +6,7 @@ import dev.kosmx.playerAnim.api.layered.IAnimation;
 import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
 import dev.kosmx.playerAnim.api.layered.ModifierLayer;
 import dev.kosmx.playerAnim.api.layered.modifier.AbstractFadeModifier;
+import dev.kosmx.playerAnim.api.layered.modifier.SpeedModifier;
 import dev.kosmx.playerAnim.core.util.Ease;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationFactory;
@@ -26,7 +27,11 @@ final class Anim {
 
     static void init() {
         PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(LAYER, 1000, player -> new ModifierLayer<>());
-        PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(STANCE, 500, player -> new ModifierLayer<>());
+        PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory(STANCE, 500, player -> {
+            SpeedModifier sm = new SpeedModifier(1f);   // 달리기 재생 속도를 실제 이동 속도에 맞춤 (발이 안 미끄러지게)
+            SPEED.put(player, sm);
+            return new ModifierLayer<>(null, sm);
+        });
     }
 
     /** 매 틱: 손에 든 무기에 맞는 싸움 자세로 (맨손·검·창·대검), 달리면 달리기 모션 */
@@ -52,6 +57,11 @@ final class Anim {
             boolean running = moving && c.world.getTime() - RAN_AT.getOrDefault(id, -100L) <= 3;
             if (running) want = weapon ? "run_w" : RUN_VARIANT.getOrDefault(STANCE_BASE.get(id), "run");
             else if (moving && WALK_VARIANT.contains(want)) want = want + "_walk";
+            SpeedModifier sm = SPEED.get(pl);
+            if (sm != null) {   // 달리기는 10틱에 두 걸음 = 전력질주(0.28칸/틱) 기준. 더 빠르면 빨리, 느리면 천천히 (부드럽게 따라감)
+                float target = running ? (float) Math.max(0.7, Math.min(1.9, sp / RUN_SPEED)) : 1f;
+                sm.speed = running && want.equals(en.getValue()) ? sm.speed * 0.6f + target * 0.4f : target;
+            }
             if (want.equals(en.getValue())) continue;
             en.setValue(want);
             ModifierLayer<IAnimation> st = layer(pl, STANCE);
@@ -75,6 +85,11 @@ final class Anim {
         }
         return a;
     }
+
+    /** 달리기 모션이 만들어진 이동 속도 (칸/틱, 바닐라 전력질주) */
+    private static final double RUN_SPEED = 0.28;
+    /** 플레이어별 자세 층 재생 속도 */
+    private static final java.util.Map<AbstractClientPlayerEntity, SpeedModifier> SPEED = new java.util.WeakHashMap<>();
 
     /** 싸움 자세를 켠 플레이어 → 지금 깔린 자세 이름 (손에 든 무기에 따라 바뀜) */
     private static final java.util.Map<Integer, String> STANCE_ON = new java.util.HashMap<>();

@@ -92,7 +92,7 @@ def _fix_euler(moves):
 
 
 def anim(name, end, keys, stop=None, loop=False, ret=0):
-    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw")): keys = _fix_euler(keys)
+    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw", "run")): keys = _fix_euler(keys)
     A[name] = {"version": 3, "name": name, "author": "bbc", "description": "",
                "emote": {"isLoop": loop, "returnTick": ret, "beginTick": 0, "endTick": end,
                          "stopTick": stop if stop is not None else end + 1, "degrees": True,
@@ -989,6 +989,54 @@ DEEP_RL, DEEP_LL = (32, 8, 10), (-50, 8, 66)                 # 깊게 내딛음
 WIDE_RL, WIDE_LL = (8, 20, 34), (-8, 20, 34)                 # 넓게 벌려 주저앉음
 KNEEL_RL, KNEEL_LL = (30, 22, 100), (-70, 22, 100)           # 한쪽 무릎
 
+# ═════════ 달리기 공용 (모든 직업) ═════════
+# 원리 (Epic Fight 기본 달리기 run.json 을 관절 위치로 풀어 잰 값 — 자료는 안 옮기고 원리만):
+#   · 두 걸음에 약 10.7틱 (전력질주 5.6칸/초 기준). 우리는 10틱 고리로 만들고, 실제 이동 속도에 맞춰 재생 속도를 바꿈 (client/Anim, 발이 안 미끄러짐)
+#   · 발을 디딜 때 허리가 내려앉고 (엉덩이 0.55칸) 공중에서 솟음 (0.70칸) — 한 걸음마다 크게 출렁임
+#   · 상체는 디딜 때 30°, 공중에서 40°까지 앞으로 숙임. 고개는 들어 앞을 봄
+#   · 공중에서 앞발은 엉덩이 앞 0.55칸까지 무릎을 들어 뻗고, 뒷발은 뒤로 0.53칸 (뒤꿈치가 올라감)
+#   · 팔은 팔꿈치를 40~70° 굽힌 채 작게: 앞으로 48°, 뒤로 34° (몸 기준). 어깨선이 앞으로 가는 팔 쪽으로 20° 가까이 돎
+#   · 무기를 든 팔은 옆으로 벌려 허리 뒤쪽 낮게, 거의 안 흔듦
+def run_cycle(lean=(24, 34), arm_fwd=48, arm_back=34, elbow=(40, 70), twist=16, abduct=10, weapon=False, fist=True, n=10):
+    import math as _m
+    L = 0.375
+    def foot(ph):   # 오른발 (앞으로 +, 높이) — 왼발은 반 바퀴 늦게
+        y = 0.5 * _m.cos(ph + 1.18)
+        psi = (ph + 0.5) % (2 * _m.pi)   # 디딤: 오른발이 몸 밑을 지나는 동안 (ph -0.5~0.5)
+        if psi < 1.0: return y, 0.0
+        w = min(1.0, (psi - 1.0) / 0.6, (2 * _m.pi - psi) / 0.6)   # 디딤 앞뒤로 부드럽게
+        fl = (1 - _m.cos(2 * ph)) / 2
+        return y, w * (0.05 + 0.16 * fl)   # 공중일 땐 두 발 다 떠 있고 (0.2), 반대발이 디딜 땐 뒤에서 낮게 (0.05)
+    def leg(bp, f, h, roll, ly):
+        d = min(2 * L * 0.999, _m.hypot(f, h))
+        bend = 2 * _m.degrees(_m.acos(d / (2 * L)))
+        phi = _m.degrees(_m.atan2(f, h))
+        return (round(-(phi + bend / 2) + bp, 1), ly, roll, round(bend, 1))
+    keys = []
+    for t in range(n + 1):
+        ph = 2 * _m.pi * t / n
+        fl = (1 - _m.cos(2 * ph)) / 2                         # 0 = 디딤, 1 = 공중 한가운데
+        bp = -(lean[0] + (lean[1] - lean[0]) * fl)
+        H = 0.645 - 0.06 * _m.cos(2 * ph)                      # 엉덩이 높이 (Epic Fight 보다 조금 덜 주저앉음 — 네모 몸에선 과해 보임)
+        yr, zr = foot(ph); yl, zl = foot(ph + _m.pi)
+        a = -_m.cos(ph + 1.18)                                  # 오른팔이 앞으로 나간 정도 (오른발이 뒤일 때 +)
+        yaw = round(-twist * a, 1)                              # 어깨선이 앞으로 가는 팔 쪽으로
+        ly = round(-0.7 * yaw, 1)
+        rl = leg(bp, yr, H - zr, 5, ly); ll = leg(bp, yl, H - zl, -5, ly)
+        body = (round(bp, 1), yaw, 0)
+        low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
+        lift = min(zr, zl)
+        def arm(s, side):   # s: 앞으로 나간 정도 (-1~1)
+            pitch = -((arm_fwd - arm_back) / 2 + (arm_fwd + arm_back) / 2 * s)
+            bend = -((elbow[0] + elbow[1]) / 2 - (elbow[1] - elbow[0]) / 2 * s)
+            return (round(pitch, 1), 0, side * abduct, round(bend, 1))
+        ra = (round(18 + 6 * a, 1), 0, 26, -28) if weapon else arm(a, 1)
+        la = arm(-a, -1)
+        keys.append((t, LIN, dict(body=body, head=(round(bp + 0.85 * -bp, 1), round(-yaw * 0.6, 1), 0), rightLeg=rl, leftLeg=ll,
+                                  bodyPos=(0, round(-low + lift, 3), 0), rightArm=ra, leftArm=la)))
+    return seq(keys)
+
+
 # ── 대기: 키를 다 펴고 선 자세 — 오른손 허리, 왼팔 늘어뜨림, 오른다리에 체중, 턱을 살짝 듦 (참고: 대전 중 선 자세) ──
 VM_STANCE = solved(G(body=(3, -14, 0), rl=STAND_RL, ll=STAND_LL, look=(-8, 2), rightArm=R_HIP, leftArm=L_LOOSE))
 anim("stance_vm", 100, seq([(0, LIN, VM_STANCE),
@@ -1022,7 +1070,7 @@ for t in range(0, 21):
     fly = 0.07 if t % 5 == 0 else 0.04 if t % 5 in (1, 4) else 0.0   # 걸음마다 살짝 뜸
     _run.append((t, LIN, dict(body=body, head=(RUN_BP - 6, round(8 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                               rightArm=(round(8 + 8 * sw, 1), 0, 18, -10), leftArm=(round(8 - 8 * sw, 1), 0, -18, -10))))
-anim("run_vm", 20, seq(_run), loop=True, ret=0)
+anim("run_vm", 10, run_cycle(lean=(26, 36), arm_fwd=44, arm_back=34), loop=True, ret=0)   # 공용 달리기 (위 run_cycle)
 
 # 가드: 상체를 젖힌 채 왼팔뚝을 얼굴 앞에 세워 받아냄, 오른손은 허리 높이에서 받아칠 준비
 VM_GUARD = G(body=(4, -20, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(-6, 0), sink=0.02, leftArm=HL((0.25, -0.4, -0.88), (-0.05, 1.62, -0.32)),
@@ -1409,7 +1457,7 @@ for t in range(0, 21):
     # 팔: 오른다리가 앞(sw>0)이면 왼팔이 앞. 팔꿈치 90°로 굽혀 주먹을 크게 흔듦
     _prun.append((t, LIN, dict(body=body, head=(BP + 18, round(10 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                                rightArm=(round(-15 + 45 * sw, 1), 0, 6, round(-95 + 25 * sw, 1)), leftArm=(round(-15 - 45 * sw, 1), 0, -6, round(-95 - 25 * sw, 1)))))
-anim("run_ph", 20, seq(_prun), loop=True, ret=0)
+anim("run_ph", 10, run_cycle(lean=(24, 34), arm_fwd=50, arm_back=30, elbow=(60, 90)), loop=True, ret=0)   # 주먹을 쥐고 팔꿈치를 더 굽힘
 
 # 가드: 두 팔뚝을 얼굴 앞에 세로로 붙여 세움
 PH_GUARD = G(body=(-4, -14, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(10, 0), sink=0.04,
@@ -1688,7 +1736,7 @@ for t in range(0, 21):
     fly = 0.06 if t % 5 == 0 else 0.03 if t % 5 in (1, 4) else 0.0
     _wrun.append((t, LIN, dict(body=body, head=(BP + 34, round(14 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                                rightArm=(round(5 + 62 * sw, 1), 0, 12, round(-30 + 12 * sw, 1)), leftArm=(round(5 - 62 * sw, 1), 0, -12, round(-30 - 12 * sw, 1)))))
-anim("run_pw", 20, seq(_wrun), loop=True, ret=0)
+anim("run_pw", 10, run_cycle(lean=(30, 40), arm_fwd=46, arm_back=44, elbow=(35, 60), twist=20), loop=True, ret=0)   # 더 숙이고 팔을 뒤로 크게 (참고 영상 질주)
 
 # 가드: 두 아래팔을 얼굴 앞에서 X 자로 겹침
 PW_GUARD = G(body=(-4, -8, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(8, 0), sink=0.05,
@@ -1901,9 +1949,9 @@ anim("pw_ult", 170, seq(_ul))
 # (예전엔 10틱 고정 주기로 다리를 따로 움직여서 실제 속도와 안 맞아 미끄러지듯 어색했음)
 RUN = dict(body=(-12, None, None), rightArm=(None, None, 7, -78), leftArm=(None, None, -7, -78),
            rightLeg=(None, None, None, 18), leftLeg=(None, None, None, 18))
-anim("run", 20, P(0, LIN, **RUN) + P(10, IO, body=(-13, None, None)) + P(20, IO, **RUN), loop=True, ret=0)
+anim("run", 10, run_cycle(), loop=True, ret=0)
 RUN_W = dict(RUN, rightArm=(28, 4, 16, -24))   # 오른손 무기는 허리 뒤로 낮게
-anim("run_w", 20, P(0, LIN, **RUN_W) + P(10, IO, body=(-13, None, None)) + P(20, IO, **RUN_W), loop=True, ret=0)
+anim("run_w", 10, run_cycle(weapon=True), loop=True, ret=0)
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
