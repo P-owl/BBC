@@ -343,6 +343,7 @@ public final class VampireJob implements JobType {
         Jobs.register(INSTANCE);
         Thralls.register();
         PillarHeat.register();
+        PillarWind.register();
 
         // 석가면: 사막 피라미드·정글 사원 3%, 고대 도시 5%
         LootTableEvents.MODIFY.register((key, builder, source, registries) -> {

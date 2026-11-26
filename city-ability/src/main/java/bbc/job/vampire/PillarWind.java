@@ -107,6 +107,9 @@ public final class PillarWind {
 
     static JobSkills.Skill[] list(ServerPlayerEntity p) { return Awaken.active(p) ? AWAKE : LIST; }
 
+    /** 클래스 로딩 = 소리 이벤트 등록 (모드 초기화에서 불러야 함 — 레지스트리가 얼기 전에) */
+    public static void register() {}
+
     // ───────── 상태 ─────────
     private static final Map<UUID, Long> MODE_UNTIL = new HashMap<>();
     private static final Map<UUID, Long> HIDE_UNTIL = new HashMap<>();
