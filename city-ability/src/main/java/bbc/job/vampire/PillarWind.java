@@ -825,7 +825,8 @@ public final class PillarWind {
         Awaken.extend(p, AWAKEN_SCENE);
         VampireJob.addBlood(e, 20);
         Tasks.later(4, () -> { if (alive(p)) AlchemySounds.voice(p, S_AWAKEN, List.of(p)); });
-        Tasks.later(30, () -> { if (alive(p)) AlchemySounds.voice(p, S_AWAKEN2, List.of(p)); });
+        // 대사 둘은 겹치지 않게 이어서: 첫 대사 48틱 (4~52) → 둘째 70틱 (56~126, 컷신이 끝나도 이어짐)
+        Tasks.later(56, () -> { if (alive(p)) AlchemySounds.voice(p, S_AWAKEN2, List.of(p)); });
         Tasks.later(10, () -> {
             if (!alive(p)) return;
             Vec3d eye = p.getEyePos().add(Combat.horizontal(p.getRotationVec(1f)).multiply(0.25));
@@ -875,10 +876,10 @@ public final class PillarWind {
         if (t instanceof ServerPlayerEntity sp) viewers.add(sp);
         CutscenePayload pl = new CutscenePayload("pw_ult", p.getId(), t.getId());
         for (ServerPlayerEntity v : viewers) if (ServerPlayNetworking.canSend(v, CutscenePayload.ID)) ServerPlayNetworking.send(v, pl);
-        Tasks.later(2, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT1, viewers); });      // 나의 바람의 최종 유법
-        Tasks.later(22, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT2, viewers); });     // 최종 유법 「혼설삽」
-        Tasks.later(118, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT3, viewers); });    // 쉬이아아아—
-        Tasks.later(166, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT4, viewers); });    // 승부는 났다
+        // 대사는 서로 겹치지 않게 (길이: 혼설삽 50틱 · 외침 58틱 · 승부는 났다 28틱). '나의 바람의 최종 유법'은 혼설삽과 같은 말이라 뺌
+        Tasks.later(16, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT2, viewers); });     // 최종 유법 「혼설삽」 (만화 칸, 16~66)
+        Tasks.later(120, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT3, viewers); });    // 쉬이아아아— (120~178)
+        Tasks.later(182, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT4, viewers); });    // 승부는 났다 (외침이 끝난 뒤)
         PillarHeat.root(p, 1, ULT_SCENE - 10);
         Vec3d hold = t.getPos();
         for (int i = 0; i < 164; i++) Tasks.later(i, () -> {   // 상대를 제자리에 묶어 둠
@@ -921,7 +922,6 @@ public final class PillarWind {
             w.spawnParticles(ParticleTypes.GUST_EMITTER_SMALL, top.x, top.y, top.z, 1, 0, 0, 0, 0);
         });
         // 132·146 크게 두 번
-        Tasks.later(128, () -> { if (alive(p)) AlchemySounds.play(p, S_ULT_SE, 1.8f); });
         ultCut(p, t, 132, ULT_BIG, 2.0, true);
         ultCut(p, t, 146, ULT_BIG, 2.0, true);
         // 150~162 2틱마다
@@ -939,6 +939,7 @@ public final class PillarWind {
             Fx.word(w, c.add(0, 2.2, 0), Fx.Sfx.DOGOOON, 2.0f);
             Fx.shakeAround(w, c, 18, 1.1f);
             w.playSound(null, BlockPos.ofFloored(c), SoundEvents.ENTITY_BREEZE_WIND_BURST.value(), SoundCategory.PLAYERS, 2.0f, 0.4f);
+            AlchemySounds.play(p, S_ULT_SE, 1.8f);
             if (t.isAlive()) VampireJob.drink(p, bbc.job.Jobs.entry(p), t);
         });
         return true;

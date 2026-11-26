@@ -1234,7 +1234,7 @@ public final class PillarHeat {
         VampireJob.addBlood(e, 20);
         p.extinguish();
         Tasks.later(4, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_AWAKEN, List.of(p)); });      // 너무해에에에~!
-        Tasks.later(80, () -> { if (alive(p)) say(p, S_AWAKEN_END); });                                              // 후우, 개운하다
+        Tasks.later(84, () -> { if (alive(p)) say(p, S_AWAKEN_END); });   // 울부짖음(76틱, 4~80)이 끝난 뒤                                              // 후우, 개운하다
         Tasks.later(3, () -> { if (alive(p)) Fx.flash(p, 0.8f); });
         Tasks.later(6, () -> {   // 울부짖음
             if (!alive(p)) return;
