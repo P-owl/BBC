@@ -997,7 +997,7 @@ KNEEL_RL, KNEEL_LL = (30, 22, 100), (-70, 22, 100)           # 한쪽 무릎
 #   · 공중에서 앞발은 엉덩이 앞 0.55칸까지 무릎을 들어 뻗고, 뒷발은 뒤로 0.53칸 (뒤꿈치가 올라감)
 #   · 팔은 팔꿈치를 40~70° 굽힌 채 작게: 앞으로 48°, 뒤로 34° (몸 기준). 어깨선이 앞으로 가는 팔 쪽으로 20° 가까이 돎
 #   · 무기를 든 팔은 옆으로 벌려 허리 뒤쪽 낮게, 거의 안 흔듦
-def run_cycle(lean=(12, 18), arm_fwd=66, arm_back=56, elbow=(15, 40), twist=12, abduct=12, weapon=False, fist=True, n=10, bob=0.03, hip=0.72):
+def run_cycle(lean=(12, 18), arm_fwd=60, arm_back=52, elbow=(35, 65), twist=8, abduct=10, weapon=False, fist=True, n=10, bob=0.03, hip=0.72):
     import math as _m
     L = 0.375
     def foot(ph):   # 오른발 (앞으로 +, 높이) — 왼발은 반 바퀴 늦게
@@ -1022,7 +1022,7 @@ def run_cycle(lean=(12, 18), arm_fwd=66, arm_back=56, elbow=(15, 40), twist=12, 
         yr, zr = foot(ph); yl, zl = foot(ph + _m.pi)
         a = -_m.cos(ph + 1.18)                                  # 오른팔이 앞으로 나간 정도 (오른발이 뒤일 때 +)
         yaw = round(-twist * a, 1)                              # 어깨선이 앞으로 가는 팔 쪽으로
-        ly = round(-0.7 * yaw, 1)
+        ly = round(-yaw, 1)   # 몸(전체) 비틀림을 다리에서 다 되돌려 발끝·엉덩이는 늘 앞을 봄 (뒤에서 볼 때 뒤뚱거리지 않게)
         rl = leg(bp, yr, H - zr, 5, ly); ll = leg(bp, yl, H - zl, -5, ly)
         body = (round(bp, 1), yaw, 0)
         low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
@@ -1033,7 +1033,7 @@ def run_cycle(lean=(12, 18), arm_fwd=66, arm_back=56, elbow=(15, 40), twist=12, 
             return (round(pitch, 1), 0, side * abduct, round(bend, 1))
         ra = (round(18 + 6 * a, 1), 0, 26, -28) if weapon else arm(a, 1)
         la = arm(-a, -1)
-        keys.append((t, LIN, dict(body=body, head=(round(bp + 0.85 * -bp, 1), round(-yaw * 0.6, 1), 0), rightLeg=rl, leftLeg=ll,
+        keys.append((t, LIN, dict(body=body, head=(round(bp + 0.85 * -bp, 1), round(-yaw, 1), 0), rightLeg=rl, leftLeg=ll,
                                   bodyPos=(0, round(-low + lift, 3), 0), rightArm=ra, leftArm=la)))
     return seq(keys)
 
