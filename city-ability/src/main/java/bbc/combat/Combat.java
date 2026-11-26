@@ -819,7 +819,7 @@ public final class Combat {
                         f.knocked = false;
                         f.state = Fighter.State.DOWN;
                         f.stateUntil = now + Tuning.KNOCK_DOWN;
-                        Motion.play(e, "knock");
+                        Motion.play(e, "down");   // 날아가며 이미 누운 자세 → 등으로 쿵 떨어져 튕김 (knock 을 처음부터 다시 틀지 않음)
                     } else { // 공중 경직 중 착지 → 남은 경직은 짧게
                         f.state = Fighter.State.HITSTUN;
                         f.stateUntil = Math.min(f.stateUntil, now + 8);

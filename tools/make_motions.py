@@ -503,26 +503,7 @@ anim("evade", 9,  # 뒤로 공중제비 (body pitch +)
     P(0, LIN, body=(0, 0, 0)) + P(2, OQ, rightLeg=(-70, 0, 0), leftLeg=(-70, 0, 0), rightArm=(-60, 0, 0), leftArm=(-60, 0, 0))
     + P(8, LIN, body=(360, 0, 0)) + P(9, CONST, body=(0, 0, 0)), stop=10)
 
-# ── 맞을 때 ── 1틱 만에 몸 전체가 비틀리며 뒤로 젖혀짐(약 20°), 고개도 젖혀짐, 팔은 조금 벌어짐. 좌우 번갈아
-hit_r = (
-    P(1, EX, body=(24, 30, 0), head=(-30, 12, 0), rightArm=(20, 0, 26, -30), leftArm=(30, 0, -14, -45),
-      rightLeg=(14, 0, 0, 34), leftLeg=(-10, 0, 0, 18))
-    + P(5, LIN, body=(20, 26, 0), head=(-26, 10, 0))
-    + P(11, IO, body=(0, 0, 0), head=(0, 0, 0), rightArm=(0, 0, 0, 0), leftArm=(0, 0, 0, 0), rightLeg=(0, 0, 0, 0), leftLeg=(0, 0, 0, 0))
-)
-anim("hit", 11, hit_r)
-anim("hit_2", 11, mirror(hit_r))
-anim("hit_air", 14,  # 공중 경직: 젖혀진 채 팔다리 벌림
-    P(1, EX, body=(22, 0, 0), head=(-20, 0, 0), rightArm=(-30, 0, 40, -30), leftArm=(-30, 0, -40, -30), rightLeg=(22, 0, 6, 40), leftLeg=(-14, 0, -6, 25))
-    + P(14, LIN, body=(18, 0, 0), head=(-16, 0, 0), rightArm=(-26, 0, 36, -28), leftArm=(-26, 0, -36, -28), rightLeg=(18, 0, 6, 36), leftLeg=(-12, 0, -6, 22)),
-    stop=16)
-anim("knock", 30,  # 뒤로 날아가 쓰러짐 → 누워 있음 (body pitch + = 뒤로)
-    P(0, LIN, body=(0, 0, 0))
-    + P(6, OQ, body=(80, 0, 0), head=(-10, 0, 0), rightArm=(-150, 0, 20), leftArm=(-150, 0, -20), rightLeg=(-10, 0, 0), leftLeg=(10, 0, 0))
-    + P(28, LIN, body=(82, 0, 0)), stop=31)
-anim("getup", 8,
-    P(0, LIN, body=(60, 0, 0), rightLeg=(-60, 0, 0), leftLeg=(-30, 0, 0))
-    + P(6, OQ, body=(0, 0, 0), rightLeg=(0, 0, 0), leftLeg=(0, 0, 0)))
+# ── 맞을 때·다운·일어나기 → 아래 '기본 모션 2' 에서 새로 (G·_low_full 이 필요해서 뒤에 둠) ──
 
 # ── 기술 ──
 anim("dash_attack", 9,
@@ -556,7 +537,7 @@ anim("stance_al", 60, P(0, LIN, **AL_STANCE)
      + P(30, IO, body=(2, -35, 0), leftArm=(-74, -30, -4, -32), rightArm=(-37, -10, 14, -116),
          leftLeg=(-21, 0, -16, 28), rightLeg=(16, 0, 16, 22), bodyPos=(0, -0.09, 0))
      + P(60, IO, **AL_STANCE), loop=True, ret=0)
-anim("stance_al_walk", 60, P(0, LIN, **AL_ARMS)
+anim("stance_al_arms", 60, P(0, LIN, **AL_ARMS)
      + P(30, IO, body=(2, -35, 0), leftArm=(-74, -30, -4, -32), rightArm=(-37, -10, 14, -116))
      + P(60, IO, **AL_ARMS), loop=True, ret=0)
 
@@ -1067,7 +1048,7 @@ anim("stance_vm", 100, seq([(0, LIN, VM_STANCE),
                             (100, IO, VM_STANCE)]), loop=True, ret=0)
 # 걷기: 다리·왼팔은 바닐라, 오른손만 허리. 상체를 살짝 젖히고 느긋하게
 VM_WALK = dict(body=(5, -8, 0), head=(-3, -8, 0), rightArm=R_HIP)
-anim("stance_vm_walk", 40, seq([(0, LIN, VM_WALK), (20, IO, dict(body=(6, -8, 0))), (40, IO, VM_WALK)]), loop=True, ret=0)
+anim("stance_vm_arms", 40, seq([(0, LIN, VM_WALK), (20, IO, dict(body=(6, -8, 0))), (40, IO, VM_WALK)]), loop=True, ret=0)
 
 # 달리기 (참고: 아이즈 오브 헤븐 디오의 달리기 — 뒤에서 본 장면을 0.067초 간격으로 다시 떼어 봄. 앞선 판은 앞뒤를 거꾸로 읽어 팔을 앞으로 내민 좀비 같았음):
 #   상체를 40° 앞으로 숙여 어깨·등이 보이고 고개는 숙인 채 앞을 봄, 두 팔은 몸 뒤 아래로 비스듬히 벌려(날개처럼) 거의 편 채 조금만 흔듦,
@@ -1455,7 +1436,7 @@ PH_RL, PH_LL = (20, 9, 12), (-22, 9, 20)                     # 왼발 앞, 넓�
 PH_STANCE = solved(G(body=(2, -18, 0), rl=PH_RL, ll=PH_LL, look=(10, 4), rightArm=R_CHIN, leftArm=L_FACE))
 anim("stance_ph", 40, seq([(0, LIN, PH_STANCE), (20, IO, dict(body=(3, -18, 0), rightArm=HR((0.22, -0.82, -0.53), (0.17, 1.46, -0.4)))), (40, IO, PH_STANCE)]), loop=True, ret=0)
 PH_WALK = dict(body=(4, -10, 0), head=(10, -10, 0), rightArm=R_CHIN, leftArm=L_FACE)
-anim("stance_ph_walk", 40, seq([(0, LIN, PH_WALK), (20, IO, dict(body=(5, -10, 0))), (40, IO, PH_WALK)]), loop=True, ret=0)
+anim("stance_ph_arms", 40, seq([(0, LIN, PH_WALK), (20, IO, dict(body=(5, -10, 0))), (40, IO, PH_WALK)]), loop=True, ret=0)
 
 # 달리기: 상체 25°, 주먹 쥔 두 팔을 다리와 반대로 크게 흔듦 (팔꿈치 90°), 걸음마다 살짝 뜸. 20틱에 두 걸음
 PH_RUN_LEG = [(0, (-40, 18)), (2, (-12, 24)), (4, (30, 10)), (5, (38, 56)), (6, (24, 120)), (8, (-44, 100)), (9, (-50, 44)), (10, (-40, 18))]
@@ -1741,7 +1722,7 @@ PW_RL, PW_LL = (12, 12, 8), (-14, 12, 12)                    # 넓게 버텨 섬
 PW_STANCE = solved(G(body=(4, -10, 0), rl=PW_RL, ll=PW_LL, look=(-4, 6), rightArm=R_CROWN, leftArm=L_BELLY))
 anim("stance_pw", 40, seq([(0, LIN, PW_STANCE), (20, IO, dict(body=(5, -10, 0), leftArm=HL((-0.35, -0.85, -0.38), (0.02, 0.98, -0.36)))), (40, IO, PW_STANCE)]), loop=True, ret=0)
 PW_WALK = dict(body=(4, -6, 0), head=(0, -2, 0), rightArm=R_CROWN, leftArm=L_BELLY)
-anim("stance_pw_walk", 40, seq([(0, LIN, PW_WALK), (20, IO, dict(body=(5, -6, 0))), (40, IO, PW_WALK)]), loop=True, ret=0)
+anim("stance_pw_arms", 40, seq([(0, LIN, PW_WALK), (20, IO, dict(body=(5, -6, 0))), (40, IO, PW_WALK)]), loop=True, ret=0)
 
 # 달리기 (참고: 아이즈 오브 헤븐 영상 1:01.8~1:03.4 옆에서 본 질주, 1/15초씩 떼어 봄): 상체를 40° 가까이 앞으로 숙이고 고개는 들어 앞을 봄,
 #   허리를 낮춘 채 보폭을 크게 (앞발을 멀리 뻗고 뒷발을 뒤로 쭉), 두 팔은 팔꿈치를 조금만 굽혀 다리와 반대로 크게 앞뒤로 휘두름 (뒤로 갈 땐 높이),
@@ -1974,6 +1955,176 @@ anim("run", 12, run_cycle(bob=0.03), loop=True, ret=0)
 anim("run_al", 12, run_cycle(lean=20, thigh=(32, -44), knee=(20, 120), twist=5, bob=0.05, lean_osc=2.5, arms=ARMS_AL), loop=True, ret=0)   # 연금술사: 가볍고 통통 튀는 잔걸음 + 주먹 모은 펌프
 RUN_W = dict(RUN, rightArm=(28, 4, 16, -24))   # 오른손 무기는 허리 뒤로 낮게
 anim("run_w", 12, run_cycle(weapon=True), loop=True, ret=0)
+
+# ═════════ 기본 모션 2: 걷기 · 공중 · 맞기 · 다운 · 일어나기 ═════════
+# 참고: YSM 모델팩 걷기·점프·맞기 5종과 Epic Fight walk·jump·fall·landing·hit_short·hit_long·knockdown 을 같은 렌더러에 올려
+# 같은 위상으로 비교하고 원리만 뽑음 (키프레임 값은 안 옮김)
+
+def _low_full(d):
+    """자세 전체(몸·머리·팔·다리)의 가장 낮은 점 높이 (bodyPos 0 기준, 블록). 렌더러 worldVerts 와 같은 계산 — 누운 자세를 땅에 붙일 때"""
+    import numpy as _np, math as _m
+    def R3(p, y, r):
+        p, y, r = _m.radians(p), _m.radians(y), _m.radians(r)
+        Rx = _np.array([[1, 0, 0], [0, _m.cos(p), -_m.sin(p)], [0, _m.sin(p), _m.cos(p)]])
+        Ry = _np.array([[_m.cos(y), 0, _m.sin(y)], [0, 1, 0], [-_m.sin(y), 0, _m.cos(y)]])
+        Rz = _np.array([[_m.cos(r), -_m.sin(r), 0], [_m.sin(r), _m.cos(r), 0], [0, 0, 1]])
+        return Rz @ Ry @ Rx
+    MODEL = dict(head=((0, 0, 0), (-4, -8, -4), (8, 8, 8)), body=((0, 0, 0), (-4, 0, -2), (8, 12, 4)),
+                 rightArm=((-5, 2, 0), (-3, -2, -2), (4, 12, 4)), leftArm=((5, 2, 0), (-1, -2, -2), (4, 12, 4)),
+                 rightLeg=((-1.9, 12, 0), (-2, 0, -2), (4, 12, 4)), leftLeg=((1.9, 12, 0), (-2, 0, -2), (4, 12, 4)))
+    W = R3(*d["body"][:3])
+    low = 9.9
+    for part, (piv, o, sz) in MODEL.items():
+        v = d.get(part, (0, 0, 0, 0)) if part != "body" else (0, 0, 0)
+        R = R3(v[0], v[1], v[2])
+        b = _m.radians(v[3]) if part not in ("head", "body") and len(v) > 3 else 0
+        RB = _np.array([[1, 0, 0], [0, _m.cos(b), -_m.sin(b)], [0, _m.sin(b), _m.cos(b)]])
+        mid = _np.array([o[0] + sz[0] / 2, o[1] + sz[1] / 2, o[2] + sz[2] / 2])
+        for x in (o[0], o[0] + sz[0]):
+            for y in (o[1], o[1] + sz[1] / 2, o[1] + sz[1]):
+                for zz in (o[2], o[2] + sz[2]):
+                    q = _np.array([x, y, zz], float)
+                    if b and y > mid[1] - 1e-6 and part not in ("head", "body"): q = RB @ (q - mid) + mid
+                    q = R @ q + _np.array(piv)
+                    w = _np.array([-q[0], -q[1], q[2]]) / 16 + _np.array([0, 1.501, 0])
+                    w = W @ (w - _np.array([0, 0.7, 0])) + _np.array([0, 0.7, 0])
+                    low = min(low, w[1])
+    return low
+
+
+def ground(d, lift=0.0):
+    """자세 전체를 땅에 붙임 (가장 낮은 점 = 땅 + lift)"""
+    out = dict(d)
+    bp = out.get("bodyPos", (0, 0, 0))
+    out["bodyPos"] = (bp[0], round(-_low_full(out) + lift, 3), bp[2])
+    return out
+
+
+def _pose0(name):
+    """만들어 둔 모션의 0틱 자세 (부위 → 튜플)"""
+    out = {}
+    for m in A[name]["emote"]["moves"]:
+        if m["tick"] != 0: continue
+        for part, ax in m.items():
+            if part in ("tick", "easing", "turn"): continue
+            if part == "body" and "pitch" not in ax: continue
+            keys = ("pitch", "yaw", "roll", "bend") if part not in ("body", "head") else ("pitch", "yaw", "roll")
+            out[part] = tuple(ax.get(k, 0) for k in keys)
+    return out
+
+
+def walk_cycle(base, n=16, thigh=(22, -30), knee=(4, 46, 16), yaw_k=0.6, lean=0.0, sway=3, twist=2, leg_roll=3, arm=(15, 13, 6)):
+    """걷기 (다리까지). 원리 (YSM 걷기 5종 · Epic Fight walk):
+    · 허벅지: 뒤 +22° ↔ 앞 −30° 를 거의 사인으로 (뒤로 밀어낼 때 조금 느리게)
+    · 무릎: 뒷발이 떨어져 앞으로 넘어올 때 크게 (46°, 걸음의 17% 지점), 디딜 땐 거의 폄 (4°), 디딘 직후 체중 받으며 살짝 (16°)
+    · 몸: 거의 꼿꼿, 걸음마다 2° 비틀림, 허리는 디딘 직후 가장 낮고 다리가 몸 밑을 지날 때 가장 높음 (발이 땅에 붙게 풀면 저절로)
+    · 팔: 빈 팔은 위팔 ±15°, 앞일 때 아래팔이 더 굽음. 자세에서 잡은 팔은 그대로 두고 ±3° 만 흔들림
+    · 싸움 자세의 몸 돌림(yaw)은 걸을 땐 yaw_k 만큼만 — 발은 늘 진행 방향을 향함 (다리 yaw 로 되돌림, 고정값이라 옆으로 쓸리지 않음)"""
+    import math as _m
+    by = base.get("body", (0, 0, 0)); hd = base.get("head", (by[0], by[1], 0))
+    yaw0 = by[1] * yaw_k
+    def kn(p):
+        def g(c, w): d = min(abs(p - c), abs(p - c - 1), abs(p - c + 1)); return _m.exp(-(d / w) ** 2)
+        return knee[0] + (knee[1] - knee[0]) * g(0.17, 0.11) + (knee[2] - knee[0]) * g(0.64, 0.1)
+    mid, amp = (thigh[0] + thigh[1]) / 2, (thigh[0] - thigh[1]) / 2
+    keys = []
+    for t in range(n + 1):
+        p = t / n
+        c = _m.cos(2 * _m.pi * p)             # +1 = 오른다리 뒤·오른팔 앞
+        th_r = mid + amp * _m.cos(2 * _m.pi * p - 0.12 * _m.sin(2 * _m.pi * p))
+        th_l = mid + amp * _m.cos(2 * _m.pi * (p + 0.5) - 0.12 * _m.sin(2 * _m.pi * (p + 0.5)))
+        bp = by[0] - lean
+        yaw = yaw0 + twist * _m.sin(2 * _m.pi * p)
+        body = (round(bp, 1), round(yaw, 1), by[2])
+        rl = (round(th_r + bp, 1), round(-yaw, 1), leg_roll, round(kn(p), 1))
+        ll = (round(th_l + bp, 1), round(-yaw, 1), -leg_roll, round(kn((p + 0.5) % 1), 1))
+        low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
+        def armv(side, cc):
+            v = base.get("rightArm" if side > 0 else "leftArm")
+            if v is None:   # 빈 팔: 다리와 반대로 흔듦
+                return (round(-arm[0] * cc, 1), 0, side * 5, round(-arm[1] - arm[2] * cc, 1))
+            v = list(v) + [0] * (4 - len(v))
+            return (round(v[0] - sway * cc, 1), v[1], v[2], v[3])
+        dy = yaw - by[1]
+        fr = dict(body=body, head=(round(hd[0] - lean, 1), round(hd[1] + dy - 1.6 * twist * _m.sin(2 * _m.pi * p), 1), hd[2]),
+                  rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low, 3), 0),
+                  rightArm=armv(1, c), leftArm=armv(-1, -c))
+        keys.append((t, LIN, fr))
+    return seq(keys)
+
+
+# 직업·무기 자세별 걷기 — 위몸은 그 자세 그대로, 성격만 조금씩
+for _base, _name, _kw in [
+        ("stance", "stance_walk", {}),
+        ("stance_sword", "stance_sword_walk", {}),
+        ("stance_spear", "stance_spear_walk", dict(yaw_k=0.5)),
+        ("stance_gs", "stance_gs_walk", dict(thigh=(20, -26), knee=(6, 44, 20))),             # 대검: 무거워 보폭 짧고 무릎 더 굽힘
+        ("stance_al_arms", "stance_al_walk", dict(yaw_k=0.45, knee=(4, 52, 16))),              # 연금술사: 옆 자세를 반쯤 풀고 가볍게
+        ("stance_vm_arms", "stance_vm_walk", dict(thigh=(24, -34), knee=(2, 40, 12), twist=4, sway=0)),   # 뱀파이어: 젖힌 채 큰 보폭, 어깨를 거들먹
+        ("stance_ph_arms", "stance_ph_walk", dict(thigh=(22, -28), knee=(6, 44, 22), leg_roll=6)),          # 열: 다리 넓게, 디딜 때 무게
+        ("stance_pw_arms", "stance_pw_walk", dict(lean=4, knee=(4, 48, 14), twist=1))]:                   # 바람: 살짝 숙여 매끈하게
+    anim(_name, 16, walk_cycle(_pose0(_base), **_kw), loop=True, ret=0)
+
+# 공중 (다리만 — 자세 층 아래 '다리 층'에 깔림. 팔은 싸움 자세 그대로)
+# 원리 (YSM jump · Epic Fight jump/fall): 뛰어오를 땐 한쪽 무릎을 높이 접어 들고 (허벅지 −65°, 무릎 115°) 다른 다리는 살짝 뒤로 굽혀 매달림,
+# 떨어질 땐 두 다리를 내려 땅을 찾음 (무릎 반쯤 펴고 조금 벌림). 공중에 떠 있는 동안 아주 조금씩 흔들림
+anim("air_up", 20, P(0, LIN, rightLeg=(-62, 0, 4, 112), leftLeg=(-6, 0, -5, 30))
+     + P(10, IO, rightLeg=(-66, 0, 4, 118), leftLeg=(-9, 0, -5, 26))
+     + P(20, IO, rightLeg=(-62, 0, 4, 112), leftLeg=(-6, 0, -5, 30)), loop=True, ret=0)
+anim("air_fall", 20, P(0, LIN, rightLeg=(-28, 0, 7, 46), leftLeg=(8, 0, -7, 24))
+     + P(10, IO, rightLeg=(-24, 0, 7, 40), leftLeg=(4, 0, -7, 30))
+     + P(20, IO, rightLeg=(-28, 0, 7, 46), leftLeg=(8, 0, -7, 24)), loop=True, ret=0)
+
+# ── 맞기 ── 원리 (Epic Fight hit_short/hit_long · YSM attacked):
+# · 1틱 만에 충격 자세 → 2~5틱 버팀 → 7~8틱에 걸쳐 천천히 회복 (빠르게 들어가고 느리게 나옴)
+# · 몸이 판자처럼 통째로 넘어가지 않음: 엉덩이가 뒤로 빠지고 무릎이 꺾여 충격을 받고, 상체가 맞은 곳을 감싸며 굽음
+# · 고개가 몸보다 한 박자 늦게 휘청 (채찍), 팔은 힘이 빠져 앞으로 흔들림
+# hit = 몸통 (배를 맞아 꺾임), hit_2 = 얼굴 (옆에서 맞아 고개가 돌아가고 젖혀짐) — 연타 때 번갈아
+_NEUT = G(body=(0, 0, 0), rl=(3, 4, 3), ll=(-3, 4, 3), rightArm=(0, 0, 0, 0), leftArm=(0, 0, 0, 0))
+anim("hit", 12, seq([
+    (0, EX, G(body=(-18, 6, 2), rl=(9, 6, 14), ll=(-4, 6, 14), look=(14, 4), sink=0.25, z=-0.1,
+              rightArm=(-46, 18, 12, -62), leftArm=(-40, -16, -10, -58))),
+    (2, OQ, G(body=(-24, 8, 3), rl=(10, 6, 18), ll=(-5, 6, 18), look=(18, 6), sink=0.35, z=-0.14,
+              rightArm=(-54, 20, 14, -74), leftArm=(-50, -18, -12, -70))),
+    (5, LIN, G(body=(-21, 6, 2), rl=(10, 6, 16), ll=(-5, 6, 16), look=(2, 4), sink=0.3, z=-0.12,
+               rightArm=(-48, 18, 12, -66), leftArm=(-44, -16, -10, -62))),
+    (12, IO, _NEUT)]))
+anim("hit_2", 12, seq([
+    (0, EX, G(body=(8, 26, -6), rl=(18, 8, 22), ll=(-12, 6, 12), look=(-20, 18), sink=0.35, z=-0.08,
+              rightArm=(26, 0, 38, -18), leftArm=(-56, -12, -22, -72))),
+    (2, OQ, G(body=(11, 32, -8), rl=(20, 8, 26), ll=(-14, 6, 14), look=(-26, 26), sink=0.45, z=-0.12,
+              rightArm=(34, 0, 46, -22), leftArm=(-64, -14, -24, -80))),
+    (5, LIN, G(body=(8, 27, -6), rl=(19, 8, 24), ll=(-13, 6, 13), look=(-12, 16), sink=0.4, z=-0.1,
+               rightArm=(28, 0, 40, -20), leftArm=(-58, -12, -22, -74))),
+    (12, IO, _NEUT)]))
+# 공중 경직: 젖혀진 채 팔이 위로 들리고 다리는 무릎 굽혀 매달림, 천천히 흔들림
+_HA = lambda k: AIR(body=(20 + 4 * k, 0, 2 * k), rl=(-14 - 6 * k, 8, 52 + 8 * k), ll=(14 + 4 * k, 10, 30 + 6 * k), look=(-18 - 4 * k, 0),
+                    rightArm=(-78 - 8 * k, 0, 40, -34), leftArm=(-66 - 6 * k, 0, -46, -28))
+anim("hit_air", 14, seq([(0, EX, _HA(1)), (3, OQ, _HA(1.2)), (14, IO, _HA(0))]), stop=16)
+
+# ── 다운 ── 원리 (Epic Fight knockdown): 2틱 만에 등이 젖혀지며 다리가 들림 → 6~7틱에 등으로 바닥에 떨어짐 → 살짝 튕김 → 누움
+# (몸 전체를 땅에 붙여 계산: 누운 몸·머리·팔다리 중 가장 낮은 점 = 땅)
+_LIE = ground(dict(body=(88, 0, 0), head=(78, 6, 0), rightArm=(-18, 0, 64, -12), leftArm=(-24, 0, -58, -16),
+                   rightLeg=(-6, 0, 8, 8), leftLeg=(-34, 0, -10, 62)))
+_LIE2 = ground(dict(body=(87, 0, 0), head=(76, 6, 0), rightArm=(-16, 0, 62, -12), leftArm=(-22, 0, -56, -16),
+                    rightLeg=(-6, 0, 8, 8), leftLeg=(-36, 0, -10, 66)))
+anim("knock", 30, seq([
+    (0, EX, dict(body=(26, 0, 0), head=(4, 0, 0), rightArm=(-82, 0, 26, -30), leftArm=(-74, 0, -26, -26),
+                 rightLeg=(-34, 0, 6, 22), leftLeg=(-18, 0, -6, 40), bodyPos=(0, 0.08, 0))),
+    (3, OQ, dict(body=(56, 0, 0), head=(30, 0, 0), rightArm=(-128, 0, 36, -20), leftArm=(-118, 0, -36, -18),
+                 rightLeg=(-58, 0, 8, 30), leftLeg=(-44, 0, -8, 56), bodyPos=(0, 0.02, 0))),
+    (7, IQ, _LIE),
+    (9, OQ, {**_LIE, "bodyPos": (0, _LIE["bodyPos"][1] + 0.12, 0), "body": (84, 0, 0)}),
+    (12, IQ, _LIE), (30, IO, _LIE2)]), stop=31)
+# 날아가다 떨어졌을 때: 등으로 쿵 → 튕김 → 누움 (이미 누운 자세에서 이어짐)
+anim("down", 30, seq([(0, LIN, {**_LIE, "bodyPos": (0, _LIE["bodyPos"][1] + 0.18, 0), "body": (80, 0, 0)}),
+                      (3, IQ, _LIE), (5, OQ, {**_LIE, "bodyPos": (0, _LIE["bodyPos"][1] + 0.07, 0)}), (7, IQ, _LIE), (30, IO, _LIE2)]), stop=31)
+# 일어나기 (무적 10틱): 상체를 일으켜 앉고 → 한쪽 무릎을 세워 짚고 → 일어섬 (판자처럼 세워지지 않게)
+_SIT = ground(dict(body=(18, 0, 0), head=(8, 0, 0), rightArm=(30, 0, 30, -10), leftArm=(24, 0, -30, -10),
+                   rightLeg=(-62, 0, 8, 70), leftLeg=(-84, 0, -8, 24)))
+_KNEEL = G(body=(-22, 0, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(6, 0), rightArm=(-30, 0, 14, -30), leftArm=(-50, 0, -10, -60))
+anim("getup", 10, seq([(0, LIN, _LIE), (3, OQ, _SIT), (6, IO, _KNEEL), (10, OS, _NEUT)]))
+
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)

@@ -7,98 +7,236 @@
   "isLoop": false,
   "returnTick": 0,
   "beginTick": 0,
-  "endTick": 11,
-  "stopTick": 12,
+  "endTick": 12,
+  "stopTick": 13,
   "degrees": true,
   "easeBeforeKeyframe": true,
   "nsfw": false,
   "moves": [
    {
-    "tick": 1,
+    "tick": 0,
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "body": {
-     "pitch": 24,
-     "yaw": 30,
-     "roll": 0
+     "pitch": -18,
+     "yaw": 6,
+     "roll": 2
     }
    },
    {
-    "tick": 1,
+    "tick": 0,
     "easing": "EASEOUTEXPO",
     "turn": 0,
     "head": {
-     "pitch": -30,
-     "yaw": 12,
-     "roll": 0
-    }
-   },
-   {
-    "tick": 1,
-    "easing": "EASEOUTEXPO",
-    "turn": 0,
-    "rightArm": {
-     "pitch": 20,
-     "yaw": 0,
-     "roll": 26,
-     "bend": -30
-    }
-   },
-   {
-    "tick": 1,
-    "easing": "EASEOUTEXPO",
-    "turn": 0,
-    "leftArm": {
-     "pitch": 30,
-     "yaw": 0,
-     "roll": -14,
-     "bend": -45
-    }
-   },
-   {
-    "tick": 1,
-    "easing": "EASEOUTEXPO",
-    "turn": 0,
-    "rightLeg": {
-     "pitch": 14,
-     "yaw": 0,
-     "roll": 0,
-     "bend": 34
-    }
-   },
-   {
-    "tick": 1,
-    "easing": "EASEOUTEXPO",
-    "turn": 0,
-    "leftLeg": {
-     "pitch": -10,
-     "yaw": 0,
-     "roll": 0,
-     "bend": 18
-    }
-   },
-   {
-    "tick": 5,
-    "easing": "LINEAR",
-    "turn": 0,
-    "body": {
-     "pitch": 20,
-     "yaw": 26,
-     "roll": 0
-    }
-   },
-   {
-    "tick": 5,
-    "easing": "LINEAR",
-    "turn": 0,
-    "head": {
-     "pitch": -26,
+     "pitch": -4,
      "yaw": 10,
      "roll": 0
     }
    },
    {
-    "tick": 11,
+    "tick": 0,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": -26.5,
+     "yaw": -4.2,
+     "roll": 6,
+     "bend": 52.5
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -45.7,
+     "yaw": -4.2,
+     "roll": -6,
+     "bend": 62.3
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.018,
+     "z": -0.1
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -46,
+     "yaw": 18,
+     "roll": 12,
+     "bend": -62
+    }
+   },
+   {
+    "tick": 0,
+    "easing": "EASEOUTEXPO",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -40,
+     "yaw": -16,
+     "roll": -10,
+     "bend": -58
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "body": {
+     "pitch": -24,
+     "yaw": 8,
+     "roll": 3
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "head": {
+     "pitch": -6,
+     "yaw": 14,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": -33.0,
+     "yaw": -5.6,
+     "roll": 6,
+     "bend": 62.1
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -56.2,
+     "yaw": -5.6,
+     "roll": -6,
+     "bend": 74.3
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.052,
+     "z": -0.14
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -54,
+     "yaw": 20,
+     "roll": 14,
+     "bend": -74
+    }
+   },
+   {
+    "tick": 2,
+    "easing": "EASEOUTQUAD",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -50,
+     "yaw": -18,
+     "roll": -12,
+     "bend": -70
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "pitch": -21,
+     "yaw": 6,
+     "roll": 2
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "head": {
+     "pitch": -19,
+     "yaw": 10,
+     "roll": 0
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": -29.3,
+     "yaw": -4.2,
+     "roll": 6,
+     "bend": 57.5
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -52.0,
+     "yaw": -4.2,
+     "roll": -6,
+     "bend": 69.1
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": -0.034,
+     "z": -0.12
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "rightArm": {
+     "pitch": -48,
+     "yaw": 18,
+     "roll": 12,
+     "bend": -66
+    }
+   },
+   {
+    "tick": 5,
+    "easing": "LINEAR",
+    "turn": 0,
+    "leftArm": {
+     "pitch": -44,
+     "yaw": -16,
+     "roll": -10,
+     "bend": -62
+    }
+   },
+   {
+    "tick": 12,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "body": {
@@ -108,7 +246,7 @@
     }
    },
    {
-    "tick": 11,
+    "tick": 12,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "head": {
@@ -118,7 +256,39 @@
     }
    },
    {
-    "tick": 11,
+    "tick": 12,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "rightLeg": {
+     "pitch": -5.3,
+     "yaw": -0.0,
+     "roll": 4,
+     "bend": 19.8
+    }
+   },
+   {
+    "tick": 12,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "leftLeg": {
+     "pitch": -12.3,
+     "yaw": -0.0,
+     "roll": -4,
+     "bend": 21.6
+    }
+   },
+   {
+    "tick": 12,
+    "easing": "EASEINOUTSINE",
+    "turn": 0,
+    "body": {
+     "x": 0,
+     "y": 0.024,
+     "z": 0.0
+    }
+   },
+   {
+    "tick": 12,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "rightArm": {
@@ -129,32 +299,10 @@
     }
    },
    {
-    "tick": 11,
+    "tick": 12,
     "easing": "EASEINOUTSINE",
     "turn": 0,
     "leftArm": {
-     "pitch": 0,
-     "yaw": 0,
-     "roll": 0,
-     "bend": 0
-    }
-   },
-   {
-    "tick": 11,
-    "easing": "EASEINOUTSINE",
-    "turn": 0,
-    "rightLeg": {
-     "pitch": 0,
-     "yaw": 0,
-     "roll": 0,
-     "bend": 0
-    }
-   },
-   {
-    "tick": 11,
-    "easing": "EASEINOUTSINE",
-    "turn": 0,
-    "leftLeg": {
      "pitch": 0,
      "yaw": 0,
      "roll": 0,
