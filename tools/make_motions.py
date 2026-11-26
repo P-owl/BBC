@@ -1674,19 +1674,20 @@ anim("stance_pw", 40, seq([(0, LIN, PW_STANCE), (20, IO, dict(body=(5, -10, 0), 
 PW_WALK = dict(body=(4, -6, 0), head=(0, -2, 0), rightArm=R_CROWN, leftArm=L_BELLY)
 anim("stance_pw_walk", 40, seq([(0, LIN, PW_WALK), (20, IO, dict(body=(5, -6, 0))), (40, IO, PW_WALK)]), loop=True, ret=0)
 
-# 달리기: 힘으로 밀고 나가는 큰 보폭 — 상체 20° 숙임, 팔꿈치를 90°로 굽힌 두 팔을 다리와 반대로 크게 앞뒤로 흔들고 (주먹이 턱 높이까지),
-#   어깨가 팔을 따라 좌우로 비틀리며 (±12°) 걸음마다 몸이 오르내림. 20틱에 두 걸음 (열 루트 달리기와 같은 다리 주기)
+# 달리기 (참고: 아이즈 오브 헤븐 영상 1:01.8~1:03.4 옆에서 본 질주, 1/15초씩 떼어 봄): 상체를 40° 가까이 앞으로 숙이고 고개는 들어 앞을 봄,
+#   허리를 낮춘 채 보폭을 크게 (앞발을 멀리 뻗고 뒷발을 뒤로 쭉), 두 팔은 팔꿈치를 조금만 굽혀 다리와 반대로 크게 앞뒤로 휘두름 (뒤로 갈 땐 높이),
+#   어깨가 팔을 따라 비틀림. 20틱에 두 걸음
 _wrun = []
 for t in range(0, 21):
     rw, lw = _ph_leg(t), _ph_leg(t + 5)
     sw = max(-1.0, min(1.0, -(rw[0] - lw[0]) / 90.0))   # 오른다리가 앞이면 +
-    BP = -20
-    body = (BP, round(-12 * sw, 1), round(2 * sw, 1))
-    rl = (round(rw[0] * 1.1 + BP, 1), round(5 * sw, 1), 5, round(rw[1], 1)); ll = (round(lw[0] * 1.1 + BP, 1), round(5 * sw, 1), -5, round(lw[1], 1))
+    BP = -38
+    body = (BP, round(-14 * sw, 1), round(3 * sw, 1))
+    rl = (round(rw[0] * 1.3 + BP, 1), round(5 * sw, 1), 6, round(min(130, rw[1] * 1.1), 1)); ll = (round(lw[0] * 1.3 + BP, 1), round(5 * sw, 1), -6, round(min(130, lw[1] * 1.1), 1))
     low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
-    fly = 0.08 if t % 5 == 0 else 0.05 if t % 5 in (1, 4) else 0.0
-    _wrun.append((t, LIN, dict(body=body, head=(BP + 16, round(12 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
-                               rightArm=(round(-20 + 55 * sw, 1), 0, 10, round(-90 + 20 * sw, 1)), leftArm=(round(-20 - 55 * sw, 1), 0, -10, round(-90 - 20 * sw, 1)))))
+    fly = 0.06 if t % 5 == 0 else 0.03 if t % 5 in (1, 4) else 0.0
+    _wrun.append((t, LIN, dict(body=body, head=(BP + 34, round(14 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
+                               rightArm=(round(5 + 62 * sw, 1), 0, 12, round(-30 + 12 * sw, 1)), leftArm=(round(5 - 62 * sw, 1), 0, -12, round(-30 - 12 * sw, 1)))))
 anim("run_pw", 20, seq(_wrun), loop=True, ret=0)
 
 # 가드: 두 아래팔을 얼굴 앞에서 X 자로 겹침
