@@ -168,10 +168,16 @@ public final class PillarHeat {
         int h = HEAT.getOrDefault(p.getUuid(), 0);
         if (h > 0 && at != null && Combat.now() - at > 200 && !mode(p) && !Awaken.active(p)) { HEAT.put(p.getUuid(), h - 1); HEAT_AT.put(p.getUuid(), Combat.now() - 160); }
         if (heat(p) >= 3) w.spawnParticles(ParticleTypes.WHITE_SMOKE, p.getX(), p.getY() + 1.4, p.getZ(), heat(p), 0.25, 0.4, 0.25, 0.01);   // 몸에서 김
+        sun(p, sunlit, S_PETRIFY);
+    }
+
+    /** 기둥 속 사내 공통: 햇빛을 받으면 석화 (열·바람 루트 모두) */
+    static void sun(ServerPlayerEntity p, boolean sunlit, SoundEvent cry) {
+        ServerWorld w = p.getServerWorld();
         if (sunlit) {
             if (PETRIFIED.add(p.getUuid())) {
                 p.sendMessage(Text.literal("☀ 햇빛을 받아 몸이 돌로 굳는다…! 그늘·밤까지 움직일 수 없다").formatted(Formatting.GOLD), false);
-                say(p, S_PETRIFY);
+                say(p, cry);
                 w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.PLAYERS, 1.2f, 0.6f);
                 Motion.play(p, "stop");
             }

@@ -64,6 +64,7 @@ public class BbcClient implements ClientModInitializer {
         CombatHud.init();
         GrowthClient.init();
         Cutscene.init();
+        WindSight.init();
         // 연금술사: 진리의 통행료로 잃은 팔·다리와 오토메일을 플레이어 모델에
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(bbc.job.alchemy.BodyPayload.ID, (payload, ctx) -> {
             if (payload.toll().isEmpty() && payload.automail().isEmpty() && payload.buff() == 0) bbc.client.alchemy.AutomailRender.BODIES.remove(payload.player());
@@ -83,7 +84,7 @@ public class BbcClient implements ClientModInitializer {
         }));
         ClientPlayNetworking.registerGlobalReceiver(CombatStatePayload.ID,
                 (payload, ctx) -> ctx.client().execute(() -> combat = payload.on()));
-        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { combat = false; guardSent = false; StoneSkin.clear(); });
+        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { combat = false; guardSent = false; StoneSkin.clear(); WindSight.set(false); });
 
         // 바닐라가 F·Q를 처리하기 전에 가로챔
         ClientTickEvents.START_CLIENT_TICK.register(client -> {

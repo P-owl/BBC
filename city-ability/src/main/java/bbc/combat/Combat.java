@@ -303,7 +303,7 @@ public final class Combat {
     }
 
     /** 공중 평타를 따로 가진 평타 세트 (모션 이름 = 접두어 + "a" + 1~3) */
-    private static final java.util.Set<String> AIR_SETS = java.util.Set.of("vm_", "ph_");
+    private static final java.util.Set<String> AIR_SETS = java.util.Set.of("vm_", "ph_", "pw_");
 
     /** 평타마다 앞으로 붙기: 앞에 상대가 있으면 그쪽으로 조금 미끄러짐 */
     private static void track(LivingEntity p) {

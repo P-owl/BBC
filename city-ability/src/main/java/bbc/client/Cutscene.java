@@ -167,6 +167,43 @@ public final class Cutscene {
         SHOTS.put("ph_blink", new Shot(9, 3, true, null, null, 0, NO_LINES,
                 cut(0, 1.1, 1.2, 0.5, 0, 1.45, 0),
                 k(9, 0.95, 1.25, 0.45, 0, 1.5, 0)));
+        // 기둥 속 사내 · 바람 각성 (64틱, 참고 '「바람」만을 느껴 사물을 보겠다' 0:42.8~0:45.2): 전신 → 손가락을 눈에 대는 얼굴 옆 클로즈업 →
+        //   감긴 눈 정면 → 아래에서 올려다본 머리 (뿔에 바람이 감겨 솟음) → 전신
+        SHOTS.put("pw_awaken", new Shot(64, 10, true, "바람만을 느껴", "기둥 속 사내 · 각성", 52,
+                new Line[]{new Line(4, "이제부터는… 빛이 아니라 「바람」만을 느껴 사물을 보겠다"), new Line(30, "|바람의 움직임을 읽고, 공기의 속삭임을 듣는다")},
+                cut(0, 2.4, 1.1, 0.8, 0, 1.2, 0),
+                cut(5, 0.55, 1.65, 0.45, 0, 1.68, 0),
+                k(24, 0.5, 1.62, 0.4, 0, 1.7, 0),
+                cut(25, 0.6, 1.62, 0.0, 0, 1.7, 0),
+                k(33, 0.52, 1.6, 0.0, 0, 1.72, 0),
+                cut(34, 0.9, 0.9, -0.6, 0, 2.0, 0),
+                k(48, 1.0, 0.7, -0.8, 0, 2.4, 0),
+                cut(49, 3.0, 1.3, 1.2, 0, 1.2, 0),
+                k(64, 3.4, 1.5, 1.0, 0, 1.2, 0)));
+        // 기둥 속 사내 · 바람 각성기 '최종 유법' (170틱, 참고 1:19.4~1:27.6 같은 시간·흐름): 머리 장식을 쥔 상반신 → 만화 칸 속 얼굴 → 고개를 젖히는 머리 →
+        //   어깨 너머로 칼날이 날아가 꽂힘 → 옆에서 8 자로 베이는 상대 → 낮은 뒤 → 뿔 클로즈업 (외침) → 크게 두 번 → 낮게 → 멀리서 회오리
+        SHOTS.put("pw_ult", new Shot(170, 10, true, null, null, 0,
+                new Line[]{new Line(2, "나의 바람의… 최종 유법"), new Line(22, "|최종 유법 「혼설삽」!"), new Line(118, "|쉬이아아아아아—!!"), new Line(166, "|승부는 났다")},
+                cut(0, 2.2, 1.5, 0.6, 0, 1.6, 0),
+                k(16, 2.0, 1.55, 0.5, 0, 1.65, 0),
+                cut(17, 0.6, 1.7, 0.2, 0, 1.75, 0),
+                k(36, 0.5, 1.72, 0.15, 0, 1.78, 0),
+                cut(37, 0.8, 1.2, 0.5, 0, 1.9, 0),
+                k(45, 0.85, 1.1, 0.55, 0, 2.0, 0),
+                cutT(46, -1.6, 2.1, 1.0, 1.0),
+                kT(55, -1.4, 2.0, 0.9, 1.0),
+                cutT(56, 2.5, 1.2, 3.0, 1.0),
+                kT(88, 3.0, 1.4, 3.4, 1.0),
+                cutT(89, -2.4, 0.6, 2.2, 1.2),
+                kT(117, -2.8, 0.6, 2.6, 1.2),
+                cut(118, 0.6, 2.0, 0.1, 0, 2.05, 0),
+                k(128, 0.55, 2.05, 0.1, 0, 2.05, 0),
+                cutT(129, 1.6, 1.4, 3.8, 1.0),
+                kT(150, 2.0, 1.6, 4.2, 1.0),
+                cutT(151, 4.5, 0.4, 1.8, 1.0),
+                kT(163, 4.8, 0.3, 2.2, 1.0),
+                cutT(164, -6.0, 3.5, 5.0, 1.0),
+                kT(170, -6.6, 4.0, 5.6, 1.0)));
         // 가시밭 마무리: 시전자 뒤 낮은 곳에서 가시 숲 위로 날아가는 대상을 올려다봄
         SHOTS.put("al_forest", new Shot(22, 7, true, null, null, 0, NO_LINES,
                 cutT(0, -1.7, 0.7, 0.7, 1.0),
@@ -185,6 +222,7 @@ public final class Cutscene {
         ClientPlayNetworking.registerGlobalReceiver(CutscenePayload.ID, (p, ctx) -> ctx.client().execute(() -> {
             if (p.shot().startsWith("#music:")) music(ctx.client(), p.shot().substring(7));
             else if (p.shot().startsWith("#sound:")) voice(ctx.client(), p.shot().substring(7));
+            else if (p.shot().startsWith("#windsight:")) WindSight.set(p.shot().endsWith(":on"));
             else if (p.shot().equals("#music_stop")) music(ctx.client(), null);
             else play(ctx.client(), p);
         }));
@@ -340,7 +378,8 @@ public final class Cutscene {
     private static final Map<String, int[][]> PANELS = Map.of(
             "vm_awaken", new int[][]{{0, 18, 0}, {18, 34, 1}},
             "vm_ult", new int[][]{{6, 21, 1}, {21, 36, 0}},
-            "ph_ult", new int[][]{{12, 22, 1}});
+            "ph_ult", new int[][]{{12, 22, 1}},
+            "pw_ult", new int[][]{{17, 36, 0}});
 
     private static void panels(DrawContext ctx, double t, int W, int H) {
         int[][] ps = PANELS.get(shotName);

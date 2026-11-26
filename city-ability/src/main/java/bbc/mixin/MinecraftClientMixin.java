@@ -23,6 +23,12 @@ public abstract class MinecraftClientMixin {
         }
     }
 
+    /** 바람 각성: 주위 생물을 윤곽으로 */
+    @Inject(method = "hasOutline", at = @At("HEAD"), cancellable = true)
+    private void bbc$windOutline(net.minecraft.entity.Entity entity, CallbackInfoReturnable<Boolean> cir) {
+        if (bbc.client.WindSight.outline(entity)) cir.setReturnValue(true);
+    }
+
     @Inject(method = "handleBlockBreaking", at = @At("HEAD"), cancellable = true)
     private void bbc$handleBlockBreaking(boolean breaking, CallbackInfo ci) {
         if (BbcClient.combat) {

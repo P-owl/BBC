@@ -92,7 +92,7 @@ def _fix_euler(moves):
 
 
 def anim(name, end, keys, stop=None, loop=False, ret=0):
-    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph")): keys = _fix_euler(keys)
+    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw")): keys = _fix_euler(keys)
     A[name] = {"version": 3, "name": name, "author": "bbc", "description": "",
                "emote": {"isLoop": loop, "returnTick": ret, "beginTick": 0, "endTick": end,
                          "stopTick": stop if stop is not None else end + 1, "degrees": True,
@@ -1648,6 +1648,224 @@ _pu += [(234, EX, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-50, 0), sink
         (246, LIN, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
         (256, IO, PH_STANCE)]
 anim("ph_ult", 256, seq(_pu))
+
+
+# ═════════ 기둥 속 사내 · 바람 루트 (참고: 올스타 배틀 R '바람의 기둥 속 사내' 플레이 영상 + 아이즈 오브 헤븐 캐릭터 영상 — 0.3~0.4초 간격으로 떼어 봄. 이름·연출은 우리 것) ═════════
+# 대기 (참고 0:33~0:37): 키를 다 펴고 버텨 섬 — 오른팔을 들어 아래팔을 머리 위에 가로로 얹고, 왼팔은 배 앞에 낮게. 다리는 넓게
+R_CROWN = HR((0.55, 0.8, 0.2), (0.02, 1.86, 0.14))           # 오른팔을 들어 손을 뒷머리에 (팔꿈치는 위로 — 마크 몸에선 정수리 위까지 안 닿음)
+L_BELLY = HL((-0.35, -0.85, -0.35), (0.02, 1.0, -0.36))       # 왼팔을 배 앞에 낮게 가로질러
+R_EYES = HR((0.55, -0.35, -0.76), (0.07, 1.7, -0.3))          # 손가락을 두 눈에
+L_OUT = HL((-0.9, -0.3, -0.3), (-1.0, 1.05, -0.3))            # 왼팔을 옆으로 비스듬히 뻗음
+R_DOWN_X = HR((-0.25, -0.5, -0.83), (-0.45, 0.85, -0.5))      # 오른팔을 대각선 아래로 휘둘러 내림 (왼쪽 무릎 앞까지)
+R_TEMPLE_HI = HR((0.85, 0.3, -0.42), (0.17, 1.86, -0.1))      # 머리 장식을 쥠
+L_TEMPLE_HI = HL((-0.85, 0.3, -0.42), (-0.17, 1.86, -0.1))
+R_FRAME = HR((0.6, -0.3, -0.74), (0.2, 1.72, -0.36))          # 손바닥으로 얼굴 양옆을 감쌈 (만화 칸)
+L_FRAME = HL((-0.6, -0.3, -0.74), (-0.2, 1.72, -0.36))
+R_ROT_A = HR((0.35, -0.3, -0.89), (0.15, 1.5, -0.6))          # 신사폭풍: 두 팔을 앞에서 반대로 돌림
+R_ROT_B = HR((0.6, -0.1, -0.79), (0.3, 1.32, -0.5))
+L_ROT_A = HL((-0.6, -0.1, -0.79), (-0.3, 1.32, -0.5))
+L_ROT_B = HL((-0.35, -0.3, -0.89), (-0.15, 1.5, -0.6))
+R_FOREARM_FWD = HR((0.25, -0.35, -0.9), (0.2, 1.38, -0.68))   # 아래팔을 앞으로 나란히 (회오리를 쏨)
+L_FOREARM_FWD = HL((-0.25, -0.35, -0.9), (-0.2, 1.38, -0.68))
+PW_RL, PW_LL = (12, 12, 8), (-14, 12, 12)                    # 넓게 버텨 섬
+
+PW_STANCE = solved(G(body=(4, -10, 0), rl=PW_RL, ll=PW_LL, look=(-4, 6), rightArm=R_CROWN, leftArm=L_BELLY))
+anim("stance_pw", 40, seq([(0, LIN, PW_STANCE), (20, IO, dict(body=(5, -10, 0), leftArm=HL((-0.35, -0.85, -0.38), (0.02, 0.98, -0.36)))), (40, IO, PW_STANCE)]), loop=True, ret=0)
+PW_WALK = dict(body=(4, -6, 0), head=(0, -2, 0), rightArm=R_CROWN, leftArm=L_BELLY)
+anim("stance_pw_walk", 40, seq([(0, LIN, PW_WALK), (20, IO, dict(body=(5, -6, 0))), (40, IO, PW_WALK)]), loop=True, ret=0)
+
+# 달리기 (참고 0:33.3): 상체를 깊게 숙이고 두 팔을 뒤로 낮게 펼친 채 낮게 내달림
+_wrun = []
+for t in range(0, 21):
+    rw, lw = _ph_leg(t), _ph_leg(t + 5)
+    sw = max(-1.0, min(1.0, -(rw[0] - lw[0]) / 90.0))
+    BP = -28
+    body = (BP, round(-8 * sw, 1), 0)
+    rl = (round(rw[0] + BP, 1), round(5 * sw, 1), 4, round(rw[1], 1)); ll = (round(lw[0] + BP, 1), round(5 * sw, 1), -4, round(lw[1], 1))
+    low = min(_leg_low(body, rl, -1.9), _leg_low(body, ll, 1.9))
+    fly = 0.07 if t % 5 == 0 else 0.04 if t % 5 in (1, 4) else 0.0
+    _wrun.append((t, LIN, dict(body=body, head=(BP + 30, round(8 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
+                               rightArm=(round(-55 + 10 * sw, 1), 0, 16, -10), leftArm=(round(-55 - 10 * sw, 1), 0, -16, -10))))
+anim("run_pw", 20, seq(_wrun), loop=True, ret=0)
+
+# 가드: 두 아래팔을 얼굴 앞에서 X 자로 겹침
+PW_GUARD = G(body=(-4, -8, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(8, 0), sink=0.05,
+             rightArm=HR((0.45, -0.4, -0.8), (-0.06, 1.66, -0.44)), leftArm=HL((-0.45, -0.4, -0.8), (0.06, 1.58, -0.46)))
+guard_loop("guard_pw", PW_GUARD, dict(body=(-5, -8, 0)))
+
+
+def wstrike(end, frames, hold_to=None, settle=None):
+    fr = [(0, LIN, PW_STANCE)] + frames
+    t_hit, _, hit = frames[-1]
+    if hold_to: fr.append((hold_to, LIN, hit))
+    if settle: fr.append(settle)
+    fr.append((end, IO, PW_STANCE))
+    return seq(fr)
+
+
+# ── 평타 (판정 4, 막타 6): 무겁게 한 방씩 — 왼 잽 → 머리 위 오른팔을 대각선으로 내리찍음 → 왼 올려치기 → 몸을 돌려 오른 손등 → 바람을 실은 두 손바닥 밀치기 ──
+anim("pw_1", 10, wstrike(10, [
+    (2, IO, G(body=(0, -20, 0), rl=PW_RL, ll=PW_LL, look=(6, 6), sink=0.04, rightArm=R_CROWN, leftArm=HL((-0.5, -0.5, -0.7), (-0.15, 1.45, -0.38)))),
+    (4, EX, G(body=(-8, -34, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(8, 12), sink=0.08, z=0.15, rightArm=R_CROWN, leftArm=L_PUNCH)),
+], hold_to=6, settle=(8, IO, G(body=(-5, -28, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(8, 10), sink=0.07, z=0.1, rightArm=R_CROWN, leftArm=L_PUNCH))))
+anim("pw_2", 10, wstrike(10, [   # 머리 위 오른팔을 그대로 대각선 아래로 내리찍음
+    (2, IO, G(body=(6, -30, 0), rl=PW_RL, ll=PW_LL, look=(-4, 10), sink=0.04, rightArm=R_UP_HIGH, leftArm=L_BELLY)),
+    (4, EX, G(body=(-20, 30, 0), rl=DEEP_RL, ll=DEEP_LL, look=(14, -10), sink=0.14, z=0.2, rightArm=R_DOWN_X, leftArm=L_BACK_LO)),
+], hold_to=6, settle=(8, IO, G(body=(-14, 24, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, -8), sink=0.1, z=0.14, rightArm=R_DOWN_X, leftArm=L_BACK_LO))))
+anim("pw_3", 10, wstrike(10, [
+    (2, IO, G(body=(-16, 20, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(14, -4), sink=0.16, rightArm=R_CHIN, leftArm=L_CHAMBER)),
+    (4, EX, G(body=(10, -30, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(-12, 10), sink=0.02, z=0.12, rightArm=R_CHIN, leftArm=L_UPPER)),
+], hold_to=6, settle=(8, IO, G(body=(6, -24, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(-6, 8), sink=0.04, z=0.1, rightArm=R_CHIN, leftArm=L_UPPER))))
+anim("pw_4", 10, wstrike(10, [
+    (2, IO, G(body=(0, 46, 0), rl=PW_RL, ll=PW_LL, look=(6, -14), sink=0.06, rightArm=R_SWING_IN, leftArm=L_CHAMBER)),
+    (4, EX, G(body=(-10, -52, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(10, 18), sink=0.1, z=0.18, rightArm=R_SWING_OUT, leftArm=L_BELLY)),
+], hold_to=6, settle=(8, IO, G(body=(-6, -42, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(8, 14), sink=0.08, z=0.12, rightArm=R_SWING_OUT, leftArm=L_BELLY))))
+PW_PALMS = G(body=(-16, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(12, 0), sink=0.14, z=0.25, rightArm=R_PALM, leftArm=L_PALM)
+anim("pw_5", 17, wstrike(17, [   # 막타: 허리로 두 손을 당겼다가 바람을 실어 두 손바닥으로 밀쳐 날림
+    (3, IO, G(body=(4, 0, 0), rl=PW_RL, ll=PW_LL, look=(-4, 0), sink=0.1, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
+    (6, EX, PW_PALMS),
+], hold_to=10, settle=(13, IO, dict(PW_PALMS, body=(-12, 0, 0)))))
+anim("pw_rise", 11, wstrike(11, [   # 띄우기: 깊게 웅크렸다가 몸을 펴며 오른팔을 하늘로 휘둘러 올림 (바람이 감겨 올라감)
+    (2, IO, G(body=(-24, -16, 0), rl=WIDE_RL, ll=WIDE_LL, look=(20, 6), sink=0.24, rightArm=R_DOWN_X, leftArm=L_BELLY)),
+    (4, EX, _hop(G(body=(14, 18, 0), rl=(6, 6, 2), ll=(-24, 6, 8), look=(-30, -6), rightArm=HR((0.15, 0.96, -0.2), (0.18, 2.2, -0.26)), leftArm=L_BACK_LO), 0.2)),
+], hold_to=7))
+PW_AIR0 = solved(AIR(body=(0, -10, 0), rightArm=R_CROWN, leftArm=L_BELLY))
+
+
+def wma(t_hit, end, frames, hold=2):
+    fr = [(0, LIN, PW_AIR0)] + frames
+    hit = next((p for t, e, p in frames if t == t_hit), None)
+    if hit and hold: fr.append((t_hit + hold, LIN, hit))
+    fr.append((end, IO, PW_AIR0))
+    return seq(fr)
+
+
+anim("pw_a1", 10, wma(4, 10, [(2, IO, AIR(body=(0, -26, 0), rightArm=R_CROWN, leftArm=L_CHAMBER)), (4, EX, AIR(body=(-8, -36, 0), look=(6, 12), rightArm=R_CROWN, leftArm=L_PUNCH))]))
+anim("pw_a2", 10, wma(4, 10, [(2, IO, AIR(body=(6, -30, 0), rightArm=R_UP_HIGH, leftArm=L_BELLY)), (4, EX, AIR(body=(-20, 30, 0), look=(10, -10), rightArm=R_DOWN_X, leftArm=L_BACK_LO))]))
+anim("pw_a3", 10, wma(4, 10, [(2, IO, AIR(body=(18, 0, 0), look=(-8, 0), rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+                              (4, EX, AIR(body=(-26, 0, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(16, 0), rightArm=HR((0.12, -0.25, -0.96), (0.08, 0.95, -0.6)), leftArm=HL((-0.12, -0.25, -0.96), (-0.08, 0.95, -0.6))))]))
+PW_SLAM_UP = AIR(body=(24, 0, 0), rl=(-60, 18, 90), ll=(-40, 18, 80), look=(-14, 0), rightArm=HR((0.1, 0.95, 0.25), (0.05, 2.15, 0.12)), leftArm=HL((-0.1, 0.95, 0.25), (-0.05, 2.15, 0.12)))
+PW_SLAM_DN = AIR(body=(-56, 0, 0), rl=(30, 18, 30), ll=(22, 18, 24), look=(30, 0), rightArm=HR((0.06, -0.15, -0.98), (0.03, 0.85, -0.7)), leftArm=HL((-0.06, -0.15, -0.98), (-0.03, 0.85, -0.7)))
+anim("pw_slam", 15, seq([(0, LIN, PW_AIR0), (2, OQ, PW_SLAM_UP), (4, EX, PW_SLAM_DN), (9, LIN, dict(body=(-52, 0, 0))), (15, IO, PW_STANCE)]))
+
+# ── 기술 ──
+# ① 진공 소용돌이 (참고 '진공파문의 여파다' 0:52~0:58): 머리 위 오른팔을 든 채 반쯤 돌며 무릎을 굽혔다가 → 대각선 아래로 크게 휘둘러 내림 (진공 칼바람이 감김)
+#    → 다시 들어 올려 왼손등으로 → 마지막에 오른팔로 크게 한 번 더 (6·14·22 판정)
+PW_VAC_CH = G(body=(2, 40, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, -20), sink=0.16, rightArm=R_UP_HIGH, leftArm=L_BELLY)
+PW_VAC_R = G(body=(-22, -30, 0), rl=DEEP_RL, ll=DEEP_LL, look=(14, 14), sink=0.16, z=0.22, rightArm=R_DOWN_X, leftArm=L_BACK_LO)
+PW_VAC_L = G(body=(-14, 44, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(10, -16), sink=0.12, z=0.18, rightArm=R_CHAMBER, leftArm=L_BACKHAND_OUT)
+anim("pw_vac", 32, seq([(0, LIN, PW_STANCE), (3, OQ, PW_VAC_CH), (6, EX, PW_VAC_R), (9, LIN, dict(PW_VAC_R, body=(-20, -26, 0))),
+                        (11, IO, G(body=(0, -30, 0), rl=PW_RL, ll=PW_LL, look=(0, 10), sink=0.1, rightArm=R_CHAMBER, leftArm=L_BACKHAND_IN)), (14, EX, PW_VAC_L),
+                        (17, LIN, dict(PW_VAC_L, body=(-12, 40, 0))), (19, IO, PW_VAC_CH), (22, EX, dict(PW_VAC_R, body=(-26, -36, 0))),
+                        (26, LIN, dict(PW_VAC_R, body=(-24, -32, 0))), (32, IO, PW_STANCE)]))
+anim("pw_vac_q", 12, wstrike(12, [(2, OQ, PW_VAC_CH), (4, EX, PW_VAC_R)], hold_to=7))
+anim("pw_vac_air", 16, seq([(0, LIN, PW_AIR0), (2, OQ, AIR(body=(10, 40, 0), look=(0, -20), rightArm=R_UP_HIGH, leftArm=L_BELLY)),
+                            (6, EX, AIR(body=(-40, -30, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(24, 14), rightArm=R_DOWN_X, leftArm=L_BACK_LO)),
+                            (10, LIN, dict(body=(-36, -26, 0))), (16, IO, PW_STANCE)]))
+# ② 바람의 프로텍터 (참고 아이즈 오브 헤븐 1:20~1:24): 넓게 주저앉아 두 팔에 힘을 줌 → 몸의 관에서 바람을 뿜으며 몸을 폄 (빛이 굴절돼 사라짐)
+PW_PROT_CH = G(body=(-8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 0), sink=0.3, rightArm=R_FLEX, leftArm=L_FLEX)
+anim("pw_protect", 24, seq([(0, LIN, PW_STANCE), (4, IO, PW_PROT_CH), (7, LIN, dict(PW_PROT_CH, body=(-9, 0, 0))),
+                            (9, EX, G(body=(8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-12, 0), sink=0.12, rightArm=R_WAIL, leftArm=L_WAIL)),
+                            (16, LIN, G(body=(6, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 0), sink=0.12, rightArm=R_WAIL, leftArm=L_WAIL)), (24, IO, PW_STANCE)]))
+#    평타 중·공중: 바람을 타고 옆으로 미끄러지듯 빠짐 (회피)
+anim("pw_slip", 10, seq([(0, LIN, PW_STANCE), (2, OQ, G(body=(-20, 30, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, -20), sink=0.2, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                         (6, LIN, G(body=(-18, 28, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, -18), sink=0.2, rightArm=R_BACK_LO, leftArm=L_BACK_LO)), (10, IO, PW_STANCE)]))
+# ③ 그림자 일격 (참고 '그림자에 들어간 네 잘못이다' 0:30.1~0:30.5): 땅에 붙을 만큼 납작 엎드렸다가 (그림자 속으로) → 몸을 펴며 오른팔로 바람을 감아 올려침 (띄움)
+PW_DUCK = G(body=(-46, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(30, 4), sink=0.3, rightArm=R_LOW_CLAW, leftArm=L_LOW_CLAW)
+PW_RISE = _hop(G(body=(16, 24, 0), rl=(6, 6, 2), ll=(-24, 6, 8), look=(-32, -8), rightArm=HR((0.15, 0.96, -0.2), (0.18, 2.2, -0.26)), leftArm=L_BACK_LO), 0.25)
+anim("pw_shadow", 24, seq([(0, LIN, PW_STANCE), (4, OQ, PW_DUCK), (8, LIN, dict(PW_DUCK, body=(-48, -10, 0))), (10, EX, PW_RISE), (15, LIN, dict(PW_RISE, body=(14, 22, 0))), (24, IO, PW_STANCE)]))
+anim("pw_shadow_q", 14, seq([(0, LIN, PW_STANCE), (2, OQ, dict(PW_DUCK, body=(-30, -10, 0))), (5, EX, PW_RISE), (9, LIN, dict(PW_RISE, body=(14, 22, 0))), (14, IO, PW_STANCE)]))
+# ④ 비틀어 치기 (참고 '힘껏 뒤로 젖힌다' 0:16.4~0:18.1): 몸을 뒤로 한껏 비틀며 오른팔을 등 뒤 멀리 당김 → 온몸을 던져 앞으로 곧게 내지름 (10) →
+#    그대로 한 바퀴 돌며 오른팔로 바람을 실어 가로로 후려침 (22)
+PW_COIL = G(body=(10, 62, 0), rl=PW_RL, ll=PW_LL, look=(-6, -40), sink=0.1, rightArm=HR((0.55, -0.2, 0.81), (0.55, 1.4, 0.62)), leftArm=L_PUNCH)
+PW_LUNGE = G(body=(-26, -34, 0), rl=DEEP_RL, ll=DEEP_LL, look=(18, 20), sink=0.16, z=0.4, rightArm=R_PUNCH, leftArm=L_BACK_LO)
+PW_SPIN = G(body=(-8, 70, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(6, -36), sink=0.1, z=0.2, rightArm=HR((-0.4, 0.1, -0.91), (-0.6, 1.42, -0.5)), leftArm=L_BELLY)
+PW_SWEEP = G(body=(-12, -60, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(8, 30), sink=0.12, z=0.24, rightArm=R_SWING_OUT, leftArm=L_BACK_LO)
+anim("pw_twist", 34, seq([(0, LIN, PW_STANCE), (6, OQ, PW_COIL), (8, LIN, dict(PW_COIL, body=(11, 64, 0))), (10, EX, PW_LUNGE), (15, LIN, dict(PW_LUNGE, body=(-24, -30, 0))),
+                          (19, IO, PW_SPIN), (22, EX, PW_SWEEP), (26, LIN, dict(PW_SWEEP, body=(-10, -54, 0))), (34, IO, PW_STANCE)]))
+anim("pw_twist_q", 14, wstrike(14, [(3, OQ, dict(PW_COIL, body=(6, 40, 0))), (5, EX, PW_LUNGE)], hold_to=9))
+anim("pw_twist_air", 16, seq([(0, LIN, PW_AIR0), (2, OQ, AIR(body=(10, 50, 0), look=(0, -30), rightArm=HR((0.55, -0.2, 0.81), (0.55, 1.4, 0.62)), leftArm=L_PUNCH)),
+                              (6, EX, AIR(body=(-46, -20, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(30, 10), rightArm=R_PUNCH, leftArm=L_BACK_LO)),
+                              (10, LIN, dict(body=(-44, -18, 0))), (16, IO, PW_STANCE)]))
+# ⑤ 하늘 내려찍기 (참고 '목숨을 내놓을 자격은 있겠구나' 0:21~0:25): 웅크렸다 높이 뛰어 몸을 웅크려 돌며 → 두 주먹을 머리 위에서 내리찍으며 떨어짐 (19) →
+#    맞고 다시 튀어 오름 → 한 번 더 내리찍음 (34)
+PW_TUCK = AIR(body=(-40, 0, 0), rl=(-80, 18, 120), ll=(-70, 18, 110), look=(20, 0), rightArm=R_FLEX, leftArm=L_FLEX)
+anim("pw_leap", 44, seq([(0, LIN, PW_STANCE), (3, IO, G(body=(-14, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 0), sink=0.26, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                         (6, OQ, PW_TUCK), (12, LIN, dict(PW_TUCK, body=(-60, 0, 0))), (16, IO, PW_SLAM_UP), (19, EX, PW_SLAM_DN),
+                         (22, OQ, PW_TUCK), (28, LIN, dict(PW_TUCK, body=(-55, 0, 0))), (31, IO, PW_SLAM_UP), (34, EX, PW_SLAM_DN),
+                         (38, LIN, dict(PW_SLAM_DN, body=(-52, 0, 0))), (44, IO, PW_STANCE)]))
+anim("pw_leap_air", 30, seq([(0, LIN, PW_AIR0), (3, IO, PW_SLAM_UP), (6, EX, PW_SLAM_DN), (9, OQ, PW_TUCK), (14, LIN, dict(PW_TUCK, body=(-55, 0, 0))),
+                             (17, IO, PW_SLAM_UP), (20, EX, PW_SLAM_DN), (24, LIN, dict(PW_SLAM_DN, body=(-52, 0, 0))), (30, IO, PW_STANCE)]))
+# ⑥ 바람의 유법 (참고 아이즈 오브 헤븐 1:12~1:16·2:07): 두 팔을 가슴 앞에 X 자로 웅크렸다가 → 활짝 펴며 몸에 바람을 두름
+anim("pw_mode", 28, seq([(0, LIN, PW_STANCE), (4, IO, G(body=(-10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 0), sink=0.18,
+                                                         rightArm=HR((0.45, -0.4, -0.8), (-0.12, 1.3, -0.4)), leftArm=HL((-0.45, -0.4, -0.8), (0.12, 1.24, -0.42)))),
+                         (10, EX, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-20, 0), sink=0.06, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+                         (20, LIN, G(body=(10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, 0), sink=0.06, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)), (28, IO, PW_STANCE)]))
+# ⑦ 신사폭풍 (참고 '투기! 신사폭풍!!' 1:02.4~1:06.5, 66틱): 땅을 짚을 만큼 낮게 웅크림 (4~10) → 일어서며 왼주먹을 앞에, 오른팔을 당겨
+#    두 팔을 반대로 돌림 (12~30, 3틱마다 번갈아) → 32에 두 아래팔을 앞으로 나란히 내지르면 가로 회오리가 앞으로 뻗어 나감 → 56까지 버팀 (2틱마다 떨림)
+_sd = [(0, LIN, PW_STANCE), (4, IO, G(body=(-40, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(28, 4), sink=0.3, rightArm=R_GROUND, leftArm=L_KNEE)),
+       (10, LIN, G(body=(-42, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(28, 4), sink=0.3, rightArm=R_GROUND, leftArm=L_KNEE))]
+for k, t in enumerate(range(12, 31, 3)):
+    _sd.append((t, IO, G(body=(-6, -14 + (k % 2) * 6, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 10), sink=0.14, rightArm=R_ROT_A if k % 2 == 0 else R_ROT_B, leftArm=L_ROT_A if k % 2 == 0 else L_ROT_B)))
+PW_SAND = G(body=(-14, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 0), sink=0.2, z=0.2, rightArm=R_FOREARM_FWD, leftArm=L_FOREARM_FWD)
+_sd.append((32, EX, PW_SAND))
+for k, t in enumerate(range(34, 57, 2)):
+    _sd.append((t, LIN, dict(PW_SAND, body=(-14 + (k % 2) * 2, (k % 2) * 2 - 1, 0))))
+_sd += [(60, IO, G(body=(-6, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(4, 0), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)), (66, IO, PW_STANCE)]
+anim("pw_sand", 66, seq(_sd))
+anim("pw_sand_q", 18, wstrike(18, [(2, IO, G(body=(4, -30, 0), rl=PW_RL, ll=PW_LL, look=(0, 10), sink=0.1, rightArm=R_CHAMBER, leftArm=L_BELLY)),
+                                    (5, EX, G(body=(-14, 10, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, -4), sink=0.14, z=0.22, rightArm=R_FOREARM_FWD, leftArm=L_BACK_LO))], hold_to=13))
+anim("pw_sand_air", 22, seq([(0, LIN, PW_AIR0), (3, IO, AIR(body=(10, 0, 0), rightArm=R_ROT_A, leftArm=L_ROT_A)), (6, IO, AIR(body=(10, 0, 0), rightArm=R_ROT_B, leftArm=L_ROT_B)),
+                             (8, EX, AIR(body=(-40, 0, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(26, 0), rightArm=R_FOREARM_FWD, leftArm=L_FOREARM_FWD)),
+                             (16, LIN, dict(body=(-38, 0, 0))), (22, IO, PW_STANCE)]))
+
+# ── 각성(바람만을 느낌) 중 기술 ──
+# 바람 드릴 (참고 0:45.6~0:46.4 'ドルルル'): 몸을 앞으로 깊게 숙여 왼손바닥으로 바람 고리를 쏨 (6) → 오른주먹에 회오리를 감아 깊게 찔러 넣음 (15~23 드릴)
+anim("pw_drill", 30, seq([(0, LIN, PW_STANCE), (3, IO, G(body=(-30, -20, 0), rl=DEEP_RL, ll=DEEP_LL, look=(24, 10), sink=0.16, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
+                          (6, EX, G(body=(-28, -30, 0), rl=DEEP_RL, ll=DEEP_LL, look=(22, 14), sink=0.16, z=0.15, rightArm=R_CHAMBER, leftArm=L_PALM)),
+                          (12, IO, G(body=(-20, 30, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, -12), sink=0.14, rightArm=HR((0.4, -0.65, 0.65), (0.3, 1.1, 0.0)), leftArm=L_BELLY)),
+                          (15, EX, G(body=(-30, -26, 0), rl=DEEP_RL, ll=DEEP_LL, look=(24, 12), sink=0.18, z=0.4, rightArm=R_PUNCH, leftArm=L_BACK_LO)),
+                          (23, LIN, G(body=(-28, -24, 0), rl=DEEP_RL, ll=DEEP_LL, look=(22, 12), sink=0.18, z=0.4, rightArm=R_PUNCH, leftArm=L_BACK_LO)), (30, IO, PW_STANCE)]))
+# 바람 감지 (반격): 두 팔을 낮게 벌리고 고개를 기울여 바람 소리를 들음 → 맞으면 상대 등 뒤로 돌아 손등으로 (pw_sense_hit)
+PW_SENSE = G(body=(2, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-6, 0), sink=0.08, rightArm=R_WAIL, leftArm=L_WAIL)
+anim("pw_sense", 30, seq([(0, LIN, PW_STANCE), (3, OQ, PW_SENSE), (16, IO, dict(PW_SENSE, head=(-6, 14, 0))), (28, IO, PW_SENSE), (30, IO, PW_STANCE)]))
+anim("pw_sense_hit", 18, seq([(0, LIN, PW_SPIN), (4, EX, PW_SWEEP), (10, LIN, dict(PW_SWEEP, body=(-10, -54, 0))), (18, IO, PW_STANCE)]))
+
+# ── 각성 '바람만을 느껴 사물을 보겠다' (64틱, 참고 0:42.8~0:45.2 · 아이즈 오브 헤븐 0:58~1:02): 오른손가락을 두 눈에 대고 왼팔은 옆으로 뻗음 (4) →
+#   손가락을 찔러 넣으며 고개가 뒤로 젖혀짐 (10) → 손을 떼고 고개를 듦 (24, 감긴 눈) → 머리 뿔에 바람이 감겨 돌다 (30~44) → 위로 뿜어 오름 (46) → 54 자세
+_aw = [(0, LIN, PW_STANCE),
+       (4, IO, G(body=(4, -6, 0), rl=PW_RL, ll=PW_LL, look=(8, 4), rightArm=R_EYES, leftArm=L_OUT)),
+       (10, EX, G(body=(10, -6, 0), rl=PW_RL, ll=PW_LL, look=(-24, 4), rightArm=R_EYES, leftArm=L_OUT)),
+       (22, LIN, G(body=(11, -6, 0), rl=PW_RL, ll=PW_LL, look=(-26, 4), rightArm=R_EYES, leftArm=L_OUT)),
+       (26, IO, G(body=(2, 0, 0), rl=PW_RL, ll=PW_LL, look=(-6, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)),
+       (44, LIN, G(body=(4, 0, 0), rl=PW_RL, ll=PW_LL, look=(-14, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)),
+       (47, EX, G(body=(10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-30, 0), sink=0.04, rightArm=R_WAIL, leftArm=L_WAIL)),
+       (54, IO, PW_STANCE), (64, LIN, PW_STANCE)]
+anim("pw_awaken", 64, seq(_aw))
+
+# ── 각성기 '최종 유법' (170틱, 참고 '파이널 모드(최종유법)' 1:19.4~1:27.6): 두 손으로 머리 장식을 쥠 (0~16) → 손바닥으로 얼굴 양옆을 감싼 만화 칸 (16~36)
+#   → 고개를 뒤로 크게 젖힘 (40) → 고개를 앞으로 내리꽂으며 뿔에서 실 같은 바람 칼날이 날아감 (46, 54 꽂힘) →
+#   몸을 숙였다 비틀었다 고개로 칼날을 8 자로 휘두름 (56~118, 10틱마다 좌우) → 몸을 앞으로 뻗어 외침 (120~128) → 마지막 크게 두 번 (132·146) → 164 끝 폭발
+_ul = [(0, LIN, PW_STANCE),
+       (6, IO, G(body=(4, 0, 0), rl=PW_RL, ll=PW_LL, look=(10, 0), sink=0.06, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
+       (16, LIN, G(body=(5, 0, 0), rl=PW_RL, ll=PW_LL, look=(12, 0), sink=0.06, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
+       (20, IO, G(body=(6, 0, 0), rl=PW_RL, ll=PW_LL, look=(14, 0), sink=0.06, rightArm=R_FRAME, leftArm=L_FRAME)),
+       (36, LIN, G(body=(7, 0, 0), rl=PW_RL, ll=PW_LL, look=(16, 0), sink=0.06, rightArm=R_FRAME, leftArm=L_FRAME)),
+       (40, IO, G(body=(16, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-40, 0), sink=0.06, rightArm=R_FRAME, leftArm=L_FRAME)),
+       (46, EX, G(body=(-24, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(28, 0), sink=0.16, z=0.15, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+       (54, LIN, G(body=(-22, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(24, 0), sink=0.16, z=0.15, rightArm=R_BACK_LO, leftArm=L_BACK_LO))]
+for k, t in enumerate(range(58, 118, 10)):   # 고개로 칼날을 휘두름: 숙였다 펴며 좌우로 크게 비틂
+    s = 1 if k % 2 == 0 else -1
+    _ul.append((t, IO, G(body=(-30 + (k % 3) * 8, 40 * s, 0), rl=WIDE_RL, ll=WIDE_LL, look=(20, 30 * s), sink=0.22 - (k % 3) * 0.05,
+                         rightArm=R_BACK_LO if s > 0 else R_FLEX, leftArm=L_FLEX if s > 0 else L_BACK_LO)))
+_ul += [(122, IO, G(body=(-28, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(34, 0), sink=0.16, z=0.2, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (128, LIN, G(body=(-30, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(36, 0), sink=0.16, z=0.2, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (132, EX, G(body=(-10, 60, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 40), sink=0.12, rightArm=R_BACK_LO, leftArm=L_FLEX)),
+        (140, IO, G(body=(-12, 54, 0), rl=WIDE_RL, ll=WIDE_LL, look=(12, 36), sink=0.12, rightArm=R_BACK_LO, leftArm=L_FLEX)),
+        (146, EX, G(body=(-14, -60, 0), rl=WIDE_RL, ll=WIDE_LL, look=(14, -40), sink=0.12, rightArm=R_FLEX, leftArm=L_BACK_LO)),
+        (156, LIN, G(body=(-12, -56, 0), rl=WIDE_RL, ll=WIDE_LL, look=(12, -36), sink=0.12, rightArm=R_FLEX, leftArm=L_BACK_LO)),
+        (164, IO, PW_STANCE), (170, LIN, PW_STANCE)]
+anim("pw_ult", 170, seq(_ul))
 
 
 # ── 달리기 (전투 모드 중 달릴 때 자세 층에 깔림) ──
