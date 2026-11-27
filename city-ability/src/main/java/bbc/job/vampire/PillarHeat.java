@@ -1282,8 +1282,8 @@ public final class PillarHeat {
         });
     }
 
-    // ═════════ 각성기 '증기 폭발' (256틱, 참고 1:59~2:12 '불을 붙여 태워주마!' — 같은 시간·흐름) ═════════
-    //   0~12 웅크려 힘을 모음 → 12~21 만화 칸 속 얼굴 → 23 몸에서 혈관이 사방으로 터짐 → 40 팔을 내질러 혈관이 날아가 56에 꽂힘 →
+    // ═════════ 각성기 '증기 폭발' (256틱, 참고 ASBR 에시디시 트레일러 45.6~58.4초 '불을 붙여 태워주마!' — 1틱 단위로 모션·카메라·판정을 맞춤) ═════════
+    //   상대를 코앞 1.4칸에 붙여 움켜쥠 → 9~16 만화 칸 옆얼굴 → 23 팔을 V 로 펴며 몸에서 혈관이 사방으로 터짐 → 40 혈관이 날아가 56에 꽂힘 (58 두 팔을 내지름) → 66~72 상대를 4.5칸 밀어냄 →
     //   104 웅크려 혈관을 움켜쥠 → 112·128·144 크게 세 번 펌프질 (끓는 피가 혈관을 타고 감) → 152~230 상대가 끓으며 4틱마다 타고 터짐 →
     //   236 마지막 대폭발 (불타는 상대가 날아감)
     static final int ULT_SCENE = 256;
@@ -1308,13 +1308,26 @@ public final class PillarHeat {
         Tasks.later(62, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_ULT2, viewers); });    // 꽂힌 뒤: 열혈을 흘려 넣어 불을 붙여 태워주마!
         Tasks.later(238, () -> { if (alive(p)) bbc.job.alchemy.AlchemySounds.voice(p, S_ULT3, viewers); });   // 대폭발: 다 태워 버렸다!
         root(p, 1, ULT_SCENE - 10);
-        Vec3d hold = t.getPos();
-        for (int i = 0; i < 236; i++) Tasks.later(i, () -> {   // 상대를 제자리에 묶어 둠
-            if (!t.isAlive()) return;
-            t.requestTeleport(hold.x, t.getY() < hold.y ? hold.y : t.getY(), hold.z);
-            t.setVelocity(0, Math.min(0, t.getVelocity().y), 0);
-            t.velocityModified = true;
-        });
+        // 상대를 코앞 1.4칸에 붙여 움켜쥐고 (참고 영상 시작), 혈관이 꽂힌 뒤 66~72 에 4.5칸으로 밀어냄 — 컷신 구도가 이 거리 기준. 자리가 막혔으면 원래 자리
+        Vec3d fwd = Combat.horizontal(p.getRotationVec(1f)).normalize();
+        Vec3d near0 = p.getPos().add(fwd.multiply(1.4)), far0 = p.getPos().add(fwd.multiply(4.5));
+        boolean okNear = w.isSpaceEmpty(t, t.getBoundingBox().offset(near0.subtract(t.getPos())));
+        boolean okFar = w.isSpaceEmpty(t, t.getBoundingBox().offset(far0.subtract(t.getPos())));
+        Vec3d orig = t.getPos();
+        Vec3d hold = okFar ? far0 : orig;
+        for (int i = 0; i < 236; i++) {
+            final int k = i;
+            Tasks.later(i, () -> {   // 상대를 묶어 둠
+                if (!t.isAlive()) return;
+                Vec3d a = okNear ? near0 : orig;
+                double x = k < 66 ? 0 : k < 72 ? 1 - Math.pow(1 - (k - 66) / 6.0, 2) : 1;
+                Vec3d q = a.lerp(hold, x);
+                t.requestTeleport(q.x, q.y, q.z);
+                t.setVelocity(0, 0, 0);
+                t.fallDistance = 0;
+                t.velocityModified = true;
+            });
+        }
         // 0~12 웅크려 힘을 모음
         for (int i = 2; i < 22; i += 3) Tasks.later(i, () -> { if (alive(p)) w.spawnParticles(ParticleTypes.WHITE_SMOKE, p.getX(), p.getY() + 1.0, p.getZ(), 5, 0.4, 0.6, 0.4, 0.03); });
         Tasks.later(2, () -> { if (alive(p)) w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.PLAYERS, 2.0f, 0.7f); });

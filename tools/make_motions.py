@@ -1670,31 +1670,70 @@ _aw += [(76, IO, G(body=(-4, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(8, 6), sink=
         (84, IO, PH_STANCE)]
 anim("ph_awaken", 84, seq(_aw))
 
-# ── 각성기 '증기 폭발' (256틱, 참고 1:59~2:12 '불을 붙여 태워주마!' 같은 시간·흐름) ──
-#   0~12 웅크려 힘을 모음 → 12~21 만화 칸 속 얼굴 → 22 두 팔을 위로 활짝 — 몸에서 혈관이 사방으로 터짐(バババ) → 36 팔을 당겼다 40 앞으로 내지르면
-#   혈관이 날아가 56에 꽂힘 → 100까지 팔을 뻗어 혈관을 붙들고 → 104 웅크려 두 손으로 혈관을 움켜쥠 → 112·128·144 크게 세 번 펌프질 (ドォ) →
-#   150~230 서서 혈관을 당긴 채 끓는 피가 흘러 들어가 상대가 타며 거듭 터짐 → 234 팔을 활짝 뿌리며 마지막 대폭발 → 256
-PH_HUNCH = G(body=(-30, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(18, 0), sink=0.24, rightArm=R_PUMP, leftArm=L_PUMP)
-PH_HEAVE = G(body=(-8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 0), sink=0.12, rightArm=HR((0.6, -0.5, 0.62), (0.3, 1.3, -0.15)), leftArm=HL((-0.6, -0.5, 0.62), (-0.3, 1.32, -0.15)))
-PH_PULL = G(body=(4, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(-2, 0), sink=0.1, rightArm=HR((0.3, -0.3, -0.9), (0.22, 1.25, -0.55)), leftArm=HL((-0.3, -0.3, -0.9), (-0.22, 1.27, -0.55)))
-_pu = [(0, LIN, PH_STANCE),
-       (6, IO, G(body=(-18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(14, 0), sink=0.16, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (12, LIN, G(body=(-20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(16, 0), sink=0.16, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (15, IO, G(body=(-6, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (21, LIN, G(body=(-5, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, 6), sink=0.1, rightArm=R_FLEX, leftArm=L_FLEX)),
-       (23, EX, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-48, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
-       (34, LIN, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
-       (37, IO, G(body=(8, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(-10, 0), sink=0.1, rightArm=R_CHAMBER, leftArm=L_CHAMBER)),
-       (40, EX, G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=HR((0.2, 0.05, -0.98), (0.22, 1.42, -0.62)), leftArm=HL((-0.2, 0.05, -0.98), (-0.22, 1.42, -0.62)))),
-       (56, LIN, G(body=(-12, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=HR((0.2, 0.05, -0.98), (0.22, 1.42, -0.62)), leftArm=HL((-0.2, 0.05, -0.98), (-0.22, 1.42, -0.62)))),
-       (64, IO, PH_PULL), (100, LIN, dict(PH_PULL, body=(6, 0, 0))),
-       (104, IO, PH_HUNCH)]
-for t in (112, 128, 144):   # 크게 세 번: 몸을 펴며 혈관을 가슴으로 끌어당김 → 다시 웅크림
-    _pu += [(t - 4, IO, PH_HUNCH), (t, EX, PH_HEAVE), (t + 6, IO, dict(PH_HEAVE, body=(-14, 0, 0)))]
-_pu += [(154, IO, PH_PULL)]
-for k, t in enumerate(range(160, 232, 6)):   # 끓는 동안 버티며 몸이 떨림
-    _pu.append((t, IO, dict(PH_PULL, body=(4 + (k % 2) * 3, (k % 3 - 1) * 3, 0))))
-_pu += [(234, EX, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-50, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+# ── 각성기 '증기 폭발' (256틱) — 참고: ASBR 에시디시 트레일러 45.6~58.4초 (GHA) 를 1틱(0.05초) 단위로 떼어 봄. 우리 틱 = (영상 초 − 45.6) × 20
+#   (카메라 구도는 Cutscene "ph_ult" 에 같은 틱으로. 상대는 서버가 앞 1.4칸에 붙였다가 66~72 에 4.5칸으로 밀어냄)
+#   0~8   [어깨 너머 뒤] 상대 코앞에서 오른손으로 가슴팍을 움켜쥠
+#   9~16  [만화 칸: 옆얼굴] 상대에게 몸을 붙여 고개를 숙이고 두 팔로 끌어안듯
+#   17~33 [만화 칸: 앞 아래] 가슴을 젖히고 두 팔을 V 로 활짝, 고개가 뒤로 — 23 몸에서 혈관이 사방으로 터짐 → 30 두 손을 머리 옆으로
+#   34~49 [만화 칸: 얼굴 앞] 왼손을 갈고리처럼 카메라 쪽으로 뻗고 오른손은 머리 옆 (대사)
+#   50~56 [옆] 두 팔을 다시 V 로 → 58 두 팔을 앞으로 내질러 혈관이 꽂힘 → 64 팔을 옆으로 벌려 당김
+#   74~108 [상대 어깨 너머] 두 팔을 상대 쪽 앞 위로 뻗어 손가락으로 혈관을 붙듦
+#   110~118 [옆 멀리 낮게] 숙여 당김 → 120~134 [앞 아래 가까이] 웅크려 팔뚝으로 머리를 감싸고 펌프질 (112·128 크게)
+#   136~153 [위에서 얼굴] 몸을 젖혀 고개를 뒤로 떨구고 오른손을 카메라 쪽 위로 뻗어 움켜쥠 (144 크게)
+#   154~189 [혈관 따라] 서서 당김 → 190~234 [상대 어깨 너머] 낮게 웅크려 팔을 낮게 벌리고 버팀 (상대가 타며 터짐) → 236 팔을 V 로 뿌리며 대폭발
+R_GRAB = HR((0.15, -0.1, -0.98), (0.15, 1.35, -0.62))           # 오른손이 앞으로 뻗어 움켜쥠
+L_LOW_BACK = HL((-0.3, -0.9, 0.2), (-0.4, 0.85, 0.1))
+R_HUG = HR((0.25, -0.2, -0.95), (0.05, 1.3, -0.55))             # 두 팔로 끌어안듯 앞으로
+L_HUG = HL((-0.25, -0.2, -0.95), (-0.05, 1.32, -0.55))
+R_HEADSIDE = HR((0.85, 0.35, -0.4), (0.33, 1.9, -0.18))         # 손을 머리 옆으로
+L_HEADSIDE = HL((-0.85, 0.35, -0.4), (-0.33, 1.9, -0.18))
+L_CLAW_FWD = HL((-0.35, 0.15, -0.92), (-0.33, 1.56, -0.72))     # 왼손을 갈고리처럼 앞으로
+R_THRUST = HR((0.2, 0.05, -0.98), (0.22, 1.42, -0.62))          # 두 팔을 앞으로 내지름
+L_THRUST = HL((-0.2, 0.05, -0.98), (-0.22, 1.42, -0.62))
+R_SPREAD_PULL = HR((0.75, -0.2, -0.62), (0.62, 1.2, -0.42))     # 팔을 옆으로 벌려 당김
+L_SPREAD_PULL = HL((-0.75, -0.2, -0.62), (-0.62, 1.2, -0.42))
+R_HOLD_UP = HR((0.25, 0.35, -0.9), (0.3, 1.72, -0.62))          # 앞 위로 뻗어 손가락으로 붙듦
+L_HOLD_UP = HL((-0.25, 0.35, -0.9), (-0.3, 1.72, -0.62))
+R_GUARD_HEAD = HR((0.75, 0.45, -0.5), (-0.05, 1.88, -0.36))     # 팔뚝으로 머리를 감쌈
+L_GUARD_HEAD = HL((-0.75, 0.4, -0.5), (0.05, 1.78, -0.4))
+R_CLUTCH_UP = HR((0.2, 0.55, -0.82), (0.24, 1.98, -0.6))        # 위로 뻗어 움켜쥠
+R_SPREAD_LO = HR((0.8, -0.5, -0.3), (0.75, 1.0, -0.4))          # 팔을 낮게 벌림
+L_SPREAD_LO = HL((-0.8, -0.5, -0.3), (-0.75, 1.0, -0.4))
+PH_HUNCH = G(body=(-28, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(14, 0), sink=0.22, rightArm=R_GUARD_HEAD, leftArm=L_GUARD_HEAD)
+PH_PULL = G(body=(4, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(-2, 0), sink=0.1, rightArm=R_SPREAD_PULL, leftArm=L_SPREAD_PULL)
+PH_HOLD = G(body=(4, 0, 0), rl=PH_RL, ll=PH_LL, look=(-6, 0), sink=0.06, rightArm=R_HOLD_UP, leftArm=L_HOLD_UP)
+PH_LOWHOLD = G(body=(-20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 0), sink=0.22, rightArm=R_SPREAD_LO, leftArm=L_SPREAD_LO)
+_pu = [(0, LIN, G(body=(-10, -14, 0), rl=PH_RL, ll=PH_LL, look=(4, 6), z=0.1, rightArm=R_GRAB, leftArm=L_LOW_BACK)),
+       (8, LIN, G(body=(-12, -14, 0), rl=PH_RL, ll=PH_LL, look=(6, 6), z=0.12, rightArm=R_GRAB, leftArm=L_LOW_BACK)),
+       (11, IO, G(body=(-22, -8, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, 10), sink=0.08, z=0.18, rightArm=R_HUG, leftArm=L_HUG)),
+       (16, LIN, G(body=(-24, -8, 0), rl=DEEP_RL, ll=DEEP_LL, look=(18, 10), sink=0.08, z=0.18, rightArm=R_HUG, leftArm=L_HUG)),
+       (20, IO, G(body=(10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-30, 0), sink=0.06, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (23, EX, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-50, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (28, LIN, G(body=(19, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-48, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (31, IO, G(body=(6, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 0), sink=0.06, rightArm=R_HEADSIDE, leftArm=L_HEADSIDE)),
+       (35, IO, G(body=(-6, -12, 0), rl=PH_RL, ll=PH_LL, look=(4, 8), sink=0.06, rightArm=R_HEADSIDE, leftArm=L_CLAW_FWD)),
+       (48, LIN, G(body=(-8, -14, 0), rl=PH_RL, ll=PH_LL, look=(6, 10), sink=0.06, rightArm=R_HEADSIDE, leftArm=L_CLAW_FWD)),
+       (53, IO, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-24, 0), sink=0.05, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (56, LIN, G(body=(14, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-26, 0), sink=0.05, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
+       (58, EX, G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=R_THRUST, leftArm=L_THRUST)),
+       (62, LIN, G(body=(-12, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(6, 0), sink=0.14, z=0.15, rightArm=R_THRUST, leftArm=L_THRUST)),
+       (66, IO, PH_PULL), (72, LIN, PH_PULL),
+       (76, IO, PH_HOLD)]
+for k, t in enumerate(range(82, 109, 6)):   # 붙든 채 몸이 조금씩 흔들림
+    _pu.append((t, IO, dict(PH_HOLD, body=(4 + (k % 2) * 2, (k % 3 - 1) * 3, 0))))
+_pu += [(112, EX, G(body=(-20, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(12, 0), sink=0.14, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (118, LIN, G(body=(-22, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(14, 0), sink=0.14, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (121, IO, PH_HUNCH)]
+for t in (128,):   # 펌프: 몸을 들썩
+    _pu += [(t - 3, IO, PH_HUNCH), (t, EX, dict(PH_HUNCH, body=(-18, 0, 0))), (t + 5, IO, PH_HUNCH)]
+_pu += [(138, IO, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-40, 6), sink=0.08, rightArm=R_CLUTCH_UP, leftArm=L_LOW_BACK)),
+        (144, EX, G(body=(22, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 8), sink=0.08, rightArm=R_CLUTCH_UP, leftArm=L_LOW_BACK)),
+        (152, LIN, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-44, 8), sink=0.08, rightArm=R_CLUTCH_UP, leftArm=L_LOW_BACK)),
+        (158, IO, PH_PULL), (188, LIN, dict(PH_PULL, body=(6, 0, 0))),
+        (192, IO, PH_LOWHOLD)]
+for k, t in enumerate(range(198, 233, 6)):   # 상대가 타는 동안 버티며 떨림
+    _pu.append((t, IO, dict(PH_LOWHOLD, body=(-20 + (k % 2) * 3, (k % 3 - 1) * 3, 0))))
+_pu += [(236, EX, G(body=(20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-50, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
         (246, LIN, G(body=(18, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 0), sink=0.04, rightArm=R_SPREAD_UP, leftArm=L_SPREAD_UP)),
         (256, IO, PH_STANCE)]
 anim("ph_ult", 256, seq(_pu))
@@ -1913,6 +1952,7 @@ anim("pw_awaken", 64, seq(_aw))
 R_FIST_SIDE = HR((0.85, -0.45, 0.25), (0.48, 1.0, -0.12))    # 팔꿈치를 바깥으로 벌려 주먹을 허리 옆에
 L_FIST_SIDE = HL((-0.85, -0.45, 0.25), (-0.48, 1.0, -0.12))
 L_REACH = HL((-0.1, 0.1, -0.99), (-0.12, 1.5, -0.7))           # 왼팔을 앞으로 쭉
+L_REACH_LO = HL((-0.1, -0.3, -0.95), (-0.15, 1.15, -0.72))      # 왼팔을 앞 아래로 쭉
 R_SWING_WIDE = HR((0.95, 0.15, -0.25), (1.0, 1.45, -0.2))      # 오른팔을 옆으로 크게 휘두름
 L_SWING_WIDE = HL((-0.95, 0.15, -0.25), (-1.0, 1.45, -0.2))
 L_HANG_FWD = HL((-0.15, -0.95, -0.25), (-0.3, 0.82, -0.3))     # 왼팔을 앞으로 늘어뜨림
@@ -1925,23 +1965,23 @@ R_OVER = HR((0.45, 0.75, -0.48), (0.05, 2.02, -0.12))          # 오른팔꿈치
 R_KNEE = HR((0.6, -0.75, -0.3), (0.42, 0.72, -0.32))           # 주먹을 무릎에
 L_KNEE = HL((-0.6, -0.75, -0.3), (-0.42, 0.72, -0.32))
 SQUAT_RL, SQUAT_LL = (10, 28, 74), (-10, 28, 74)               # 넓게 벌려 깊이 주저앉음
-DIVE_RL, DIVE_LL = (-40, 10, 96), (66, 6, 4)                   # 몸을 날림: 오른무릎은 밑에, 왼다리는 뒤로 쭉
+DIVE_RL, DIVE_LL = (-46, 12, 84), (58, 6, 4)                   # 몸을 날림: 오른무릎을 앞으로 깊게 굽히고 왼다리는 뒤로 쭉 (낮은 런지)
 _ul = [(0, LIN, PW_STANCE),
        (4, IO, G(body=(2, -8, 0), rl=PW_RL, ll=PW_LL, look=(6, 4), rightArm=R_TEMPLE_HI, leftArm=L_HANG_FWD)),
        (14, LIN, G(body=(3, -6, 0), rl=PW_RL, ll=PW_LL, look=(10, 2), rightArm=R_TEMPLE_HI, leftArm=L_HANG_FWD)),
        (17, IO, G(body=(-20, -4, 0), rl=PW_RL, ll=PW_LL, look=(14, 0), sink=0.05, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
-       (20, OQ, G(body=(-40, 0, 0), rl=PW_RL, ll=PW_LL, look=(18, 0), sink=0.1, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
+       (20, OQ, G(body=(-42, 0, 0), rl=(16, 14, 34), ll=(-16, 14, 34), look=(18, 0), sink=0.16, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
        (22, IO, G(body=(-8, 0, 0), rl=PW_RL, ll=PW_LL, look=(22, 6), sink=0.08, rightArm=R_FRAME2, leftArm=L_FRAME2)),
        (30, LIN, G(body=(-9, 2, 0), rl=PW_RL, ll=PW_LL, look=(24, 8), sink=0.08, rightArm=R_FRAME2, leftArm=L_FRAME2)),
        (34, IO, G(body=(-6, -8, 0), rl=PW_RL, ll=PW_LL, look=(14, -34), sink=0.08, rightArm=R_HORN, leftArm=L_FRAME2)),
        (37, EX, G(body=(-4, -12, 0), rl=PW_RL, ll=PW_LL, look=(8, -40), sink=0.08, rightArm=R_HORN, leftArm=L_FRAME2)),
-       (41, EX, G(body=(16, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-42, -6), sink=0.06, rightArm=R_CROWN, leftArm=L_BELLY)),
-       (48, LIN, G(body=(18, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, -8), sink=0.06, rightArm=R_CROWN, leftArm=L_BELLY)),
+       (41, EX, G(body=(8, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-54, -8), sink=0.06, rightArm=R_CROWN, leftArm=L_BELLY)),
+       (48, LIN, G(body=(10, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-58, -10), sink=0.06, rightArm=R_CROWN, leftArm=L_BELLY)),
        (50, EX, G(body=(6, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 4), sink=0.05, rightArm=R_THROW, leftArm=L_POINT)),
        (52, IO, G(body=(4, 8, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 0), sink=0.05, rightArm=R_UP_HIGH, leftArm=L_UP_HIGH)),
        (54, IQ, G(body=(-52, -4, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(40, 0), sink=0.2, z=0.35, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-       (57, OQ, G(body=(-78, -4, 0), rl=DIVE_RL, ll=DIVE_LL, look=(66, 0), sink=0.5, z=0.9, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-       (61, LIN, G(body=(-80, -2, 0), rl=DIVE_RL, ll=DIVE_LL, look=(68, 0), sink=0.52, z=1.0, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+       (57, OQ, G(body=(-50, -4, 0), rl=DIVE_RL, ll=DIVE_LL, look=(42, 0), sink=0.1, z=0.9, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+       (61, LIN, G(body=(-54, -2, 0), rl=DIVE_RL, ll=DIVE_LL, look=(46, 0), sink=0.12, z=1.0, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
        (63, IO, G(body=(-40, 30, 6), rl=KNEEL_RL, ll=KNEEL_LL, look=(30, 36), sink=0.3, rightArm=R_BACK_LO, leftArm=L_SWING_WIDE))]
 for k, t in enumerate(range(67, 79, 4)):   # 웅크려 좌우로 틀며 고개로 휘두름
     sg = -1 if k % 2 == 0 else 1
@@ -1959,8 +1999,8 @@ for t in range(85, 119, 3):   # 8 자: 고개 좌우 sin, 위아래 sin 2배 (12
 _ul += [(120, IO, G(body=(2, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 0), sink=0.08, rightArm=R_WAIL, leftArm=L_WAIL)),
         (122, EX, G(body=(-20, -6, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(34, 4), sink=0.12, rightArm=R_CROWN, leftArm=L_BELLY)),
         (125, LIN, G(body=(-22, -6, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(36, 4), sink=0.12, rightArm=R_CROWN, leftArm=L_BELLY)),
-        (126, EX, G(body=(-28, -16, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(16, -30), sink=0.14, z=0.15, rightArm=R_CROWN, leftArm=L_REACH)),
-        (129, LIN, G(body=(-30, -16, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(18, -32), sink=0.14, z=0.15, rightArm=R_CROWN, leftArm=L_REACH)),
+        (126, EX, G(body=(-50, -16, 0), rl=DEEP_RL, ll=DEEP_LL, look=(36, -30), sink=0.16, z=0.2, rightArm=R_CROWN, leftArm=L_REACH_LO)),
+        (129, LIN, G(body=(-52, -16, 0), rl=DEEP_RL, ll=DEEP_LL, look=(38, -32), sink=0.16, z=0.2, rightArm=R_CROWN, leftArm=L_REACH_LO)),
         (131, IO, G(body=(2, -30, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, -20), sink=0.08, rightArm=R_OVER, leftArm=L_BACK_LO)),
         (132, EX, G(body=(0, 34, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 34), sink=0.1, rightArm=R_OVER, leftArm=L_BACK_LO)),
         (135, IO, G(body=(2, 20, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-6, 20), sink=0.08, rightArm=R_OVER, leftArm=L_BACK_LO)),
