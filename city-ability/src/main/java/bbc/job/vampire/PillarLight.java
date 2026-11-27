@@ -71,13 +71,25 @@ public final class PillarLight {
             S_SLIP = snd("slip"), S_LEG = snd("leg"), S_GRAB = snd("grab"), S_GRAB_HIT = snd("grab_hit"), S_GRAB_END = snd("grab_end"),
             S_DROP = snd("drop"), S_MODE = snd("mode"), S_MODE_END = snd("mode_end"), S_RUSH = snd("rush"), S_RUSH_Q = snd("rush_q"),
             S_FLASH = snd("flash"), S_AWAKEN = snd("awaken"), S_ULT1 = snd("ult1"), S_ULT2 = snd("ult2"), S_ULT3 = snd("ult3"),
-            S_PETRIFY = snd("petrify"), S_M1 = snd("m1"), S_M1_HEAVY = snd("m1_heavy"), S_M1_AIR = snd("m1_air");
+            S_PETRIFY = snd("petrify"), S_M1 = snd("m1"), S_M1_HEAVY = snd("m1_heavy"), S_M1_AIR = snd("m1_air"),
+            S_DASH = snd("dash"), S_EVADE = snd("evade"), S_HURT = snd("hurt"), S_HURT_BIG = snd("hurt_big"), S_DOWN = snd("down"),
+            S_GETUP = snd("getup"), S_GUARD_BREAK = snd("guard_break");
 
     private static SoundEvent snd(String path) {
         Identifier id = Identifier.of(Bbc.MOD_ID, "pillar_light." + path);
         return Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
     }
     private static void say(ServerPlayerEntity p, SoundEvent s) { AlchemySounds.play(p, s, 1.6f); }
+
+    // ───────── 효과음 (직접 합성한 소리, 모드에 들어 있음 — tools/make_light_se.py) ─────────
+    static final SoundEvent SE_SHING = snd2("shing"), SE_SWISH = snd2("swish"), SE_CUT = snd2("cut"), SE_FLASH = snd2("flash"), SE_BIG = snd2("big"), SE_SHINE = snd2("shine");
+    private static SoundEvent snd2(String path) {
+        Identifier id = Identifier.of(Bbc.MOD_ID, "pillar_light_se." + path);
+        return Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
+    }
+    static void se(ServerWorld w, Vec3d at, SoundEvent s, float vol, float pitch) {
+        w.playSound(null, at.x, at.y, at.z, s, SoundCategory.PLAYERS, vol, pitch * (0.95f + w.random.nextFloat() * 0.1f));
+    }
 
     // ───────── 평타: 오른 가로베기 → 왼 되베기 → 내리베기 → 발의 칼날 → 두 팔 X 펼쳐 베기 (막타 선딜 6) ─────────
     static final bbc.combat.Weapon.M1Profile M1 = new bbc.combat.Weapon.M1Profile(5, 4, 2, 1.1f, 0.3, "pl_", 6);
@@ -126,23 +138,64 @@ public final class PillarLight {
         return (mode(p) ? " · 빛의 유법" : "") + (PillarHeat.petrified(p) ? " · 석화" : "");
     }
 
-    static void clear(UUID id) { MODE_UNTIL.remove(id); }
+    static void clear(UUID id) { MODE_UNTIL.remove(id); LAST_VOICE.remove(id); }
+
+    private static final Map<UUID, Long> LAST_VOICE = new HashMap<>();
+    /** 전투 동작 목소리 (대시 · 회피 · 맞음 · 크게 맞음 · 쓰러짐 · 일어남 · 가드 깨짐). 기술 대사와 안 겹치게 맞음은 1.5초에 한 번, 일부만 */
+    static void onAction(ServerPlayerEntity p, String kind) {
+        long now = Combat.now();
+        Long last = LAST_VOICE.get(p.getUuid());
+        boolean busy = last != null && now - last < 30;
+        SoundEvent s = switch (kind) {
+            case "dash" -> p.getRandom().nextFloat() < 0.35f ? S_DASH : null;
+            case "evade" -> S_EVADE;
+            case "hurt" -> !busy && p.getRandom().nextFloat() < 0.4f ? S_HURT : null;
+            case "hurt_big" -> busy && last != null && now - last < 8 ? null : S_HURT_BIG;
+            case "down" -> S_DOWN;
+            case "getup" -> S_GETUP;
+            case "guard_break" -> S_GUARD_BREAK;
+            default -> null; };
+        if (s == null) return;
+        if (kind.equals("dash") || kind.equals("hurt")) { if (busy) return; }
+        LAST_VOICE.put(p.getUuid(), now);
+        AlchemySounds.play(p, s, 1.3f);
+    }
 
     /** 매초: 햇빛 석화 · 유법·각성 중 칼날 빛 */
     static void second(ServerPlayerEntity p, boolean sunlit) {
         ServerWorld w = p.getServerWorld();
         PillarHeat.sun(p, sunlit, S_PETRIFY);
-        if (mode(p) || Awaken.active(p)) glow(w, p);
+        if (mode(p) || Awaken.active(p)) { glow(w, p); Motion.play(p, "#shine:on"); }
         else if (MODE_UNTIL.remove(p.getUuid()) != null) {
+            Motion.play(p, "#shine:off");
             say(p, S_MODE_END);
             JobSkills.bar(p, "빛의 유법이 풀렸다", Formatting.GRAY);
         }
     }
 
     // ═════════ 연출 도구 ═════════
-    static final DustParticleEffect LIGHT = new DustParticleEffect(new Vector3f(1f, 0.97f, 0.82f), 1.0f);
-    static final DustParticleEffect LIGHT_GOLD = new DustParticleEffect(new Vector3f(1f, 0.85f, 0.35f), 1.2f);
-    private static final BlockState GLASS = Fx.WHITE, GOLD = Fx.GOLD;
+    static final DustParticleEffect LIGHT = new DustParticleEffect(new Vector3f(0.9f, 0.96f, 1f), 1.0f);
+    static final DustParticleEffect LIGHT_GOLD = new DustParticleEffect(new Vector3f(0.55f, 0.78f, 1f), 1.2f);   // 푸른 빛 (이름은 예전 그대로)
+    /** 프리즘 반짝 (분홍 · 노랑 · 하늘 · 보라) */
+    static final DustParticleEffect[] PRISM = {
+            new DustParticleEffect(new Vector3f(1f, 0.55f, 0.85f), 0.8f), new DustParticleEffect(new Vector3f(1f, 0.95f, 0.45f), 0.8f),
+            new DustParticleEffect(new Vector3f(0.45f, 0.95f, 1f), 0.8f), new DustParticleEffect(new Vector3f(0.7f, 0.55f, 1f), 0.8f)};
+    private static final BlockState GLASS = Fx.WHITE, GOLD = net.minecraft.block.Blocks.LIGHT_BLUE_STAINED_GLASS.getDefaultState();
+
+    /** 반짝 (키랏): 네 갈래 빛줄기 별 + 가운데 섬광 + 무지개 알갱이 */
+    static void glint(ServerWorld w, Vec3d c, float size) {
+        double r = 0.55 * size;
+        for (int k = 0; k < 4; k++) {
+            double a = Math.PI / 4 * k + Math.PI / 8;
+            Vec3d d = new Vec3d(Math.cos(a), Math.sin(a), 0);
+            int n = (int) (6 * size);
+            for (int i = 1; i <= n; i++) { Vec3d q = c.add(d.multiply(r * i / n * (k % 2 == 0 ? 1.0 : 0.55))); Vec3d q2 = c.subtract(d.multiply(r * i / n * (k % 2 == 0 ? 1.0 : 0.55)));
+                w.spawnParticles(LIGHT, q.x, q.y, q.z, 1, 0, 0, 0, 0); w.spawnParticles(LIGHT, q2.x, q2.y, q2.z, 1, 0, 0, 0, 0); }
+        }
+        w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, (int) (4 * size), 0.05, 0.05, 0.05, 0.06);
+        w.spawnParticles(ParticleTypes.FLASH, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+        for (DustParticleEffect d : PRISM) w.spawnParticles(d, c.x, c.y, c.z, (int) (2 * size), 0.3 * size, 0.3 * size, 0.3 * size, 0);
+    }
 
     /** 두 아래팔 칼날이 빛남 (손목 둘레에 빛 알갱이) */
     static void glow(ServerWorld w, ServerPlayerEntity p) {
@@ -158,21 +211,40 @@ public final class PillarLight {
     static void blade(ServerWorld w, ServerPlayerEntity p, double radius, double tilt, boolean reverse) {
         Fx.slash(w, p, radius, tilt, reverse, GLASS);
         Fx.slash(w, p, radius * 1.08, tilt, reverse, GOLD);
-        Vec3d c = front(p, radius * 0.6, 1.1);
-        w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, 6, radius * 0.3, 0.3, radius * 0.3, 0.04);
-        w.spawnParticles(ParticleTypes.SWEEP_ATTACK, c.x, c.y, c.z, 1, 0.3, 0.2, 0.3, 0);
-        w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.9f, 1.4f);
-        w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.8f, 1.6f);
+        arcSparkle(w, p, radius * 1.12, tilt, reverse);
+        se(w, p.getPos(), SE_SWISH, 1.1f, 1.0f);
     }
 
-    /** 베인 자리: 흰 섬광 + 금빛 줄기 + 가는 빛 선 */
+    /** 베인 자리: 흰 섬광 + 빛 칼자국 + 반짝(키랏) + 무지개 알갱이 */
     static void cutHit(ServerWorld w, Vec3d c, float size, Fx.Sfx word) {
         Fx.impactFlash(w, c, 0.9f * size);
         Fx.inkSlashes(w, c, 2, 0.8f * size);
+        glint(w, c.add(0.15, 0.25, 0), 0.8f * size);
         w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, (int) (6 * size), 0.15, 0.25, 0.15, 0.12);
         w.spawnParticles(LIGHT_GOLD, c.x, c.y, c.z, (int) (8 * size), 0.3 * size, 0.3 * size, 0.3 * size, 0);
         if (word != null) Fx.word(w, c.add(0, 1.0, 0), word, 1.0f + 0.2f * size);
-        w.playSound(null, BlockPos.ofFloored(c), SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, SoundCategory.PLAYERS, 1.0f, 1.3f);
+        se(w, c, SE_CUT, 1.0f + 0.2f * size, 1.0f);
+    }
+
+    /** 칼날 호를 따라 빛이 흐르며 무지개 알갱이가 흩어지고, 끝에서 반짝 */
+    static void arcSparkle(ServerWorld w, ServerPlayerEntity p, double radius, double tilt, boolean reverse) {
+        Vec3d f = Combat.horizontal(p.getRotationVec(1f)), r = new Vec3d(-f.z, 0, f.x);
+        double t = Math.toRadians(tilt);
+        Vec3d side = r.multiply(Math.cos(t)).add(0, Math.sin(t), 0), o = p.getPos().add(0, 1.15, 0);
+        int n = 12;
+        for (int i = 0; i < n; i++) {
+            final int k = i;
+            Tasks.later(i / 4, () -> {
+                double u = (reverse ? n - 1 - k : k) / (double) (n - 1), a = Math.PI * (u - 0.5) * 0.95;
+                Vec3d q = o.add(f.multiply(Math.cos(a) * radius)).add(side.multiply(-Math.sin(a) * radius));
+                w.spawnParticles(PRISM[k % PRISM.length], q.x, q.y, q.z, 1, 0.05, 0.05, 0.05, 0);
+                w.spawnParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, 0.02, 0.02, 0.02, 0.01);
+            });
+        }
+        Tasks.later(3, () -> {
+            double a = Math.PI * ((reverse ? 0 : 1) - 0.5) * 0.95;
+            glint(w, o.add(f.multiply(Math.cos(a) * radius)).add(side.multiply(-Math.sin(a) * radius)), 0.7f);
+        });
     }
 
     /** a 에서 b 까지 빛 선 */
@@ -397,7 +469,7 @@ public final class PillarLight {
                 if (!alive(p)) return;
                 Fx.ring3d(w, p.getPos().add(0, 0.35, 0), new Vec3d(0, 1, 0), 0.6, r, 0.25f, 6, GLASS);
                 for (int i = 0; i < 16; i++) { double a = Math.PI * 2 * i / 16 + kk; w.spawnParticles(LIGHT, p.getX() + Math.cos(a) * r * 0.8, p.getY() + 0.4, p.getZ() + Math.sin(a) * r * 0.8, 1, 0, 0, 0, 0); }
-                w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 1.2f, 1.1f);
+                se(w, p.getPos(), SE_SWISH, 1.2f, 0.85f);
                 for (LivingEntity t : around(p, p.getPos().add(0, 0.6, 0), r))
                     if (Combat.hit(p, t, kk == (aw ? 2 : 0) ? LEG : LEG.withDamage(0.5f).withStun(16)) != Combat.Result.MISS) cutHit(w, t.getBoundingBox().getCenter(), 1f, kk == 0 ? Fx.Sfx.ZUBA : null);
             });
@@ -498,7 +570,7 @@ public final class PillarLight {
                 if (Combat.hit(p, t, GRAB_CUT) != Combat.Result.MISS) cutHit(w, t.getBoundingBox().getCenter(), 1f, kk == 0 ? Fx.Sfx.ZUBA : null);
             });
         }
-        Tasks.later(16, () -> { if (alive(p)) { w.spawnParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 2.4, p.getZ(), 10, 0.1, 0.5, 0.1, 0.05); w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.4f, 1.4f); } });
+        Tasks.later(16, () -> { if (alive(p)) { w.spawnParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 2.4, p.getZ(), 10, 0.1, 0.5, 0.1, 0.05); se(w, p.getPos(), SE_SHING, 1.4f, 1.1f); glint(w, p.getPos().add(0, 2.5, 0), 1.2f); } });
         Tasks.later(20, () -> {
             if (!alive(p) || !t.isAlive()) return;
             say(p, S_GRAB_END);
@@ -573,7 +645,7 @@ public final class PillarLight {
                     for (int h = 0; h < 6; h++) w.spawnParticles(h % 2 == 0 ? LIGHT_GOLD : LIGHT, q.x, q.y + h * 0.3, q.z, 1, 0, 0, 0, 0);
                     w.spawnParticles(ParticleTypes.END_ROD, q.x, q.y + 0.5, q.z, 2, 0.05, 0.4, 0.05, 0.05);
                 }
-                w.playSound(null, BlockPos.ofFloored(g), SoundEvents.BLOCK_AMETHYST_CLUSTER_BREAK, SoundCategory.PLAYERS, 1.6f, 0.8f);
+                se(w, g, SE_FLASH, 1.6f, 1.2f);
                 for (LivingEntity t : around(p, g.add(0, 0.5, 0), 3.5)) if (Combat.hit(p, t, DROP_RING) != Combat.Result.MISS) cutHit(w, t.getBoundingBox().getCenter(), 1f, null);
             });
         });
@@ -588,11 +660,15 @@ public final class PillarLight {
         Tasks.later(10, () -> {
             if (!alive(p)) return;
             MODE_UNTIL.put(p.getUuid(), Combat.now() + 200);
+            Motion.play(p, "#shine:on");
+            se(w, p.getPos(), SE_SHINE, 1.4f, 1.0f);
+            se(w, p.getPos(), SE_SHING, 1.2f, 1.0f);
+            for (int s2 = -1; s2 <= 1; s2 += 2) glint(w, front(p, 0.1, 1.3).add(new Vec3d(-Combat.horizontal(p.getRotationVec(1f)).z, 0, Combat.horizontal(p.getRotationVec(1f)).x).multiply(0.9 * s2)), 1.0f);
             Fx.slash(w, p, 2.2, 0, false, GOLD);
             Fx.slash(w, p, 2.2, 0, true, GLASS);
             w.spawnParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 1.2, p.getZ(), 30, 0.6, 0.6, 0.6, 0.1);
             Fx.ring3d(w, p.getPos().add(0, 0.2, 0), new Vec3d(0, 1, 0), 0.4, 4.0, 0.3f, 8, GOLD);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.4f, 1.4f);
+
             JobSkills.bar(p, "빛의 유법 — 10초 동안 피해 +20% · 평타에 빛의 호 · 칼날 베기가 길어짐", Formatting.YELLOW);
         });
         return true;
@@ -613,7 +689,10 @@ public final class PillarLight {
             w.spawnParticles(ParticleTypes.FLASH, top.x, top.y, top.z, 2, 0, 0, 0, 0);
             w.spawnParticles(ParticleTypes.END_ROD, top.x, top.y, top.z, 60, 0.2, 0.2, 0.2, 0.4);
             Fx.ring3d(w, p.getPos().add(0, 1.2, 0), new Vec3d(0, 1, 0), 0.5, 8.0, 0.25f, 10, GOLD);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 1.8f, 1.6f);
+            se(w, top, SE_FLASH, 2.0f, 1.0f);
+            glint(w, top, 2.4f);
+            for (int i = 0; i < 24; i++) { double a = Math.PI * 2 * i / 24; Vec3d d = new Vec3d(Math.cos(a), Math.sin(a) * 0.35, Math.sin(a));
+                ray(w, top, top.add(d.multiply(4.5))); }
             for (LivingEntity t : around(p, p.getPos().add(0, 1, 0), 8.0)) {
                 if (Combat.hit(p, t, FLASH) == Combat.Result.MISS) continue;
                 blind(t, 50);
@@ -660,7 +739,7 @@ public final class PillarLight {
             blade(w, p, 3.6, 0, false);
             for (LivingEntity t : around(p, p.getPos().add(0, 1, 0), 3.2)) if (Combat.hit(p, t, RUSH_END) != Combat.Result.MISS) cutHit(w, t.getBoundingBox().getCenter(), 1.4f, Fx.Sfx.ZAN);
         });
-        Tasks.later(go, () -> { if (alive(p)) w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_BREEZE_JUMP, SoundCategory.PLAYERS, 1.2f, 1.2f); });
+        for (int pp2 = 0; pp2 < passes; pp2++) Tasks.later(go + pp2 * dur, () -> { if (alive(p)) { se(w, p.getPos(), SE_BIG, 1.3f, 1.2f); w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_BREEZE_JUMP, SoundCategory.PLAYERS, 1.0f, 1.2f); } });
         return true;
     }
 
@@ -712,8 +791,10 @@ public final class PillarLight {
             Fx.ring3d(w, p.getPos().add(0, 0.2, 0), new Vec3d(0, 1, 0), 0.4, 5.0, 0.3f, 10, GOLD);
             Fx.word(w, p.getPos().add(0, 2.4, 0), Fx.Sfx.PIKIN, 1.6f);
             Fx.shakeAround(w, p.getPos(), 10, 0.5f);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 2.0f, 1.3f);
-            w.playSound(null, p.getBlockPos(), SoundEvents.ITEM_TRIDENT_RIPTIDE_1.value(), SoundCategory.PLAYERS, 1.2f, 1.6f);
+            se(w, p.getPos(), SE_SHING, 2.0f, 0.9f);
+            se(w, p.getPos(), SE_FLASH, 1.4f, 1.1f);
+            for (int s2 = -1; s2 <= 1; s2 += 2) glint(w, p.getPos().add(0, 1.0, 0).add(rt.multiply(0.9 * s2)), 1.4f);
+            Motion.play(p, "#shine:on");
         });
         for (int t = 36; t < 52; t += 3) Tasks.later(t, () -> { if (alive(p)) glow(w, p); });
         Tasks.later(AWAKEN_SCENE - 4, () -> { if (alive(p) && Awaken.active(p)) JobSkills.bar(p, "✦ 빛 칼날 — 피해 +10% · 평타에 빛의 호 · 기술이 바뀜  (G = 섬광 난도)", Formatting.YELLOW); });
@@ -784,8 +865,8 @@ public final class PillarLight {
         // 6~25 칼날이 빛남 (핥을 때 반짝)
         for (int i = 6; i < 26; i += 3) Tasks.later(i, () -> { if (alive(p)) glow(w, p); });
         Tasks.later(14, () -> { if (alive(p)) { Vec3d m = p.getEyePos().add(fw.multiply(0.4)); w.spawnParticles(ParticleTypes.END_ROD, m.x, m.y - 0.15, m.z, 8, 0.25, 0.05, 0.25, 0.01);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 1.4f, 1.8f); } });
-        Tasks.later(28, () -> { if (alive(p)) w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_BREEZE_JUMP, SoundCategory.PLAYERS, 1.4f, 1.2f); });
+            se(w, m, SE_SHING, 1.6f, 1.15f); glint(w, m.add(fw.multiply(0.2)), 1.0f); } });
+        Tasks.later(28, () -> { if (alive(p)) { se(w, p.getPos(), SE_SWISH, 1.6f, 0.8f); w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_BREEZE_JUMP, SoundCategory.PLAYERS, 1.2f, 1.2f); } });
         // 32~48 거대한 빛의 호로 좌우 번갈아
         for (int k = 0; k < 5; k++) {
             final int kk = k;
@@ -800,6 +881,8 @@ public final class PillarLight {
             if (!alive(p) || !t.isAlive()) return;
             Fx.slash(w, p, 3.4, -5, false, GLASS);
             Fx.slash(w, p, 3.6, -5, false, GOLD);
+            arcSparkle(w, p, 3.8, -5, false);
+            se(w, p.getPos(), SE_BIG, 1.8f, 0.9f);
             if (Combat.hit(p, t, ULT_BIG) != Combat.Result.MISS) { cutHit(w, t.getBoundingBox().getCenter(), 1.5f, Fx.Sfx.ZUBA); Fx.shakeAround(w, t.getPos(), 8, 0.5f); }
         });
         // 60~66 꿰뚫고 지나감: 빛의 줄
@@ -809,7 +892,8 @@ public final class PillarLight {
             if (!alive(p)) return;
             Vec3d top = p.getPos().add(0, 2.6, 0);
             w.spawnParticles(ParticleTypes.END_ROD, top.x, top.y, top.z, 20, 0.05, 0.3, 0.05, 0.08);
-            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.6f, 1.6f);
+            se(w, top, SE_SHING, 2.0f, 1.0f);
+            glint(w, top.add(0, 0.6, 0), 2.0f);
         });
         // 82·86·90 등 뒤에서 상대가 늦게 베임 → 94 날림
         for (int k = 0; k < 3; k++) {
@@ -821,7 +905,8 @@ public final class PillarLight {
                 Fx.impactFlash(w, c, 1.2f);
                 w.spawnParticles(LIGHT_GOLD, c.x, c.y, c.z, 20, 0.4, 0.6, 0.4, 0);
                 Fx.word(w, c.add(0, 1.4, 0), kk == 0 ? Fx.Sfx.ZAN : Fx.Sfx.ZUBA, 1.5f);
-                w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, SoundCategory.PLAYERS, 1.4f, 0.9f + kk * 0.1f);
+                se(w, c, SE_CUT, 1.8f, 0.85f + kk * 0.1f);
+                glint(w, c.add(0.2, 0.3, 0), 1.4f);
                 Combat.hit(p, t, ULT_LATE);
             });
         }
@@ -834,7 +919,8 @@ public final class PillarLight {
             w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, 60, 0.6, 0.8, 0.6, 0.25);
             Fx.word(w, c.add(0, 2.0, 0), Fx.Sfx.DOGOOON, 2.0f);
             Fx.shakeAround(w, c, 16, 1.0f);
-            w.playSound(null, BlockPos.ofFloored(c), SoundEvents.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 2.0f, 1.4f);
+            se(w, c, SE_FLASH, 2.4f, 0.9f);
+            glint(w, c, 3.0f);
             w.playSound(null, BlockPos.ofFloored(c), SoundEvents.ENTITY_GENERIC_EXPLODE.value(), SoundCategory.PLAYERS, 1.0f, 1.4f);
             if (t.isAlive()) VampireJob.drink(p, bbc.job.Jobs.entry(p), t);
         });
@@ -845,14 +931,24 @@ public final class PillarLight {
     private static void bigArc(ServerWorld w, ServerPlayerEntity p, LivingEntity t, boolean right) {
         Vec3d c = t.getBoundingBox().getCenter(), to = c.subtract(p.getPos()).multiply(1, 0, 1).normalize(), rt = new Vec3d(-to.z, 0, to.x);
         double tilt = right ? 0.35 : -0.35;
-        for (int i = 0; i <= 30; i++) {
-            double a = Math.PI * (i / 30.0 - 0.5) * 1.3;
-            Vec3d q = c.subtract(to.multiply(1.2)).add(to.multiply(Math.cos(a) * 3.0)).add(rt.multiply(Math.sin(a) * 3.0 * (right ? 1 : -1))).add(0, Math.sin(a) * 3.0 * tilt, 0);
-            w.spawnParticles(i % 3 == 0 ? LIGHT_GOLD : LIGHT, q.x, q.y, q.z, 2, 0.03, 0.03, 0.03, 0);
-            if (i % 5 == 0) w.spawnParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, 0, 0, 0, 0.02);
+        // 거대한 빛의 호: 흰 판 + 푸른 판 (칼자국) → 그 둘레로 흰·푸른·무지개 세 겹 빛줄기 → 양끝 반짝
+        Fx.slash(w, p, 3.3, right ? 35 : -35, !right, GLASS);
+        Fx.slash(w, p, 3.55, right ? 35 : -35, !right, GOLD);
+        double[] radii = {2.8, 3.05, 3.3};
+        for (int i = 0; i <= 36; i++) {
+            double a = Math.PI * (i / 36.0 - 0.5) * 1.3;
+            for (int b = 0; b < 3; b++) {
+                double rr = radii[b];
+                Vec3d q = c.subtract(to.multiply(1.2)).add(to.multiply(Math.cos(a) * rr)).add(rt.multiply(Math.sin(a) * rr * (right ? 1 : -1))).add(0, Math.sin(a) * rr * tilt, 0);
+                w.spawnParticles(b == 0 ? LIGHT : b == 1 ? LIGHT_GOLD : PRISM[i % PRISM.length], q.x, q.y, q.z, b == 2 ? 1 : 2, 0.03, 0.03, 0.03, 0);
+                if (b == 0 && i % 4 == 0) w.spawnParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, 0, 0, 0, 0.03);
+            }
         }
-        w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 1.4f, 1.0f);
-        w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 1.2f, 1.2f);
+        for (int e = -1; e <= 1; e += 2) {
+            double a = Math.PI * 0.5 * 1.3 * e;
+            glint(w, c.subtract(to.multiply(1.2)).add(to.multiply(Math.cos(a) * 3.1)).add(rt.multiply(Math.sin(a) * 3.1 * (right ? 1 : -1))).add(0, Math.sin(a) * 3.1 * tilt, 0), 1.1f);
+        }
+        se(w, c, SE_BIG, 1.6f, right ? 1.0f : 1.1f);
     }
 
     // ═════════ 도움 ═════════

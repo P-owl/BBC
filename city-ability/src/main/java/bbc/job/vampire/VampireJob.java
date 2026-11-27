@@ -189,6 +189,11 @@ public final class VampireJob implements JobType {
     }
 
     /** 전투 중 흡혈: 평타가 맞으면 피 1, 기술은 준 피해의 0.8배(최대 4), 각성 중엔 두 배. 쓰러뜨리면 +6 */
+    @Override public void onAction(ServerPlayerEntity p, String kind) {
+        PlayerData.Entry e = Jobs.entry(p);
+        if (PillarLight.is(e)) PillarLight.onAction(p, kind);
+    }
+
     @Override public void onDealt(ServerPlayerEntity p, LivingEntity t, float dmg, boolean m1) {
         PlayerData.Entry e = Jobs.entry(p);
         if (!is(e)) return;

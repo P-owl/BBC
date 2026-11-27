@@ -506,6 +506,7 @@ public final class Combat {
         a.lastTarget = t.getUuid();
         a.lastTargetAt = now;
         v.knocked = h.kind() == Hit.Kind.KNOCK;
+        act(t, h.kind() == Hit.Kind.KNOCK || h.kind() == Hit.Kind.DOWN ? "hurt_big" : "hurt");
         v.freshHit = true;
         v.slammed = h.kind() == Hit.Kind.DOWN;
 
@@ -679,6 +680,7 @@ public final class Combat {
     private static void breakGuard(Fighter v) {
         v.guardGauge = 0;
         setState(v, Fighter.State.GUARD_BROKEN, Tuning.GUARD_BROKEN_STUN);
+        act(v, "guard_break");
         sound(v.e, SoundEvents.ITEM_SHIELD_BREAK, 1f, 1f);
         if (v.e instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "가드가 깨졌다!", Formatting.RED);
     }
@@ -723,6 +725,13 @@ public final class Combat {
     }
 
     /** dir: 0 앞 1 뒤 2 왼쪽 3 오른쪽. 경직 중이면 회피기 */
+    /** 직업에 전투 동작 소식 (목소리 등) */
+    static void act(LivingEntity e, String kind) {
+        if (!(e instanceof ServerPlayerEntity sp)) return;
+        bbc.job.JobType jt = bbc.job.Jobs.type(bbc.job.Jobs.entry(sp));
+        if (jt != null) jt.onAction(sp, kind);
+    }
+
     public static void dash(LivingEntity p, int dir) {
         Fighter f = of(p);
         if (f.state == Fighter.State.HITSTUN || f.state == Fighter.State.AIR || f.state == Fighter.State.GUARD_BROKEN) { evade(p, f); return; }
@@ -748,6 +757,7 @@ public final class Combat {
         f.invulnUntil = Math.max(f.invulnUntil, now + Tuning.DASH_INVULN);
         f.dashCdUntil = now + Tuning.DASH_COOLDOWN;
         Motion.play(p, switch (dir) { case 1 -> "dash_b"; case 2 -> "dash_l"; case 3 -> "dash_r"; default -> "dash_f"; });
+        act(p, "dash");
         sound(p, SoundEvents.ENTITY_PHANTOM_FLAP, 0.6f, 1.6f);
         ((ServerWorld) p.getWorld()).spawnParticles(ParticleTypes.CLOUD, p.getX(), p.getY() + 0.2, p.getZ(), 6, 0.3, 0.05, 0.3, 0.02);
     }
@@ -789,6 +799,7 @@ public final class Combat {
         setVel(p, away.multiply(Tuning.EVADE_PUSH).add(0, 0.3, 0));
         endCombo(f);
         Motion.play(p, "evade");
+        act(p, "evade");
         sound(p, SoundEvents.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
         ((ServerWorld) p.getWorld()).spawnParticles(ParticleTypes.POOF, p.getX(), p.getY() + 1, p.getZ(), 12, 0.3, 0.5, 0.3, 0.05);
     }
@@ -819,7 +830,7 @@ public final class Combat {
                         f.knocked = false;
                         f.state = Fighter.State.DOWN;
                         f.stateUntil = now + Tuning.KNOCK_DOWN;
-                        Motion.play(e, "down");   // 날아가며 이미 누운 자세 → 등으로 쿵 떨어져 튕김 (knock 을 처음부터 다시 틀지 않음)
+                        Motion.play(e, "down"); act(e, "down");   // 날아가며 이미 누운 자세 → 등으로 쿵 떨어져 튕김 (knock 을 처음부터 다시 틀지 않음)
                     } else { // 공중 경직 중 착지 → 남은 경직은 짧게
                         f.state = Fighter.State.HITSTUN;
                         f.stateUntil = Math.min(f.stateUntil, now + 8);
@@ -852,7 +863,7 @@ public final class Combat {
                 if (now >= f.stateUntil) {
                     Fighter.State was = f.state;
                     setState(f, Fighter.State.IDLE, 0);
-                    if (was == Fighter.State.DOWN) { f.invulnUntil = now + Tuning.WAKEUP_INVULN + (bbc.grow.Growth.has(e, bbc.grow.Talent.TUMBLER) ? 6 : 0); Motion.play(e, "getup"); }
+                    if (was == Fighter.State.DOWN) { f.invulnUntil = now + Tuning.WAKEUP_INVULN + (bbc.grow.Growth.has(e, bbc.grow.Talent.TUMBLER) ? 6 : 0); Motion.play(e, "getup"); act(e, "getup"); }
                     else if (f.guardHeld) Motion.play(e, guardMotion(e));
                     if (was == Fighter.State.GUARD_BROKEN) f.guardGauge = Tuning.GUARD_MAX;
                 }

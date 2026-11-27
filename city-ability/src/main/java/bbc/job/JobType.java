@@ -49,6 +49,8 @@ public interface JobType {
     default bbc.net.SkillHudPayload hudOverride(ServerPlayerEntity p) { return null; }
     /** 직업 공격이 실제로 피해를 줬을 때 (흡혈 등) */
     default void onDealt(ServerPlayerEntity p, net.minecraft.entity.LivingEntity t, float dmg, boolean m1) {}
+    /** 전투 동작 소식 (목소리 등): dash · evade · hurt · hurt_big · down · getup · guard_break */
+    default void onAction(ServerPlayerEntity p, String kind) {}
     /** 각성기. 썼으면 true. false 를 돌려주면 공통 각성기 ‘난무’가 나간다 */
     default boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) { return false; }
     /** 임플란트 키(H). 썼으면 true (연금술사: 오토메일 칼날) */

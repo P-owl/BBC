@@ -18,12 +18,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 기둥 속 사내 · 빛 칼날 (참고: 받은 그림 — 팔 내린 정면을 재서 옮김, 치수는 tools/crescent.py, 이 파일은 tools/gen_light_blade.py 가 만듦).
  * 아래팔 아래쪽 강철 토시 (은빛 위아래 테 · 줄 · 앞면 둥근 장식과 금빛 가운데) → 토시 바깥 아래쪽에서 칼날이 돋아 팔에서 떨어진 채 바깥으로 완만히 휘며
  * 어깨 위까지 (팔꿈치 높이에서 가장 넓고 끝이 뾰족, 흰빛 도는 푸른 강철 + 밝은 바깥 날 + 짙은 안쪽 등) → 팔꿈치 높이에서 검은 막대 둘이 V 로 팔과 칼날을 이음.
- * 전투 모드에서만 보이고 모션의 팔꿈치·무릎 굽힘을 따라감. 각성 땐 27틱에 칼날이 뿌리에서부터 돋고, 발의 칼날 기술 땐 오른 정강이에도 0.7배로
+ * 전투 모드에서만 보이고 모션의 팔꿈치·무릎 굽힘을 따라감. 빛의 유법·각성 중엔 서버가 "#shine:on" 을 1초마다 보내고, 칼날이 밝게 빛나며
+ * 빛줄기가 뿌리에서 끝으로 훑고 지나감 (참고 영상의 칼날이 번쩍이는 느낌). 각성 땐 27틱에 칼날이 뿌리에서부터 돋고, 발의 칼날 기술 땐 오른 정강이에도 0.7배로
  */
 public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
     private static final Identifier TEX = Identifier.of("bbc", "textures/entity/light_blade.png");
@@ -143,6 +145,23 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
         return new ModelPart(c, Map.of("rods", rods));
     }
 
+    private static final Map<Integer, Long> SHINE = new ConcurrentHashMap<>();
+    private static final int FULL = 0xF000F0;
+
+    /** "#shine:on/off" 처리했으면 true (2.5초 소식 없으면 꺼짐) */
+    public static boolean handle(int id, String motion) {
+        if (motion.equals("#shine:on")) { SHINE.put(id, System.currentTimeMillis()); return true; }
+        if (motion.equals("#shine:off")) { SHINE.remove(id); return true; }
+        return false;
+    }
+    static boolean shining(int id) {
+        Long t = SHINE.get(id);
+        if (t == null) return false;
+        if (System.currentTimeMillis() - t > 2500) { SHINE.remove(id); return false; }
+        return true;
+    }
+    public static void clear() { SHINE.clear(); }
+
     public LightBladeRender(FeatureRendererContext<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> ctx) {
         super(ctx);
     }
@@ -160,9 +179,15 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
         float[] rb = BbcClient.bend(player, "rightArm"), lb = BbcClient.bend(player, "leftArm");
         draw(GEAR_R, m.rightArm, rb, 4f, 1f, 0, 0, null, light, matrices, vcp);
         draw(GEAR_L, m.leftArm, lb, 4f, 1f, 0, 0, null, light, matrices, vcp);
+        boolean sh = shining(id) || grow < 1f;
+        int sweep = sh ? (int) ((System.currentTimeMillis() / 35) % (BLADE.length + 24)) - 6 : -99;   // 빛줄기가 뿌리 → 끝으로
         if (grow > 0f) {
-            draw(BLADE_R, m.rightArm, rb, 4f, grow, GX, GY, null, light, matrices, vcp);
-            draw(BLADE_L, m.leftArm, lb, 4f, grow, -GX, GY, null, light, matrices, vcp);
+            draw(BLADE_R, m.rightArm, rb, 4f, grow, GX, GY, null, sh ? FULL : light, matrices, vcp);
+            draw(BLADE_L, m.leftArm, lb, 4f, grow, -GX, GY, null, sh ? FULL : light, matrices, vcp);
+            if (sh) {
+                glow(BLADE_R, m.rightArm, rb, grow, GX, sweep, matrices, vcp);
+                glow(BLADE_L, m.leftArm, lb, grow, -GX, sweep, matrices, vcp);
+            }
         }
         boolean leg = mo != null && age < 20 && Set.of("pl_4", "pl_leg", "pl_leg_q", "pl_leg_air").contains(mo);
         if (leg) {   // 오른 정강이: 같은 모양을 0.7배로, 토시 가운데(-1, 7.2) → 정강이(0, 8.4)
@@ -198,6 +223,27 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
         part.setPivot(0, 0, 0);
         part.setAngles(0, 0, 0);
         part.render(matrices, vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX)), light, OverlayTexture.DEFAULT_UV);
+        matrices.pop();
+    }
+
+    /** 빛남: 칼날 전체를 가산 레이어로 한 번 더 + 훑는 빛줄기 자리(6줄)를 또 한 번 */
+    private static void glow(ModelPart blade, ModelPart follow, float[] bend, float grow, float bx, int sweep, MatrixStack matrices, VertexConsumerProvider vcp) {
+        matrices.push();
+        follow.rotate(matrices);
+        if (bend != null && bend[1] != 0f) {
+            matrices.translate(0, 4f / 16f, 0);
+            float ax = -bend[0];
+            matrices.multiply(new org.joml.Quaternionf().rotateAxis(bend[1], (float) Math.cos(ax), 0, (float) Math.sin(ax)));
+            matrices.translate(0, -4f / 16f, 0);
+        }
+        if (grow < 1f) {
+            matrices.translate(bx / 16f, GY / 16f, 0);
+            matrices.scale(grow, grow, grow);
+            matrices.translate(-bx / 16f, -GY / 16f, 0);
+        }
+        var eyes = vcp.getBuffer(RenderLayer.getEyes(TEX));
+        blade.render(matrices, eyes, FULL, OverlayTexture.DEFAULT_UV);
+        for (int i = Math.max(0, sweep); i < Math.min(BLADE.length, sweep + 6); i++) blade.getChild("r" + i).render(matrices, eyes, FULL, OverlayTexture.DEFAULT_UV);
         matrices.pop();
     }
 
