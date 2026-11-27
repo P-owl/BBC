@@ -1,5 +1,7 @@
-import sys, json, math
-sys.path.insert(0, '/home/claude/bbc/tools')
+# 빛 칼날 모델(LightBladeRender.java) 만들기: python3 tools/gen_light_blade.py [미리보기용 상자 json]
+import sys, os, json, math
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 from crescent import blade, inner_x_at
 T = 0.5
 SEG = blade()
@@ -36,9 +38,9 @@ def seg_boxes(s):
 def f(v): return ('%.3f' % v).rstrip('0').rstrip('.') + 'f'
 segs = ',\n            '.join('{%s}' % ', '.join(f(x) for x in s) for s in SEG)
 brs = '\n'.join('            box(%s, %s, %s, %s, %s, %s, %s),' % (b[0], *(f(x) for x in b[1:])) for b in BR)
-java = open('/tmp/claude-0/-home-claude/88b26540-202a-5f90-956c-a81d219c7c46/scratchpad/LightBladeRender.tmpl').read()
+java = open(os.path.join(HERE, 'LightBladeRender.tmpl')).read()
 java = java.replace('%SEGS%', segs).replace('%BRACER%', brs.rstrip(','))
-open('/home/claude/bbc/city-ability/src/main/java/bbc/client/LightBladeRender.java', 'w').write(java)
+open(os.path.join(HERE, '..', 'city-ability', 'src', 'main', 'java', 'bbc', 'client', 'LightBladeRender.java'), 'w').write(java)
 # 렌더러용: 모든 상자를 (가운데, 크기, 각도, 색) 로
 COL = {'S': 0x5a6fa6, 'E': 0xd6e2f8, 'M': 0x262c46, 'B': 0xa9b0c4, 'K': 0x14161f}
 R = []
@@ -50,5 +52,5 @@ for s in SEG:
         R.append(dict(c=[s[0] + lx * ca - ly * sa, s[1] + lx * sa + ly * ca, b[3] + b[6] / 2], s=[b[4], b[5], b[6]], a=a, col=COL[b[0]]))
 for b in BR:
     R.append(dict(c=[b[1] + b[4] / 2, b[2] + b[5] / 2, b[3] + b[6] / 2], s=[b[4], b[5], b[6]], a=0, col=COL[b[0]]))
-json.dump(R, open('/tmp/claude-0/-home-claude/88b26540-202a-5f90-956c-a81d219c7c46/scratchpad/blade_boxes.json', 'w'))
+if len(sys.argv) > 1: json.dump(R, open(sys.argv[1], 'w'))   # 렌더러 미리보기용 상자 목록
 print(len(SEG), len(BR), len(R))
