@@ -64,6 +64,7 @@ public final class CombatMode {
     public static void onKey(ServerPlayerEntity p, int action) {
         if (action == KeyPayload.TOGGLE) { toggle(p); return; }
         if (action == KeyPayload.GROWTH) { bbc.grow.GrowthNet.open(p); return; }
+        if (action == KeyPayload.PICK) { bbc.job.PickMenu.open(p); return; }
         if (!active(p)) return;
         switch (action) {
             case KeyPayload.M1 -> { Combat.m1(p, false); return; }

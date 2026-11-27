@@ -24,6 +24,8 @@ public record KeyPayload(int action) implements CustomPayload {
     public static final int SKILL_UP_BASE = 60;
     /** 성장 창 (K, 전투 모드와 상관없이) */
     public static final int GROWTH = 70;
+    /** (임시 · 테스트용) 캐릭터 선택창 (F7) */
+    public static final int PICK = 71;
 
     public static final CustomPayload.Id<KeyPayload> ID = new CustomPayload.Id<>(Identifier.of(Bbc.MOD_ID, "key"));
     public static final PacketCodec<RegistryByteBuf, KeyPayload> CODEC =

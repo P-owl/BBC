@@ -23,5 +23,6 @@
   "item.bbc.automail_heart": "강철 심장",
   "item.bbc.alchemy_spear": "연성 창",
   "item.bbc.stone_mask": "석가면",
-  "subtitles.bbc.light_se": "빛 칼날 소리"
+  "subtitles.bbc.light_se": "빛 칼날 소리",
+  "key.bbc.pick": "캐릭터 선택 (테스트용)"
 }
