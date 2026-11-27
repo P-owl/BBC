@@ -22,8 +22,7 @@ import java.util.Set;
 /**
  * 기둥 속 사내 · 빛 칼날 (참고: 받은 그림 — 팔 내린 정면을 재서 옮김, 치수는 tools/crescent.py, 이 파일은 tools/gen_light_blade.py 가 만듦).
  * 아래팔 아래쪽 강철 토시 (은빛 위아래 테 · 줄 · 앞면 둥근 장식과 금빛 가운데) → 토시 바깥 아래쪽에서 칼날이 돋아 팔에서 떨어진 채 바깥으로 완만히 휘며
- * 어깨 위까지 (팔꿈치 높이에서 가장 넓고 끝이 뾰족, 흰빛 도는 푸른 강철 + 밝은 바깥 날 + 짙은 안쪽 등) → 팔꿈치 높이에서 검은 막대 둘이 V 로 팔과 칼날을 이음 →
- * 토시 아래 안쪽엔 손 앞으로 휘어 내려가는 은빛 갈고리 덮개 둘.
+ * 어깨 위까지 (팔꿈치 높이에서 가장 넓고 끝이 뾰족, 흰빛 도는 푸른 강철 + 밝은 바깥 날 + 짙은 안쪽 등) → 팔꿈치 높이에서 검은 막대 둘이 V 로 팔과 칼날을 이음.
  * 전투 모드에서만 보이고 모션의 팔꿈치·무릎 굽힘을 따라감. 각성 땐 27틱에 칼날이 뿌리에서부터 돋고, 발의 칼날 기술 땐 오른 정강이에도 0.7배로
  */
 public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
@@ -97,13 +96,7 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
             {E, -4.456f, -2.168f, 0f, 0.26f, 0.625f, 0.51f, 193.18f}};
     private static final float[][] ROT = {
             {K, -3.886f, 3.35f, 0f, 0.22f, 1.937f, 0.22f, 126.788f},
-            {K, -3.756f, 4.25f, 0f, 0.22f, 1.5f, 0.22f, 60.005f},
-            {B, 0.6f, 9.6f, -1.75f, 0.42f, 1.623f, 0.42f, -23.199f},
-            {B, 0.975f, 10.95f, -1.75f, 0.42f, 1.409f, 0.42f, -6.582f},
-            {B, 0.9f, 12.1f, -1.75f, 0.42f, 1.144f, 0.42f, 16.699f},
-            {B, 1.15f, 9.6f, -1.42f, 0.42f, 1.623f, 0.42f, -23.199f},
-            {B, 1.525f, 10.95f, -1.42f, 0.42f, 1.409f, 0.42f, -6.582f},
-            {B, 1.45f, 12.1f, -1.42f, 0.42f, 1.144f, 0.42f, 16.699f}};
+            {K, -3.756f, 4.25f, 0f, 0.22f, 1.5f, 0.22f, 60.005f}};
     /** 곧은 상자 {구역, x0, y0, z0, sx, sy, sz} */
     private static final float[][] BOX = {
             {M, -3.4f, 5.4f, -2.4f, 4.8f, 3.4f, 4.8f},
@@ -139,7 +132,7 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
         return new ModelPart(List.of(), kids);
     }
 
-    /** 토시 + 이음대 + 갈고리 덮개 */
+    /** 토시 + 이음대 */
     private static ModelPart gear(int side) {
         List<ModelPart.Cuboid> c = new ArrayList<>();
         for (float[] b : BOX) {
