@@ -855,9 +855,11 @@ public final class PillarWind {
         Tasks.later(AWAKEN_SCENE - 4, () -> { if (alive(p) && Awaken.active(p)) JobSkills.bar(p, "🌀 바람만을 느껴 사물을 본다 — 주위 생물이 윤곽으로 보임 · 피해 +10% · 평타에 칼바람 · 기술이 바뀜  (G = 최종 유법)", Formatting.AQUA); });
     }
 
-    // ═════════ 각성기 '최종 유법' (170틱, 참고 '파이널 모드(최종유법)' 1:19.4~1:27.6 — 같은 시간·흐름) ═════════
-    //   0~16 머리 장식을 쥠 → 16~36 만화 칸 속 얼굴, 뿔이 솟음 → 40 고개를 젖힘 → 46 고개를 내리꽂으며 뿔에서 실 같은 바람 칼날 → 54 꽂힘 →
-    //   56~118 고개로 8 자를 그리며 3틱마다 벰 → 118~128 외침 → 132·146 크게 두 번 → 150~162 2틱마다 → 164 회오리로 날림 (둘레 6칸)
+    // ═════════ 각성기 '최종 유법' (170틱, 참고 ASBR '파이널 모드(최종유법)' 79.3~87.8초를 1틱 단위로 — 모션·카메라·판정이 같은 틱) ═════════
+    //   상대를 정면 3.2칸에 세움 → 0~20 머리 장식을 쥐고 숙임 → 21~49 만화 칸 (얼굴을 감쌈 → 뿔을 뽑음 → 고개를 젖힘) →
+    //   48~58 팔을 젖혀 뿔에서 실 같은 바람 칼날을 던짐 → 56~60 머리부터 몸을 날려 60 뿔로 찌름, 상대가 3칸 떠오름 →
+    //   64~118 웅크림·일어섬·웅크림 하며 고개로 8 자, 3틱마다 벰 → 120 외침 → 132·138 몸을 크게 틀며 두 번 → 128~142 상대가 내려옴 →
+    //   140 넓게 주저앉음 → 144~154 2틱마다 → 156 가슴을 펴며 회오리로 날림 (둘레 6칸)
     static final int ULT_SCENE = 170;
     private static final Hit ULT_BEAM = new Hit(1.0f, Hit.Kind.HIT, 200, 0, 0, 0, true, false).noParry();
     private static final Hit ULT_CUT = new Hit(0.15f, Hit.Kind.HIT, 80, 0, 0, 0, true, false).noParry();
@@ -881,30 +883,39 @@ public final class PillarWind {
         Tasks.later(120, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT3, viewers); });    // 쉬이아아아— (120~178)
         Tasks.later(182, () -> { if (alive(p)) AlchemySounds.voice(p, S_ULT4, viewers); });    // 승부는 났다 (외침이 끝난 뒤)
         PillarHeat.root(p, 1, ULT_SCENE - 10);
-        Vec3d hold = t.getPos();
-        for (int i = 0; i < 164; i++) Tasks.later(i, () -> {   // 상대를 제자리에 묶어 둠
-            if (!t.isAlive()) return;
-            t.requestTeleport(hold.x, t.getY() < hold.y ? hold.y : t.getY(), hold.z);
-            t.setVelocity(0, Math.min(0, t.getVelocity().y), 0);
-            t.velocityModified = true;
-        });
+        // 상대를 정면 3.2칸에 세움 (컷신 구도가 이 거리 기준). 자리가 막혔으면 원래 자리
+        Vec3d fwd = Combat.horizontal(p.getRotationVec(1f)).normalize();
+        Vec3d want = p.getPos().add(fwd.multiply(ULT_DIST));
+        Vec3d hold = w.isSpaceEmpty(t, t.getBoundingBox().offset(want.subtract(t.getPos()))) ? want : t.getPos();
+        final double baseY = hold.y;
+        final double liftK = w.isSpaceEmpty(t, t.getBoundingBox().offset(hold.add(0, 3.2, 0).subtract(t.getPos()))) ? 1 : 0;   // 위가 막혔으면 안 띄움
+        for (int i = 0; i < 156; i++) {   // 묶어 둠 + 60~66 에 3칸 떠올라 128~142 에 내려옴 (참고 영상처럼 공중에서 베임)
+            final int k = i;
+            Tasks.later(i, () -> {
+                if (!t.isAlive()) return;
+                t.requestTeleport(hold.x, baseY + liftK * ultLift(k), hold.z);
+                t.setVelocity(0, 0, 0);
+                t.fallDistance = 0;
+                t.velocityModified = true;
+            });
+        }
         // 0~44 머리 둘레에 바람이 모임 → 뿔에서 위로
         for (int i = 2; i < 44; i += 3) {
             final int k = i;
             Tasks.later(i, () -> { if (alive(p)) helix(w, p.getPos().add(0, 1.7, 0), new Vec3d(0, 1, 0), 0.6, 0.6 - k * 0.008, 2, k * 0.6, 10, WIND); });
         }
         Tasks.later(30, () -> { if (alive(p)) w.spawnParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 2.2, p.getZ(), 10, 0.05, 0.4, 0.05, 0.02); });
-        // 46 뿔에서 실 같은 바람 칼날 → 54 꽂힘
-        Tasks.later(46, () -> { if (alive(p)) AlchemySounds.play(p, S_ULT_SE, 1.8f); });
-        for (int i = 46; i <= 54; i += 2) {
+        // 48 뿔에서 실 같은 바람 칼날이 날아감 (58 까지)
+        Tasks.later(48, () -> { if (alive(p)) AlchemySounds.play(p, S_ULT_SE, 1.8f); });
+        for (int i = 48; i <= 58; i += 2) {
             final int k = i;
             Tasks.later(i, () -> {
                 if (!alive(p) || !t.isAlive()) return;
                 Vec3d horn = horn(p), c = t.getBoundingBox().getCenter();
-                beam(w, horn, horn.lerp(c, (k - 44) / 10.0), WIND_GOLD);
+                beam(w, horn, horn.lerp(c, (k - 46) / 12.0), WIND_GOLD);
             });
         }
-        Tasks.later(54, () -> {
+        Tasks.later(60, () -> {   // 몸을 날려 뿔로 찌름 → 상대가 떠오름
             if (!alive(p) || !t.isAlive()) return;
             Combat.hit(p, t, ULT_BEAM);
             Vec3d c = t.getBoundingBox().getCenter();
@@ -912,8 +923,8 @@ public final class PillarWind {
             Fx.word(w, c.add(0, 1.2, 0), Fx.Sfx.ZUBA, 1.4f);
             w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 1.4f, 0.6f);
         });
-        // 56~118 고개로 8 자를 그리며 3틱마다 벰
-        for (int i = 56; i < 118; i += 3) ultCut(p, t, i, ULT_CUT, 1.0, false);
+        // 64~118 고개로 8 자를 그리며 3틱마다 벰 (떠오른 상대 둘레)
+        for (int i = 64; i < 119; i += 3) ultCut(p, t, i, ULT_CUT, 1.0, false);
         // 118~128 외침: 머리에서 바람이 터짐
         Tasks.later(120, () -> {
             if (!alive(p)) return;
@@ -921,13 +932,13 @@ public final class PillarWind {
             Fx.rings(w, top, Combat.horizontal(p.getRotationVec(1f)), 2.0f, 2);
             w.spawnParticles(ParticleTypes.GUST_EMITTER_SMALL, top.x, top.y, top.z, 1, 0, 0, 0, 0);
         });
-        // 132·146 크게 두 번
+        // 132·138 몸을 크게 틀며 두 번
         ultCut(p, t, 132, ULT_BIG, 2.0, true);
-        ultCut(p, t, 146, ULT_BIG, 2.0, true);
-        // 150~162 2틱마다
-        for (int i = 150; i < 163; i += 2) ultCut(p, t, i, ULT_CUT, 1.2, false);
-        // 164 회오리로 날림 (둘레 6칸)
-        Tasks.later(164, () -> {
+        ultCut(p, t, 138, ULT_BIG, 2.0, true);
+        // 144~154 주저앉아 2틱마다
+        for (int i = 144; i < 155; i += 2) ultCut(p, t, i, ULT_CUT, 1.2, false);
+        // 156 가슴을 펴며 회오리로 날림 (둘레 6칸)
+        Tasks.later(156, () -> {
             if (!alive(p)) return;
             Vec3d c = t.isAlive() ? t.getBoundingBox().getCenter() : hold.add(0, 1, 0);
             for (LivingEntity x : around(p, c, 6)) Combat.hit(p, x, ULT_END);
@@ -943,6 +954,16 @@ public final class PillarWind {
             if (t.isAlive()) VampireJob.drink(p, bbc.job.Jobs.entry(p), t);
         });
         return true;
+    }
+
+    static final double ULT_DIST = 3.2;
+    /** 상대가 떠 있는 높이 (컷신 대본과 같은 값) */
+    static double ultLift(int t) {
+        if (t < 60) return 0;
+        if (t < 66) { double x = (t - 60) / 6.0; return 3.0 * (1 - (1 - x) * (1 - x)); }
+        if (t < 128) return 3.0 + 0.15 * Math.sin((t - 66) * 0.3);
+        if (t < 142) { double x = (t - 128) / 14.0; return 3.0 * (1 - x * x); }
+        return 0;
     }
 
     private static Vec3d horn(ServerPlayerEntity p) { return p.getEyePos().add(0, 0.35, 0).add(Combat.horizontal(p.getRotationVec(1f)).multiply(0.2)); }

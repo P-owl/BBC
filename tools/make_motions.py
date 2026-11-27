@@ -1895,53 +1895,82 @@ _aw = [(0, LIN, PW_STANCE),
        (54, IO, PW_STANCE), (64, LIN, PW_STANCE)]
 anim("pw_awaken", 64, seq(_aw))
 
-# ── 각성기 '최종 유법' (170틱, 참고 '파이널 모드(최종유법)' 1:19.0~1:27.6, 0.2초 간격으로 떼어 봄) ──
-#   0~16 (79.3~80.1) 오른팔은 머리 위 그대로, 왼손을 올려 머리 장식 옆을 쥠 · 고개를 살짝 숙임
-#   16~36 (80.4~81.2 만화 칸) 두 손바닥으로 얼굴 양옆을 감싸고 고개를 깊이 숙임 — 이마에서 뿔이 솟음 (무릎도 조금 굽힘)
-#   40 (81.4) 고개와 상체를 뒤로 크게 젖힘 (팔은 머리 옆) → 46 (81.8) 바로 서며 고개를 앞으로 — 뿔에서 실 같은 칼날이 날아감
-#   50 (82.0) 오른발을 크게 내딛고 상체를 숙임 → 54 (82.2) 상체가 거의 수평이 될 만큼 깊게 찔러 넣음 (왼다리는 뒤로 쭉, 두 팔은 뒤로)
-#   58~78 (82.4~83.2) 바닥 가까이 웅크린 채 상체를 좌우로 틀며 고개로 칼날을 휘두름 (팔은 반대로 흔들림)
-#   82~118 (84.0~85.2) 일어서서 팔꿈치를 벌려 주먹을 허리 옆에 버틴 채, 고개로 8 자를 그림 (고개 좌우 ±40·위아래 ±18, 12틱 주기, 상체가 따라 돌고 무게가 좌우로 실림)
-#   120~128 (85.4~85.6) 몸을 앞으로 내밀어 왼팔을 앞으로 뻗고 외침
-#   132 (85.8) 몸을 크게 돌리며 오른팔을 바깥으로 휘두름 → 140 (86.1) 오른팔을 머리 위로 올려 고개를 반대로 휘두름 → 146 반대로 한 번 더
-#   152~160 (86.4) 가슴을 내밀고 두 팔을 뒤로 낮게 벌린 채 주저앉아 외침 → 164 두 팔을 펴며 고개를 젖힘 → 170 자세
+# ── 각성기 '최종 유법' (170틱) — 참고: ASBR '파이널 모드(최종유법)「혼설삽」' 79.3~87.8초를 0.05초(1틱) 단위로 떼어 봄. 우리 틱 = (영상 초 − 79.3) × 20
+#   (카메라 구도는 Cutscene "pw_ult" 에 같은 틱으로)
+#   0~14  [옆 멀리, 둘 다 보임] 선 채 오른손을 들어 머리 장식 옆을 쥠, 왼팔은 앞으로 늘어뜨림
+#   16~20 바람이 머리에 감기며 허리를 40° 숙이고 두 손을 머리에
+#   22~30 [만화 칸: 얼굴 앞 아래 왼쪽] 고개를 숙이고 두 손바닥으로 얼굴 양옆을 감쌈
+#   30~37 고개를 오른쪽으로 돌리며 오른손이 뿔을 뽑아 쥠 (36 번쩍)
+#   40~49 [만화 칸: 앞 아래에서 올려봄] 가슴을 젖히고 턱을 들어 고개가 뒤로 넘어감, 오른팔꿈치를 높이 들어 손은 뒷머리에
+#   50    [옆 멀리] 꼿꼿이 서서 오른팔을 머리 위 뒤로 크게 젖혀 뿔 칼날을 던짐 (왼팔은 상대 쪽으로)
+#   52    두 팔을 머리 위로 → 54 허리를 깊이 숙이며 → 56~60 머리부터 상대에게 몸을 거의 수평으로 날림 (뿔로 찌름, 왼다리는 뒤로 쭉)
+#   62~76 [뒤 낮은 곳에서 떠오른 상대를 올려봄] 바닥에 웅크려 좌우로 틀며 고개로 칼날을 휘두름
+#   78~104 일어서서 두 팔을 낮게 벌린 채 고개로 8 자 → 106~118 다시 낮게 웅크려 8 자
+#   120   일어섬 → 122~125 [뿔 클로즈업] 고개를 숙여 뿔을 앞으로 (외침) → 126~128 [앞 왼쪽 가까이] 숙인 채 왼팔을 앞으로 뻗고 고개를 오른쪽으로
+#   130~138 [상대 쪽 낮은 곳] 꼿꼿이 서서 오른팔꿈치를 머리 위로, 왼주먹은 뒤로 낮게 — 몸을 크게 틀며 두 번 휘두름 (132·138)
+#   140~143 [바로 앞 낮게] 다리를 넓게 벌려 깊이 주저앉고 주먹을 무릎에, 고개를 숙여 노려봄
+#   144~154 [상대 어깨 너머 높은 곳] 낮게 웅크려 팔을 뒤로 → 156 가슴을 펴고 두 팔을 벌리며 회오리 → 170 자세
 R_FIST_SIDE = HR((0.85, -0.45, 0.25), (0.48, 1.0, -0.12))    # 팔꿈치를 바깥으로 벌려 주먹을 허리 옆에
 L_FIST_SIDE = HL((-0.85, -0.45, 0.25), (-0.48, 1.0, -0.12))
 L_REACH = HL((-0.1, 0.1, -0.99), (-0.12, 1.5, -0.7))           # 왼팔을 앞으로 쭉
 R_SWING_WIDE = HR((0.95, 0.15, -0.25), (1.0, 1.45, -0.2))      # 오른팔을 옆으로 크게 휘두름
+L_SWING_WIDE = HL((-0.95, 0.15, -0.25), (-1.0, 1.45, -0.2))
+L_HANG_FWD = HL((-0.15, -0.95, -0.25), (-0.3, 0.82, -0.3))     # 왼팔을 앞으로 늘어뜨림
+R_FRAME2 = HR((0.75, -0.25, -0.6), (0.31, 1.7, -0.2))         # 손바닥을 얼굴 양옆에 (얼굴은 가리지 않게)
+L_FRAME2 = HL((-0.75, -0.25, -0.6), (-0.31, 1.7, -0.2))
+R_THROW = HR((0.3, 0.85, 0.42), (0.38, 2.2, 0.5))              # 오른팔을 머리 위 뒤로 크게 젖힘 (던지기)
+L_POINT = HL((-0.2, -0.45, -0.87), (-0.26, 1.08, -0.6))        # 왼팔을 상대 쪽으로 낮게
+R_HORN = HR((0.75, 0.55, -0.35), (0.12, 1.98, -0.08))          # 오른손이 정수리 뿔을 쥠
+R_OVER = HR((0.45, 0.75, -0.48), (0.05, 2.02, -0.12))          # 오른팔꿈치를 앞 위로 들어 주먹이 머리 위
+R_KNEE = HR((0.6, -0.75, -0.3), (0.42, 0.72, -0.32))           # 주먹을 무릎에
+L_KNEE = HL((-0.6, -0.75, -0.3), (-0.42, 0.72, -0.32))
+SQUAT_RL, SQUAT_LL = (10, 28, 74), (-10, 28, 74)               # 넓게 벌려 깊이 주저앉음
+DIVE_RL, DIVE_LL = (-40, 10, 96), (66, 6, 4)                   # 몸을 날림: 오른무릎은 밑에, 왼다리는 뒤로 쭉
 _ul = [(0, LIN, PW_STANCE),
-       (4, IO, G(body=(4, -6, 0), rl=PW_RL, ll=PW_LL, look=(8, 6), rightArm=R_CROWN, leftArm=L_TEMPLE_HI)),
-       (10, IO, G(body=(5, -2, 0), rl=PW_RL, ll=PW_LL, look=(10, -8), rightArm=R_CROWN, leftArm=L_TEMPLE_HI)),
-       (16, IO, G(body=(-6, 0, 0), rl=PW_RL, ll=PW_LL, look=(20, 0), sink=0.08, rightArm=R_FRAME, leftArm=L_FRAME)),
-       (28, IO, G(body=(-8, 0, 0), rl=PW_RL, ll=PW_LL, look=(28, 0), sink=0.1, rightArm=R_FRAME, leftArm=L_FRAME)),
-       (36, LIN, G(body=(-8, 2, 0), rl=PW_RL, ll=PW_LL, look=(30, 0), sink=0.1, rightArm=R_FRAME, leftArm=L_FRAME)),
-       (40, EX, G(body=(16, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-44, 0), sink=0.06, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
-       (44, LIN, G(body=(17, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, 0), sink=0.06, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
-       (46, EX, G(body=(0, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(2, 0), sink=0.06, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
-       (50, OQ, G(body=(-36, -10, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(30, 6), sink=0.16, z=0.2, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-       (54, EX, G(body=(-62, -10, 0), rl=(-50, 8, 70), ll=(34, 8, 6), look=(52, 8), sink=0.32, z=0.35, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-       (57, LIN, G(body=(-60, -8, 0), rl=(-50, 8, 70), ll=(34, 8, 6), look=(50, 6), sink=0.32, z=0.35, rightArm=R_BACK_LO, leftArm=L_BACK_LO))]
-for k, t in enumerate(range(60, 80, 5)):   # 웅크려 좌우로 틀며 고개로 휘두름
-    sg = 1 if k % 2 == 0 else -1
-    _ul.append((t, IO, G(body=(-40, 36 * sg, 6 * sg), rl=KNEEL_RL if sg > 0 else WIDE_RL, ll=KNEEL_LL if sg > 0 else WIDE_LL, look=(34, 40 * sg), sink=0.3,
-                         rightArm=R_SWING_WIDE if sg < 0 else R_BACK_LO, leftArm=L_BACK_LO if sg < 0 else HL((-0.95, 0.15, -0.25), (-1.0, 1.45, -0.2)))))
-_ul.append((82, IO, G(body=(2, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(0, 0), sink=0.1, rightArm=R_FIST_SIDE, leftArm=L_FIST_SIDE)))
+       (4, IO, G(body=(2, -8, 0), rl=PW_RL, ll=PW_LL, look=(6, 4), rightArm=R_TEMPLE_HI, leftArm=L_HANG_FWD)),
+       (14, LIN, G(body=(3, -6, 0), rl=PW_RL, ll=PW_LL, look=(10, 2), rightArm=R_TEMPLE_HI, leftArm=L_HANG_FWD)),
+       (17, IO, G(body=(-20, -4, 0), rl=PW_RL, ll=PW_LL, look=(14, 0), sink=0.05, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
+       (20, OQ, G(body=(-40, 0, 0), rl=PW_RL, ll=PW_LL, look=(18, 0), sink=0.1, rightArm=R_TEMPLE_HI, leftArm=L_TEMPLE_HI)),
+       (22, IO, G(body=(-8, 0, 0), rl=PW_RL, ll=PW_LL, look=(22, 6), sink=0.08, rightArm=R_FRAME2, leftArm=L_FRAME2)),
+       (30, LIN, G(body=(-9, 2, 0), rl=PW_RL, ll=PW_LL, look=(24, 8), sink=0.08, rightArm=R_FRAME2, leftArm=L_FRAME2)),
+       (34, IO, G(body=(-6, -8, 0), rl=PW_RL, ll=PW_LL, look=(14, -34), sink=0.08, rightArm=R_HORN, leftArm=L_FRAME2)),
+       (37, EX, G(body=(-4, -12, 0), rl=PW_RL, ll=PW_LL, look=(8, -40), sink=0.08, rightArm=R_HORN, leftArm=L_FRAME2)),
+       (41, EX, G(body=(16, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-42, -6), sink=0.06, rightArm=R_CROWN, leftArm=L_BELLY)),
+       (48, LIN, G(body=(18, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-46, -8), sink=0.06, rightArm=R_CROWN, leftArm=L_BELLY)),
+       (50, EX, G(body=(6, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 4), sink=0.05, rightArm=R_THROW, leftArm=L_POINT)),
+       (52, IO, G(body=(4, 8, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 0), sink=0.05, rightArm=R_UP_HIGH, leftArm=L_UP_HIGH)),
+       (54, IQ, G(body=(-52, -4, 0), rl=LUNGE_RL2, ll=LUNGE_LL2, look=(40, 0), sink=0.2, z=0.35, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+       (57, OQ, G(body=(-78, -4, 0), rl=DIVE_RL, ll=DIVE_LL, look=(66, 0), sink=0.5, z=0.9, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+       (61, LIN, G(body=(-80, -2, 0), rl=DIVE_RL, ll=DIVE_LL, look=(68, 0), sink=0.52, z=1.0, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+       (63, IO, G(body=(-40, 30, 6), rl=KNEEL_RL, ll=KNEEL_LL, look=(30, 36), sink=0.3, rightArm=R_BACK_LO, leftArm=L_SWING_WIDE))]
+for k, t in enumerate(range(67, 79, 4)):   # 웅크려 좌우로 틀며 고개로 휘두름
+    sg = -1 if k % 2 == 0 else 1
+    _ul.append((t, IO, G(body=(-40, 36 * sg, 6 * sg), rl=KNEEL_RL, ll=KNEEL_LL, look=(30, 40 * sg), sink=0.3,
+                         rightArm=R_SWING_WIDE if sg < 0 else R_BACK_LO, leftArm=L_BACK_LO if sg < 0 else L_SWING_WIDE)))
+_ul.append((82, IO, G(body=(2, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(0, 0), sink=0.1, rightArm=R_WAIL, leftArm=L_WAIL)))
 import math as _m
-for t in range(84, 119, 3):   # 8 자: 고개 좌우 sin, 위아래 sin 2배
-    th = (t - 84) / 12.0 * 2 * _m.pi
+for t in range(85, 119, 3):   # 8 자: 고개 좌우 sin, 위아래 sin 2배 (12틱 주기). 106 부터 다시 낮게 웅크림
+    th = (t - 85) / 12.0 * 2 * _m.pi
+    low = 0 if t < 104 else min(1.0, (t - 103) / 4)
     yaw, pit = 40 * _m.sin(th), 18 * _m.sin(2 * th)
-    _ul.append((t, IO, G(body=(round(2 + 4 * _m.sin(2 * th), 1), round(14 * _m.sin(th), 1), round(-5 * _m.sin(th), 1)), rl=WIDE_RL, ll=WIDE_LL,
-                         look=(round(pit, 1), round(yaw - 14 * _m.sin(th), 1)), sink=round(0.1 + 0.05 * abs(_m.sin(th)), 3), rightArm=R_FIST_SIDE, leftArm=L_FIST_SIDE)))
-_ul += [(122, EX, G(body=(-22, -16, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(24, 14), sink=0.14, z=0.2, rightArm=R_BACK_LO, leftArm=L_REACH)),
-        (128, LIN, G(body=(-24, -16, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(26, 16), sink=0.14, z=0.2, rightArm=R_BACK_LO, leftArm=L_REACH)),
-        (132, EX, G(body=(-6, 56, 0), rl=WIDE_RL, ll=WIDE_LL, look=(6, 30), sink=0.1, rightArm=R_SWING_WIDE, leftArm=L_FIST_SIDE)),
-        (137, IO, G(body=(-4, 40, 0), rl=WIDE_RL, ll=WIDE_LL, look=(0, 20), sink=0.08, rightArm=R_UP_HIGH, leftArm=L_FIST_SIDE)),
-        (140, EX, G(body=(2, -34, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, -46), sink=0.06, rightArm=R_CROWN, leftArm=L_BACK_LO)),
-        (146, EX, G(body=(-8, -60, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, -30), sink=0.1, rightArm=R_CROWN, leftArm=HL((-0.95, 0.15, -0.25), (-1.0, 1.45, -0.2)))),
-        (152, IO, G(body=(-20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 0), sink=0.24, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-        (156, LIN, G(body=(-22, 3, 0), rl=WIDE_RL, ll=WIDE_LL, look=(12, -3), sink=0.25, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-        (160, LIN, G(body=(-21, -3, 0), rl=WIDE_RL, ll=WIDE_LL, look=(11, 3), sink=0.24, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-        (164, EX, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-24, 0), sink=0.06, rightArm=R_WAIL, leftArm=L_WAIL)),
+    _ul.append((t, IO, G(body=(round(2 - 26 * low + 4 * _m.sin(2 * th), 1), round(14 * _m.sin(th), 1), round(-5 * _m.sin(th), 1)), rl=WIDE_RL, ll=WIDE_LL,
+                         look=(round(pit + 20 * low, 1), round(yaw - 14 * _m.sin(th), 1)), sink=round(0.1 + 0.2 * low + 0.05 * abs(_m.sin(th)), 3),
+                         rightArm=R_WAIL if low < 0.5 else R_BACK_LO, leftArm=L_WAIL if low < 0.5 else L_BACK_LO)))
+_ul += [(120, IO, G(body=(2, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 0), sink=0.08, rightArm=R_WAIL, leftArm=L_WAIL)),
+        (122, EX, G(body=(-20, -6, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(34, 4), sink=0.12, rightArm=R_CROWN, leftArm=L_BELLY)),
+        (125, LIN, G(body=(-22, -6, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(36, 4), sink=0.12, rightArm=R_CROWN, leftArm=L_BELLY)),
+        (126, EX, G(body=(-28, -16, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(16, -30), sink=0.14, z=0.15, rightArm=R_CROWN, leftArm=L_REACH)),
+        (129, LIN, G(body=(-30, -16, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(18, -32), sink=0.14, z=0.15, rightArm=R_CROWN, leftArm=L_REACH)),
+        (131, IO, G(body=(2, -30, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-8, -20), sink=0.08, rightArm=R_OVER, leftArm=L_BACK_LO)),
+        (132, EX, G(body=(0, 34, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 34), sink=0.1, rightArm=R_OVER, leftArm=L_BACK_LO)),
+        (135, IO, G(body=(2, 20, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-6, 20), sink=0.08, rightArm=R_OVER, leftArm=L_BACK_LO)),
+        (138, EX, G(body=(-4, -46, 0), rl=WIDE_RL, ll=WIDE_LL, look=(8, -34), sink=0.1, rightArm=R_OVER, leftArm=L_SWING_WIDE)),
+        (140, OQ, G(body=(-6, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(14, 0), sink=0.05, rightArm=R_KNEE, leftArm=L_KNEE)),
+        (143, LIN, G(body=(-8, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(16, 0), sink=0.06, rightArm=R_KNEE, leftArm=L_KNEE)),
+        (147, IO, G(body=(-30, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(24, 0), sink=0.04, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (153, LIN, G(body=(-32, 2, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(26, -2), sink=0.05, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (156, EX, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-24, 0), sink=0.06, rightArm=R_WAIL, leftArm=L_WAIL)),
+        (162, LIN, G(body=(10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-20, 0), sink=0.06, rightArm=R_WAIL, leftArm=L_WAIL)),
         (170, IO, PW_STANCE)]
 anim("pw_ult", 170, seq(_ul))
 
