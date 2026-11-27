@@ -140,7 +140,24 @@ final class Anim {
         return new float[]{v.getX(), v.getY()};
     }
 
+    /** 마지막으로 튼 기술·평타 모션 (빛 칼날 그리기용: 각성 때 칼날이 돋는 순간 · 발의 칼날) */
+    private static final java.util.Map<Integer, String> LAST_MOTION = new java.util.HashMap<>();
+    private static final java.util.Map<Integer, Long> LAST_MOTION_AT = new java.util.HashMap<>();
+    /** 기둥 속 사내 · 빛 이고 전투 모드인가 (아래팔 칼날을 그림) */
+    public static boolean lightBlades(int id) { return "stance_pl".equals(STANCE_BASE.get(id)) && STANCE_ON.containsKey(id); }
+    public static String lastMotion(int id) { return LAST_MOTION.get(id); }
+    /** 마지막 모션을 튼 뒤 지난 틱 (없으면 큰 값) */
+    public static float motionAge(int id, float tickDelta) {
+        var w = net.minecraft.client.MinecraftClient.getInstance().world;
+        Long at = LAST_MOTION_AT.get(id);
+        return w == null || at == null ? 1e6f : w.getTime() - at + tickDelta;
+    }
+
     static void play(AbstractClientPlayerEntity player, String motion) {
+        if (!motion.startsWith("#") && net.minecraft.client.MinecraftClient.getInstance().world != null) {
+            LAST_MOTION.put(player.getId(), motion);
+            LAST_MOTION_AT.put(player.getId(), net.minecraft.client.MinecraftClient.getInstance().world.getTime());
+        }
         if (motion.startsWith("#stance")) {
             ModifierLayer<IAnimation> st = layer(player, STANCE);
             if (motion.startsWith("#stance:")) STANCE_BASE.put(player.getId(), motion.substring(8));   // 직업 대기 자세 (예: stance_al)

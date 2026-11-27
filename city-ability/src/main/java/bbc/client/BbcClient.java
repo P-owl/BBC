@@ -72,7 +72,7 @@ public class BbcClient implements ClientModInitializer {
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> bbc.client.alchemy.AutomailRender.BODIES.clear());
         net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
-            if (renderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer pr) helper.register(new bbc.client.alchemy.AutomailRender(pr));
+            if (renderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer pr) { helper.register(new bbc.client.alchemy.AutomailRender(pr)); helper.register(new LightBladeRender(pr)); }
         });
         ClientPlayNetworking.registerGlobalReceiver(MotionPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
             if (ctx.client().world == null) return;
