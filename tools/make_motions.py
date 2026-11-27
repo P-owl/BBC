@@ -1034,10 +1034,6 @@ def ARMS_AL(cc, side, p):
 def ARMS_VM(cc, side, p):
     """뱀파이어: 팔을 뒤로 쭉 늘어뜨려 펼친 채 거의 안 흔듦 — 숙인 몸만 앞으로 미끄러지는 포식자 질주. 손끝은 살짝 갈고리"""
     return _r(32 - 4 * cc, 0, side * 20, -12 - 4 * cc)
-def ARMS_PH(cc, side, p):
-    """열(비등점): 주먹 쥐고 팔꿈치를 옆으로 벌려 크게 휘두름 — 씩씩거리며 밀고 들어가는 힘 질주"""
-    return _r(5 - 32 * cc, side * 10 * max(0, cc), side * 12, -92 - 30 * cc)
-
 
 # ── 대기: 키를 다 펴고 선 자세 — 오른손 허리, 왼팔 늘어뜨림, 오른다리에 체중, 턱을 살짝 듦 (참고: 대전 중 선 자세) ──
 VM_STANCE = solved(G(body=(3, -14, 0), rl=STAND_RL, ll=STAND_LL, look=(-8, 2), rightArm=R_HIP, leftArm=L_LOOSE))
@@ -1459,7 +1455,6 @@ for t in range(0, 21):
     # 팔: 오른다리가 앞(sw>0)이면 왼팔이 앞. 팔꿈치 90°로 굽혀 주먹을 크게 흔듦
     _prun.append((t, LIN, dict(body=body, head=(BP + 18, round(10 * sw, 1), 0), rightLeg=rl, leftLeg=ll, bodyPos=(0, round(-low + fly, 3), 0),
                                rightArm=(round(-15 + 45 * sw, 1), 0, 6, round(-95 + 25 * sw, 1)), leftArm=(round(-15 - 45 * sw, 1), 0, -6, round(-95 - 25 * sw, 1)))))
-anim("run_ph", 12, run_cycle(lean=18, thigh=(32, -46), knee=(22, 112), twist=5, bob=0.09, lean_osc=3, sway=4, leg_roll=6, head_k=0.75, arms=ARMS_PH), loop=True, ret=0)   # 무겁게 쿵쿵 — 뜨고 내려앉고 디딘 발로 기욺, 다리 넓게
 
 # 가드: 두 팔뚝을 얼굴 앞에 세로로 붙여 세움
 PH_GUARD = G(body=(-4, -14, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(10, 0), sink=0.04,

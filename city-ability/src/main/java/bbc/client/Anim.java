@@ -128,8 +128,8 @@ final class Anim {
     private static final java.util.Map<Integer, Long> GROUND_AT = new java.util.HashMap<>();
     private static final java.util.Map<Integer, String> LEGS_ON = new java.util.HashMap<>();
     /** 직업 대기 자세 → 맨손으로 달릴 때 쓸 달리기 (연금술사 = 주먹 모은 잔걸음, 뱀파이어 = 숙이고 팔을 뒤로 펼친 질주,
-     *  열 = 쿵쿵 힘 질주, 바람 = 출렁임 없이 미끄러지는 질주). 직업 없으면 공용 run */
-    private static final java.util.Map<String, String> RUN_VARIANT = java.util.Map.of("stance_al", "run_al", "stance_vm", "run_vm", "stance_ph", "run_ph", "stance_pw", "run_pw");
+     *  바람 = 출렁임 없이 미끄러지는 질주). 열(에시디시)과 직업 없으면 공용 run */
+    private static final java.util.Map<String, String> RUN_VARIANT = java.util.Map.of("stance_al", "run_al", "stance_vm", "run_vm", "stance_pw", "run_pw");
 
     /** 지금 이 플레이어 모션의 굽힘 {축, 각도} (playerAnimator HeldItemMixin 과 같은 값) */
     static float[] bend(AbstractClientPlayerEntity player, String part) {
