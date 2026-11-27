@@ -118,10 +118,10 @@ final class Anim {
     private static final java.util.Map<Integer, Long> MOVED_AT = new java.util.HashMap<>(), RAN_AT = new java.util.HashMap<>();
     /** 걷기 판이 있는 자세 (자세 + '_walk' = 위몸은 그 자세, 다리는 걷기. 재생 속도 = 이동 속도) */
     private static final java.util.Set<String> WALKS = java.util.Set.of("stance", "stance_sword", "stance_spear", "stance_gs",
-            "stance_al", "stance_vm", "stance_ph", "stance_pw");
+            "stance_al", "stance_vm", "stance_ph", "stance_pw", "stance_pl");
     /** 다리까지 잡은 대기 자세 → 공중에선 팔만 잡은 판으로 (다리는 다리 층) */
     private static final java.util.Map<String, String> ARMS_ONLY = java.util.Map.of("stance_al", "stance_al_arms", "stance_vm", "stance_vm_arms",
-            "stance_ph", "stance_ph_arms", "stance_pw", "stance_pw_arms");
+            "stance_ph", "stance_ph_arms", "stance_pw", "stance_pw_arms", "stance_pl", "stance_pl_arms");
     /** 걷기 모션이 1배속으로 맞는 이동 속도 (칸/틱). 바닐라 걷기(0.216)에선 1.35배 = 두 걸음에 약 12틱 (바닐라 다리 흔들기와 비슷한 빠르기) */
     private static final double WALK_SPEED = 0.16;
     /** 마지막으로 땅에 있던 틱 · 지금 다리 층에 깐 모션 */

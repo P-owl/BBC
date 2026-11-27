@@ -92,7 +92,7 @@ def _fix_euler(moves):
 
 
 def anim(name, end, keys, stop=None, loop=False, ret=0):
-    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw", "run")): keys = _fix_euler(keys)
+    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw", "pl_", "stance_pl", "guard_pl", "run")): keys = _fix_euler(keys)
     A[name] = {"version": 3, "name": name, "author": "bbc", "description": "",
                "emote": {"isLoop": loop, "returnTick": ret, "beginTick": 0, "endTick": end,
                          "stopTick": stop if stop is not None else end + 1, "degrees": True,
@@ -2010,6 +2010,196 @@ _ul += [(120, IO, G(body=(2, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 0), sink=0
 anim("pw_ult", 170, seq(_ul))
 
 
+# ═════════ 기둥 속 사내 · 빛 루트 (참고: 올스타 배틀 R '빛의 기둥 속 사내' 플레이 영상 2:04~3:52 — 자세·기술 원칙만, 이름·연출은 우리 것) ═════════
+# 두 아래팔에서 빛나는 칼날이 돋은 검사. 대기 (참고 2:53·3:39): 꼿꼿이 서서 왼손은 허리에, 오른 아래팔(칼날)을 가슴 앞에 비스듬히 세움
+R_BLADE = HR((0.35, -0.6, -0.72), (0.12, 1.38, -0.5))          # 오른 아래팔을 가슴 앞에 비스듬히 (칼날이 위로)
+L_BLADE = HL((-0.35, -0.6, -0.72), (-0.12, 1.36, -0.5))
+R_BLADE_UP = HR((0.55, -0.35, -0.76), (0.18, 1.62, -0.45))      # 아래팔을 세워 얼굴 앞으로 (칼날 자랑)
+R_LICK = HR((0.75, -0.2, -0.62), (-0.18, 1.56, -0.42))         # 칼날을 입 앞에 가로로 (혀로 핥음)
+R_CUT_IN = HR((-0.45, 0.25, -0.86), (-0.5, 1.62, -0.25))       # 베기 전: 오른팔을 왼어깨 위로 감음
+R_CUT_OUT = HR((0.9, -0.25, -0.35), (0.98, 1.05, -0.35))       # 베기 끝: 오른팔을 오른쪽 아래로 쭉
+L_CUT_IN = HL((0.45, 0.25, -0.86), (0.5, 1.62, -0.25))
+L_CUT_OUT = HL((-0.9, -0.25, -0.35), (-0.98, 1.05, -0.35))
+R_CUT_BACK = HR((0.6, 0.3, 0.74), (0.62, 1.68, 0.55))          # 칼날을 뒤로 높이 젖힘 (돌진 전)
+R_SKY = HR((0.05, 0.99, -0.1), (0.06, 2.25, -0.12))           # 오른팔을 하늘로 곧게 (칼날이 번쩍)
+L_SKY = HL((-0.05, 0.99, -0.1), (-0.06, 2.25, -0.12))
+R_LOW_SWEEP = HR((0.75, -0.55, 0.35), (0.85, 0.7, 0.45))       # 낮게 휘둘러 뒤로 쓸고 지나감
+L_LOW_SWEEP = HL((-0.75, -0.55, 0.35), (-0.85, 0.7, 0.45))
+R_X = HR((-0.3, -0.1, -0.95), (-0.25, 1.45, -0.55))            # 두 팔을 몸 앞에서 X 로 겹침
+L_X = HL((0.3, -0.1, -0.95), (0.25, 1.38, -0.55))
+R_SPREAD_HI = HR((0.9, 0.35, -0.25), (1.0, 1.65, -0.2))        # 두 팔을 옆 위로 활짝
+L_SPREAD_HI = HL((-0.9, 0.35, -0.25), (-1.0, 1.65, -0.2))
+R_HAND_FACE = HR((0.45, -0.3, -0.84), (0.05, 1.68, -0.5))      # 손가락을 펴 얼굴 앞에 (등장)
+PL_RL, PL_LL = (8, 6, 4), (-10, 6, 8)                          # 꼿꼿이, 다리는 조금만 벌림
+PL_STANCE = solved(G(body=(2, -14, 0), rl=PL_RL, ll=PL_LL, look=(-2, 6), rightArm=R_BLADE, leftArm=L_HIP))
+anim("stance_pl", 40, seq([(0, LIN, PL_STANCE), (20, IO, dict(body=(3, -14, 0), rightArm=HR((0.35, -0.62, -0.7), (0.12, 1.36, -0.5)))), (40, IO, PL_STANCE)]), loop=True, ret=0)
+PL_WALK = dict(body=(2, -8, 0), head=(0, -4, 0), rightArm=R_BLADE, leftArm=L_HIP)
+anim("stance_pl_arms", 40, seq([(0, LIN, PL_WALK), (20, IO, dict(body=(3, -8, 0))), (40, IO, PL_WALK)]), loop=True, ret=0)
+# 가드: 두 아래팔 칼날을 세워 얼굴 앞에서 X
+guard_loop("guard_pl", G(body=(-4, -6, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(6, 0), sink=0.04,
+                          rightArm=HR((0.4, -0.35, -0.85), (-0.08, 1.7, -0.45)), leftArm=HL((-0.4, -0.35, -0.85), (0.08, 1.62, -0.47))), dict(body=(-5, -6, 0)))
+
+
+def lstrike(end, frames, hold_to=None, settle=None):
+    fr = [(0, LIN, PL_STANCE)] + frames
+    t_hit, _, hit = frames[-1]
+    if hold_to: fr.append((hold_to, LIN, hit))
+    if settle: fr.append(settle)
+    fr.append((end, IO, PL_STANCE))
+    return seq(fr)
+
+
+# ── 평타 (판정 4, 막타 6): 칼날로 베어 나감 — 오른 가로베기 → 왼 되베기 → 머리 위에서 내리베기 → 발의 칼날로 낮게 차 벰 → 두 팔 X 를 펼쳐 벰 (날림) ──
+PL_C1 = G(body=(-10, 30, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(8, -16), sink=0.08, z=0.15, rightArm=R_CUT_OUT, leftArm=L_HIP)
+anim("pl_1", 10, lstrike(10, [(2, IO, G(body=(0, -30, 0), rl=PL_RL, ll=PL_LL, look=(4, 14), sink=0.04, rightArm=R_CUT_IN, leftArm=L_HIP)), (4, EX, PL_C1)],
+                         hold_to=6, settle=(8, IO, dict(PL_C1, body=(-6, 24, 0)))))
+PL_C2 = G(body=(-10, -34, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(8, 16), sink=0.08, z=0.15, rightArm=R_BLADE, leftArm=L_CUT_OUT)
+anim("pl_2", 10, lstrike(10, [(2, IO, G(body=(-4, 26, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(4, -12), sink=0.06, rightArm=R_BLADE, leftArm=L_CUT_IN)), (4, EX, PL_C2)],
+                         hold_to=6, settle=(8, IO, dict(PL_C2, body=(-6, -28, 0)))))
+PL_C3 = G(body=(-26, -6, 0), rl=DEEP_RL, ll=DEEP_LL, look=(18, 4), sink=0.14, z=0.2, rightArm=R_DOWN_X, leftArm=L_BACK_LO)
+anim("pl_3", 10, lstrike(10, [(2, OQ, G(body=(8, -16, 0), rl=PL_RL, ll=PL_LL, look=(-8, 8), sink=0.04, rightArm=R_UP_HIGH, leftArm=L_HIP)), (4, EX, PL_C3)],
+                         hold_to=6, settle=(8, IO, dict(PL_C3, body=(-20, -6, 0)))))
+PL_KICK = dict(G(body=(10, 40, 4), rl=(-4, 10, 18), ll=(-4, 10, 18), look=(-10, -30), rightArm=R_BACK_LO, leftArm=L_BACK_LO), rightLeg=(-74, -30, 30, 4))
+anim("pl_4", 10, lstrike(10, [(2, IO, dict(G(body=(4, -20, 0), rl=(-4, 10, 18), ll=(-4, 10, 18), look=(0, 10), rightArm=R_BLADE, leftArm=L_HIP), rightLeg=(-50, 0, 8, 90))), (4, EX, PL_KICK)],
+                         hold_to=6, settle=(8, IO, dict(PL_KICK, body=(6, 34, 3)))))
+PL_XOUT = G(body=(-14, 0, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, 0), sink=0.14, z=0.25, rightArm=R_CUT_OUT, leftArm=L_CUT_OUT)
+anim("pl_5", 17, lstrike(17, [(3, IO, G(body=(6, 0, 0), rl=PL_RL, ll=PL_LL, look=(-4, 0), sink=0.1, rightArm=R_X, leftArm=L_X)), (6, EX, PL_XOUT)],
+                         hold_to=10, settle=(13, IO, dict(PL_XOUT, body=(-10, 0, 0)))))
+anim("pl_rise", 11, lstrike(11, [   # 띄우기: 낮게 웅크렸다 몸을 펴며 칼날을 아래에서 하늘로 올려 벰
+    (2, IO, G(body=(-26, -14, 0), rl=WIDE_RL, ll=WIDE_LL, look=(20, 6), sink=0.24, rightArm=R_LOW_SWEEP, leftArm=L_HIP)),
+    (4, EX, _hop(G(body=(14, 16, 0), rl=(6, 6, 2), ll=(-24, 6, 8), look=(-30, -6), rightArm=R_SKY, leftArm=L_BACK_LO), 0.2))], hold_to=7))
+PL_AIR0 = solved(AIR(body=(0, -10, 0), rightArm=R_BLADE, leftArm=L_HIP))
+
+
+def lma(t_hit, end, frames, hold=2):
+    fr = [(0, LIN, PL_AIR0)] + frames
+    hit = next((p for t, e, p in frames if t == t_hit), None)
+    if hit and hold: fr.append((t_hit + hold, LIN, hit))
+    fr.append((end, IO, PL_AIR0))
+    return seq(fr)
+
+
+anim("pl_a1", 10, lma(4, 10, [(2, IO, AIR(body=(0, -30, 0), look=(0, 14), rightArm=R_CUT_IN, leftArm=L_HIP)), (4, EX, AIR(body=(-8, 30, 0), look=(6, -14), rightArm=R_CUT_OUT, leftArm=L_HIP))]))
+anim("pl_a2", 10, lma(4, 10, [(2, IO, AIR(body=(0, 26, 0), look=(0, -12), rightArm=R_BLADE, leftArm=L_CUT_IN)), (4, EX, AIR(body=(-8, -30, 0), look=(6, 14), rightArm=R_BLADE, leftArm=L_CUT_OUT))]))
+anim("pl_a3", 10, lma(4, 10, [(2, IO, AIR(body=(18, 0, 0), look=(-8, 0), rightArm=R_UP_HIGH, leftArm=L_UP_HIGH)),
+                              (4, EX, AIR(body=(-26, 0, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(16, 0), rightArm=R_DOWN_X, leftArm=HL((0.25, -0.5, -0.83), (0.45, 0.85, -0.5))))]))
+PL_SLAM_UP = AIR(body=(24, 0, 0), rl=(-60, 18, 90), ll=(-40, 18, 80), look=(-14, 0), rightArm=R_SKY, leftArm=L_SKY)
+PL_SLAM_DN = AIR(body=(-56, 0, 0), rl=(30, 18, 30), ll=(22, 18, 24), look=(30, 0), rightArm=R_DOWN_X, leftArm=HL((0.25, -0.5, -0.83), (0.45, 0.85, -0.5)))
+anim("pl_slam", 15, seq([(0, LIN, PL_AIR0), (2, OQ, PL_SLAM_UP), (4, EX, PL_SLAM_DN), (9, LIN, dict(body=(-52, 0, 0))), (15, IO, PL_STANCE)]))
+
+# ── 기술 ──
+# ① 빛 칼날 베기 (참고 2:24~2:25 '切断'): 오른팔을 왼어깨 위로 감고 → 5 대각선으로 크게 내리벰 → 왼팔로 감아 → 11 반대로 올려벰
+PL_CUT_A = G(body=(-18, 34, 0), rl=DEEP_RL, ll=DEEP_LL, look=(14, -16), sink=0.14, z=0.25, rightArm=R_DOWN_X, leftArm=L_HIP)
+PL_CUT_B = G(body=(-6, -40, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(4, 18), sink=0.08, z=0.3, rightArm=R_BACK_LO, leftArm=HL((-0.75, 0.45, -0.48), (-0.85, 1.85, -0.35)))
+anim("pl_cut", 24, seq([(0, LIN, PL_STANCE), (3, OQ, G(body=(4, -34, 0), rl=PL_RL, ll=PL_LL, look=(-2, 16), sink=0.06, rightArm=R_CUT_IN, leftArm=L_HIP)), (5, EX, PL_CUT_A),
+                        (8, LIN, dict(PL_CUT_A, body=(-16, 30, 0))), (9, IO, G(body=(-12, 20, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, -8), sink=0.12, z=0.25, rightArm=R_BACK_LO, leftArm=L_CUT_IN)),
+                        (11, EX, PL_CUT_B), (16, LIN, dict(PL_CUT_B, body=(-4, -36, 0))), (24, IO, PL_STANCE)]))
+anim("pl_cut_q", 10, lstrike(10, [(2, OQ, G(body=(4, -34, 0), rl=PL_RL, ll=PL_LL, look=(-2, 16), sink=0.06, rightArm=R_CUT_IN, leftArm=L_HIP)), (4, EX, PL_CUT_A)], hold_to=7))
+anim("pl_cut_air", 14, seq([(0, LIN, PL_AIR0), (2, OQ, AIR(body=(10, -30, 0), look=(0, 14), rightArm=R_CUT_IN, leftArm=L_HIP)),
+                            (5, EX, AIR(body=(-40, 30, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(24, -14), rightArm=R_DOWN_X, leftArm=L_BACK_LO)),
+                            (9, LIN, dict(body=(-36, 26, 0))), (14, IO, PL_STANCE)]))
+# ② 칼날 받아치기: 칼날을 가로로 눕혀 들고 노려봄 (0.8초) → 맞으면 상대를 꿰뚫듯 지나가 등 뒤에서 벰 (pl_counter_hit)
+PL_CTR = G(body=(-2, -30, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(4, 22), sink=0.06, rightArm=R_LICK, leftArm=L_HIP)
+anim("pl_counter", 24, seq([(0, LIN, PL_STANCE), (3, OQ, PL_CTR), (18, LIN, dict(PL_CTR, body=(-3, -32, 0))), (24, IO, PL_STANCE)]))
+PL_THRU = G(body=(-24, 30, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, -20), sink=0.18, z=0.3, rightArm=R_LOW_SWEEP, leftArm=L_BACK_LO)
+anim("pl_counter_hit", 16, seq([(0, LIN, PL_CTR), (2, IO, G(body=(-20, -20, 0), rl=DEEP_RL, ll=DEEP_LL, look=(14, 10), sink=0.16, rightArm=R_CUT_IN, leftArm=L_BACK_LO)),
+                                (4, EX, PL_THRU), (10, LIN, dict(PL_THRU, body=(-20, 26, 0))), (16, IO, PL_STANCE)]))
+anim("pl_slip", 10, seq([(0, LIN, PL_STANCE), (2, OQ, G(body=(10, -20, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-6, 10), sink=0.14, rightArm=R_BLADE_UP, leftArm=L_BACK_LO)),
+                         (6, LIN, G(body=(8, -18, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-4, 8), sink=0.12, rightArm=R_BLADE_UP, leftArm=L_BACK_LO)), (10, IO, PL_STANCE)]))
+# ③ 발의 칼날 (참고 2:44 · 3:00 '足のサーベル'): 낮게 웅크려 손을 짚고 → 8 몸을 돌리며 칼날 돋은 다리로 낮게 휘둘러 띄움
+PL_LEG_CH = dict(G(body=(-30, -40, 0), rl=WIDE_RL, ll=WIDE_LL, look=(22, 20), sink=0.3, rightArm=R_LOW_SWEEP, leftArm=HL((-0.3, -0.85, -0.42), (-0.3, 0.6, -0.55))))
+PL_LEG = dict(G(body=(-20, 60, -10), rl=(-4, 14, 40), ll=(-4, 14, 40), look=(16, -40), sink=0.2, rightArm=R_BACK_LO, leftArm=HL((-0.3, -0.85, -0.42), (-0.3, 0.6, -0.55))), rightLeg=(-62, -40, 40, 2))
+anim("pl_leg", 20, seq([(0, LIN, PL_STANCE), (4, IO, PL_LEG_CH), (8, EX, PL_LEG), (12, LIN, dict(PL_LEG, body=(-18, 70, -8))), (20, IO, PL_STANCE)]))
+anim("pl_leg_q", 10, lstrike(10, [(2, IO, PL_LEG_CH), (4, EX, PL_LEG)], hold_to=6))
+anim("pl_leg_air", 14, seq([(0, LIN, PL_AIR0), (2, OQ, AIR(body=(20, 0, 0), rl=(-100, 10, 10), ll=(10, 10, 40), look=(-12, 0), rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                            (5, EX, AIR(body=(-30, 0, 0), rl=(-10, 10, 0), ll=(20, 10, 50), look=(20, 0), rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                            (9, LIN, dict(body=(-26, 0, 0))), (14, IO, PL_STANCE)]))
+# ④ 두 동강 (참고 2:42 '真っ二つ'): 낮게 파고들어 왼손으로 멱살 (pl_grab, 6) → 오른 칼날로 두 번 (6·12) → 칼날을 하늘로 올렸다 20 내리그어 날림 (pl_grab_hit)
+PL_GRAB = G(body=(-22, -10, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, 4), sink=0.16, z=0.25, rightArm=R_BACK_LO, leftArm=HL((-0.1, -0.1, -0.99), (-0.05, 1.4, -0.66)))
+anim("pl_grab", 14, seq([(0, LIN, PL_STANCE), (2, OQ, G(body=(-30, -10, 0), rl=DEEP_RL, ll=DEEP_LL, look=(22, 4), sink=0.2, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                         (6, EX, PL_GRAB), (10, LIN, PL_GRAB), (14, IO, PL_STANCE)]))
+L_HOLD = HL((-0.1, -0.1, -0.99), (-0.05, 1.4, -0.66))
+_gh = [(0, LIN, PL_GRAB)]
+for k, t in enumerate((6, 12)):
+    _gh += [(t - 3, IO, G(body=(-4, -30, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(0, 14), sink=0.06, rightArm=R_CUT_IN if k == 0 else R_CUT_OUT, leftArm=L_HOLD)),
+            (t, EX, G(body=(-12, 30, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(8, -14), sink=0.08, z=0.1, rightArm=R_CUT_OUT if k == 0 else R_CUT_IN, leftArm=L_HOLD))]
+_gh += [(16, IO, G(body=(10, -8, 0), rl=PL_RL, ll=PL_LL, look=(-16, 4), sink=0.04, rightArm=R_SKY, leftArm=L_HOLD)),
+        (20, EX, G(body=(-34, -4, 0), rl=DEEP_RL, ll=DEEP_LL, look=(24, 2), sink=0.18, z=0.3, rightArm=R_DOWN_X, leftArm=L_BACK_LO)),
+        (25, LIN, G(body=(-30, -4, 0), rl=DEEP_RL, ll=DEEP_LL, look=(22, 2), sink=0.18, z=0.3, rightArm=R_DOWN_X, leftArm=L_BACK_LO)), (30, IO, PL_STANCE)]
+anim("pl_grab_hit", 30, seq(_gh))
+anim("pl_grab_air", 14, seq([(0, LIN, PL_AIR0), (2, OQ, AIR(body=(20, 0, 0), look=(-10, 0), rightArm=R_SKY, leftArm=L_BACK_LO)),
+                             (6, EX, AIR(body=(-60, 0, 0), rl=(20, 18, 30), ll=(30, 18, 20), look=(40, 0), rightArm=R_DOWN_X, leftArm=L_HOLD)),
+                             (10, LIN, dict(body=(-56, 0, 0))), (14, IO, PL_STANCE)]))
+# ⑤ 내리꽂기 (참고 3:02 '地面に叩きつけてやろう'): 웅크렸다 높이 뛰어 → 정점에서 두 칼날을 머리 위로 → 14 내리꽂아 땅을 가름
+anim("pl_drop", 26, seq([(0, LIN, PL_STANCE), (2, IO, G(body=(-20, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(14, 0), sink=0.24, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                         (5, OQ, AIR(body=(10, 0, 0), rl=(-60, 14, 90), ll=(-30, 14, 70), look=(-10, 0), rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+                         (10, IO, PL_SLAM_UP), (14, EX, PL_SLAM_DN), (16, LIN, G(body=(-40, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(28, 0), sink=0.3, rightArm=R_DOWN_X, leftArm=HL((0.25, -0.5, -0.83), (0.45, 0.85, -0.5)))),
+                         (21, LIN, G(body=(-38, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(26, 0), sink=0.3, rightArm=R_DOWN_X, leftArm=HL((0.25, -0.5, -0.83), (0.45, 0.85, -0.5)))), (26, IO, PL_STANCE)]))
+anim("pl_drop_air", 14, seq([(0, LIN, PL_AIR0), (2, OQ, PL_SLAM_UP), (6, EX, PL_SLAM_DN), (10, LIN, dict(body=(-52, 0, 0))), (14, IO, PL_STANCE)]))
+# ⑥ 빛의 유법 (참고 3:39 '我がモードは光'): 두 칼날을 가슴 앞에서 X 로 겹쳤다가 → 10 활짝 펼치며 칼날이 빛남
+anim("pl_mode", 20, seq([(0, LIN, PL_STANCE), (4, IO, G(body=(-6, 0, 0), rl=PL_RL, ll=PL_LL, look=(6, 0), sink=0.06, rightArm=R_X, leftArm=L_X)),
+                         (8, LIN, G(body=(-8, 0, 0), rl=PL_RL, ll=PL_LL, look=(8, 0), sink=0.08, rightArm=R_X, leftArm=L_X)),
+                         (10, EX, G(body=(10, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 0), sink=0.06, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)),
+                         (15, LIN, G(body=(9, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-12, 0), sink=0.06, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)), (20, IO, PL_STANCE)]))
+# ⑦ 빛 칼날 질주 (참고 3:41~3:43): 칼날을 뒤로 높이 젖히고 몸을 낮춤 → 6~12 땅을 박차 앞으로 내달리며 (팔은 뒤로) → 14 지나치며 크게 가로 벰
+PL_RUSH_CH = G(body=(-30, -20, 0), rl=DEEP_RL, ll=DEEP_LL, look=(24, 10), sink=0.2, rightArm=R_CUT_BACK, leftArm=L_BACK_LO)
+PL_RUSH_GO = G(body=(-44, -10, 0), rl=(-40, 8, 50), ll=(40, 8, 10), look=(36, 4), sink=0.1, z=0.2, rightArm=R_CUT_BACK, leftArm=L_BACK_LO)
+PL_RUSH_CUT = G(body=(-22, 40, 0), rl=DEEP_RL, ll=DEEP_LL, look=(16, -24), sink=0.2, z=0.3, rightArm=R_LOW_SWEEP, leftArm=L_BACK_LO)
+anim("pl_rush", 24, seq([(0, LIN, PL_STANCE), (4, IO, PL_RUSH_CH), (6, OQ, PL_RUSH_GO), (12, LIN, PL_RUSH_GO), (14, EX, PL_RUSH_CUT),
+                         (18, LIN, dict(PL_RUSH_CUT, body=(-20, 36, 0))), (24, IO, PL_STANCE)]))
+anim("pl_rush_q", 12, seq([(0, LIN, PL_STANCE), (2, OQ, PL_RUSH_GO), (6, EX, PL_RUSH_CUT), (8, LIN, PL_RUSH_CUT), (12, IO, PL_STANCE)]))
+anim("pl_rush_air", 14, seq([(0, LIN, PL_AIR0), (2, OQ, AIR(body=(-30, -10, 0), look=(24, 4), rightArm=R_CUT_BACK, leftArm=L_BACK_LO)),
+                             (6, EX, AIR(body=(-40, 40, 0), rl=(10, 20, 40), ll=(20, 20, 30), look=(24, -24), rightArm=R_LOW_SWEEP, leftArm=L_BACK_LO)),
+                             (10, LIN, dict(body=(-36, 36, 0))), (14, IO, PL_STANCE)]))
+# 각성 ⑥ 빛의 반사 (참고 2:43.5): 두 칼날을 머리 위로 모아 들어 빛을 모았다가 → 8 번쩍 (둘레가 눈이 멂)
+anim("pl_flash", 20, seq([(0, LIN, PL_STANCE), (4, IO, G(body=(10, 0, 0), rl=PL_RL, ll=PL_LL, look=(-20, 0), sink=0.02, rightArm=R_SKY, leftArm=L_SKY)),
+                          (8, EX, G(body=(14, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-24, 0), sink=0.04, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)),
+                          (14, LIN, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-20, 0), sink=0.04, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)), (20, IO, PL_STANCE)]))
+
+# ── 각성 '빛 칼날' (64틱, 참고 2:10~2:12.5 등장 + 3:39 칼날 클로즈업): 고개를 숙이며 오른손을 펴 얼굴 앞에 (6~24) → 26 손을 거두며 두 팔을 아래로 내뻗음 —
+#    아래팔에서 칼날이 번쩍 돋음 → 32~50 오른 칼날을 세워 얼굴 앞에 비춰 봄 → 56 자세
+_la = [(0, LIN, PL_STANCE),
+       (6, IO, G(body=(-4, -10, 0), rl=PL_RL, ll=PL_LL, look=(14, 6), rightArm=R_HAND_FACE, leftArm=L_HIP)),
+       (24, LIN, G(body=(-5, -10, 0), rl=PL_RL, ll=PL_LL, look=(16, 6), rightArm=R_HAND_FACE, leftArm=L_HIP)),
+       (27, EX, G(body=(8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, 0), sink=0.06, rightArm=R_LOW_SWEEP, leftArm=L_LOW_SWEEP)),
+       (31, LIN, G(body=(9, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-18, 0), sink=0.06, rightArm=R_LOW_SWEEP, leftArm=L_LOW_SWEEP)),
+       (36, IO, G(body=(0, -16, 0), rl=PL_RL, ll=PL_LL, look=(4, 10), rightArm=R_BLADE_UP, leftArm=L_HIP)),
+       (50, LIN, G(body=(1, -18, 0), rl=PL_RL, ll=PL_LL, look=(6, 12), rightArm=R_BLADE_UP, leftArm=L_HIP)),
+       (56, IO, PL_STANCE), (64, LIN, PL_STANCE)]
+anim("pl_awaken", 64, seq(_la))
+
+# ── 각성기 '섬광 난도' (100틱) — 참고: ASBR 카즈 '모드「휘채활도」' 3:39.6~3:44.6 을 1틱(0.05초) 단위로 떼어 봄. 우리 틱 = (영상 초 − 219.6) × 20
+#   (카메라 구도는 Cutscene "pl_ult". 서버가 상대를 앞 3칸에 세우고, 28~31 에 2칸 앞으로 파고들고 52~66 에 상대를 꿰뚫고 지나가 상대 뒤 2칸에 섬)
+#   0~4   [옆] 자세에서 살짝 몸을 낮춤
+#   6~10  [가슴 앞 아래] 오른 아래팔을 세워 칼날을 보임
+#   11~25 [얼굴 아주 가까이] 칼날을 입 앞에 가로로 들고 혀로 핥음 (반짝)
+#   26~31 [옆 멀리] 칼날을 뒤로 젖히고 숙여 내달림
+#   32~48 [옆] 거대한 빛의 호로 좌우 번갈아 4틱마다 벰
+#   52~62 [낮게 앞] 깊게 웅크려 낮게 쓸어 벰 → 66 낮게 꿰뚫고 지나감
+#   70~78 [앞 아래] 상대를 등지고 꼿꼿이 서서 오른 칼날을 하늘로 → 80 내림
+#   82~94 [앞] 천천히 걸어 나오는 등 뒤에서 상대가 늦게 베임 (82·86·90, 94 날림)
+PL_ULT_SLASH = lambda sg: G(body=(-14, 34 * sg, 4 * sg), rl=DEEP_RL, ll=DEEP_LL, look=(8, -20 * sg), sink=0.12, z=0.2,
+                            rightArm=R_CUT_OUT if sg > 0 else R_CUT_IN, leftArm=L_CUT_IN if sg > 0 else L_CUT_OUT)
+_lu = [(0, LIN, PL_STANCE),
+       (3, IO, G(body=(-10, -16, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(8, 8), sink=0.1, rightArm=R_BLADE, leftArm=L_HIP)),
+       (7, IO, G(body=(-2, -18, 0), rl=PL_RL, ll=PL_LL, look=(-4, 10), rightArm=R_BLADE_UP, leftArm=L_HIP)),
+       (11, IO, G(body=(2, -14, 0), rl=PL_RL, ll=PL_LL, look=(6, 10), rightArm=R_LICK, leftArm=L_HIP)),
+       (25, LIN, G(body=(3, -14, 0), rl=PL_RL, ll=PL_LL, look=(8, 12), rightArm=R_LICK, leftArm=L_HIP)),
+       (28, OQ, PL_RUSH_GO), (31, LIN, PL_RUSH_GO)]
+for k, t in enumerate(range(32, 49, 4)):   # 좌우 번갈아 크게 벰
+    sg = 1 if k % 2 == 0 else -1
+    _lu += [(t, EX, PL_ULT_SLASH(sg)), (t + 2, LIN, PL_ULT_SLASH(sg))]
+_lu += [(53, IO, G(body=(-30, -30, 0), rl=WIDE_RL, ll=WIDE_LL, look=(22, 16), sink=0.3, rightArm=R_CUT_BACK, leftArm=L_BACK_LO)),
+        (56, EX, G(body=(-34, 40, 0), rl=WIDE_RL, ll=WIDE_LL, look=(26, -24), sink=0.34, z=0.2, rightArm=R_LOW_SWEEP, leftArm=L_LOW_SWEEP)),
+        (62, LIN, G(body=(-32, 36, 0), rl=WIDE_RL, ll=WIDE_LL, look=(24, -22), sink=0.34, z=0.2, rightArm=R_LOW_SWEEP, leftArm=L_LOW_SWEEP)),
+        (66, OQ, PL_RUSH_GO),
+        (70, IO, G(body=(4, 0, 0), rl=PL_RL, ll=PL_LL, look=(-14, 0), rightArm=R_SKY, leftArm=L_LOOSE)),
+        (78, LIN, G(body=(5, 0, 0), rl=PL_RL, ll=PL_LL, look=(-16, 0), rightArm=R_SKY, leftArm=L_LOOSE)),
+        (82, IO, G(body=(2, 0, 0), rl=PL_RL, ll=PL_LL, look=(0, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)),
+        (94, LIN, G(body=(2, 0, 0), rl=PL_RL, ll=PL_LL, look=(-2, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)),
+        (100, IO, PL_STANCE)]
+anim("pl_ult", 100, seq(_lu))
+
 # ── 달리기 (전투 모드 중 달릴 때 자세 층에 깔림) ──
 # 다리·팔 흔들기는 바닐라(걸음 속도에 맞춰 흔들림)를 그대로 두고, 몸만 앞으로 숙이고 팔꿈치를 굽혀 달리는 모양만 잡음
 # (예전엔 10틱 고정 주기로 다리를 따로 움직여서 실제 속도와 안 맞아 미끄러지듯 어색했음)
@@ -2126,7 +2316,8 @@ for _base, _name, _kw in [
         ("stance_al_arms", "stance_al_walk", dict(yaw_k=0.45, knee=(4, 52, 16))),              # 연금술사: 옆 자세를 반쯤 풀고 가볍게
         ("stance_vm_arms", "stance_vm_walk", dict(thigh=(24, -34), knee=(2, 40, 12), twist=4, sway=0)),   # 뱀파이어: 젖힌 채 큰 보폭, 어깨를 거들먹
         ("stance_ph_arms", "stance_ph_walk", dict(thigh=(22, -28), knee=(6, 44, 22), leg_roll=6)),          # 열: 다리 넓게, 디딜 때 무게
-        ("stance_pw_arms", "stance_pw_walk", dict(lean=4, knee=(4, 48, 14), twist=1))]:                   # 바람: 살짝 숙여 매끈하게
+        ("stance_pw_arms", "stance_pw_walk", dict(lean=4, knee=(4, 48, 14), twist=1)),
+        ("stance_pl_arms", "stance_pl_walk", dict(thigh=(24, -32), knee=(3, 44, 14), twist=3))]:                # 빛: 꼿꼿이 큰 보폭, 어깨를 조금 거들먹                   # 바람: 살짝 숙여 매끈하게
     anim(_name, 16, walk_cycle(_pose0(_base), **_kw), loop=True, ret=0)
 
 # 공중 (다리만 — 자세 층 아래 '다리 층'에 깔림. 팔은 싸움 자세 그대로)

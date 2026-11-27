@@ -110,8 +110,8 @@ public final class VampireJob implements JobType {
     @Override public boolean selectable() { return false; }
     @Override public Stat skillStat() { return Stat.STR; }
     @Override public String stance() { return "stance_vm"; }
-    @Override public String stance(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "stance_ph" : PillarWind.is(e) ? "stance_pw" : "stance_vm"; }
-    @Override public String ultimateName(PlayerData.Entry e) { return PillarHeat.is(e) ? "증기 폭발" : PillarWind.is(e) ? "최종 유법" : ultimateName(); }
+    @Override public String stance(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "stance_ph" : PillarWind.is(e) ? "stance_pw" : PillarLight.is(e) ? "stance_pl" : "stance_vm"; }
+    @Override public String ultimateName(PlayerData.Entry e) { return PillarHeat.is(e) ? "증기 폭발" : PillarWind.is(e) ? "최종 유법" : PillarLight.is(e) ? "섬광 난도" : ultimateName(); }
     @Override public String ultimateName() { return "피의 만찬"; }
     @Override public String[] summary() {
         return new String[]{"석가면을 쓰고 피를 묻힌 자", "밤의 지배자, 햇빛이 약점 · 피로 살아감",
@@ -152,6 +152,7 @@ public final class VampireJob implements JobType {
         stopTheme(p);
         PillarHeat.clear(p.getUuid());
         PillarWind.clear(p.getUuid());
+        PillarLight.clear(p.getUuid());
         setThirst(p, false);
         Thralls.releaseAll(p.getUuid());
         p.removeStatusEffect(StatusEffects.NIGHT_VISION);
@@ -165,6 +166,7 @@ public final class VampireJob implements JobType {
                 : isNight(p.getServerWorld()) || b >= 70 ? " (포만 · 위력 115%)" : "";
         if (PillarHeat.is(e)) return "기둥 속 사내 · 열 · 피 " + (int) b + tier + PillarHeat.hud(p);
         if (PillarWind.is(e)) return "기둥 속 사내 · 바람 · 피 " + (int) b + tier + PillarWind.hud(p);
+        if (PillarLight.is(e)) return "기둥 속 사내 · 빛 · 피 " + (int) b + tier + PillarLight.hud(p);
         return name() + " · 피 " + (int) b + tier;
     }
 
@@ -182,6 +184,7 @@ public final class VampireJob implements JobType {
         float m = bloodMul(p, e);
         if (PillarHeat.is(e)) m *= PillarHeat.mul(p);   // 기둥 속 사내 · 열: 열 1당 +4%
         if (PillarWind.is(e)) m *= PillarWind.mul(p);   // 바람: 유법 +20% · 각성 +10% · 투명 첫 타격 +30%
+        if (PillarLight.is(e)) m *= PillarLight.mul(p);   // 빛: 유법 +20% · 각성 +10%
         return Awaken.active(p) ? m * 1.2f : m;   // 혈광 해방: 괴력 상시
     }
 
@@ -207,8 +210,8 @@ public final class VampireJob implements JobType {
     /** 수도 → 손등 → 멱살 잡고 무릎 → 손톱 올려 베기 → 손바닥 장타 (5타 선딜 6). 공중은 손톱 셋(vm_a1~3), 슬램은 손끝 내리꽂기 */
     private static final bbc.combat.Weapon.M1Profile M1 = new bbc.combat.Weapon.M1Profile(5, 4, 2, 1.05f, 0.3, "vm_", 6);
     @Override public bbc.combat.Weapon.M1Profile m1() { return M1; }
-    @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? PillarHeat.M1 : PillarWind.is(e) ? PillarWind.M1 : M1; }
-    @Override public String guardMotion(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "guard_ph" : PillarWind.is(e) ? "guard_pw" : guardMotion(); }
+    @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? PillarHeat.M1 : PillarWind.is(e) ? PillarWind.M1 : PillarLight.is(e) ? PillarLight.M1 : M1; }
+    @Override public String guardMotion(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "guard_ph" : PillarWind.is(e) ? "guard_pw" : PillarLight.is(e) ? "guard_pl" : guardMotion(); }
     @Override public String guardMotion() { return "guard_vm"; }
 
     /**
@@ -218,6 +221,7 @@ public final class VampireJob implements JobType {
     @Override public void m1Fx(ServerPlayerEntity p, String motion) {
         if (motion.startsWith("ph_")) { PillarHeat.m1Fx(p, motion); return; }
         if (motion.startsWith("pw_")) { PillarWind.m1Fx(p, motion); return; }
+        if (motion.startsWith("pl_")) { PillarLight.m1Fx(p, motion); return; }
         ServerWorld w = p.getServerWorld();
         Vec3d fw = Combat.horizontal(p.getRotationVec(1f));
         var f = Combat.of(p);
@@ -344,6 +348,7 @@ public final class VampireJob implements JobType {
         Thralls.register();
         PillarHeat.register();
         PillarWind.register();
+        PillarLight.register();
 
         // 석가면: 사막 피라미드·정글 사원 3%, 고대 도시 5%
         LootTableEvents.MODIFY.register((key, builder, source, registries) -> {
@@ -463,7 +468,7 @@ public final class VampireJob implements JobType {
             if (night) p.addStatusEffect(new StatusEffectInstance(StatusEffects.NIGHT_VISION, 400, 0, true, false));
             setThirst(p, thirst);
 
-            if (s >= 3) { if (PillarWind.is(e)) PillarWind.second(p, sunlit(w, p)); else PillarHeat.second(p, sunlit(w, p)); continue; }   // 기둥 속 사내: 햇빛에 타는 대신 석화
+            if (s >= 3) { if (PillarWind.is(e)) PillarWind.second(p, sunlit(w, p)); else if (PillarLight.is(e)) PillarLight.second(p, sunlit(w, p)); else PillarHeat.second(p, sunlit(w, p)); continue; }   // 기둥 속 사내: 햇빛에 타는 대신 석화
             if (sunlit(w, p)) {
                 SUN_HURT.put(p.getUuid(), (long) clock);
                 p.setOnFireFor(2);
@@ -537,14 +542,14 @@ public final class VampireJob implements JobType {
 
     private static final JobSkills.Set SKILLS = new JobSkills.Set() {
         @Override public JobSkills.Skill[] skills(ServerPlayerEntity p, PlayerData.Entry e) {
-            boolean ph = PillarHeat.is(e), pw = PillarWind.is(e);
-            String want = ph ? PillarHeat.EQV : pw ? PillarWind.EQV : EQUIP_VER;   // 단계·루트가 바뀌면 기술 풀이 바뀌니 장착을 처음 상태로
+            boolean ph = PillarHeat.is(e), pw = PillarWind.is(e), pl = PillarLight.is(e);
+            String want = ph ? PillarHeat.EQV : pw ? PillarWind.EQV : pl ? PillarLight.EQV : EQUIP_VER;   // 단계·루트가 바뀌면 기술 풀이 바뀌니 장착을 처음 상태로
             if (!want.equals(e.str(P + "eqv"))) {
                 e.str(P + "eqv", want);
                 e.str(P + "equip", "");
                 Jobs.dirty(p);
             }
-            return ph ? PillarHeat.list(p) : pw ? PillarWind.list(p) : LIST;   // 기둥 속 사내: 각성(비등점) 중엔 카드가 통째로 바뀜
+            return ph ? PillarHeat.list(p) : pw ? PillarWind.list(p) : pl ? PillarLight.list(p) : LIST;   // 기둥 속 사내: 각성(비등점) 중엔 카드가 통째로 바뀜
         }
         @Override public String costName() { return "피"; }
         @Override public double resource(ServerPlayerEntity p, PlayerData.Entry e) { return blood(e); }
@@ -560,6 +565,7 @@ public final class VampireJob implements JobType {
         @Override public boolean use(ServerPlayerEntity p, PlayerData.Entry e, int idx) {
             if (PillarHeat.is(e)) return PillarHeat.use(p, e, idx);
             if (PillarWind.is(e)) return PillarWind.use(p, e, idx);
+            if (PillarLight.is(e)) return PillarLight.use(p, e, idx);
             boolean air = !p.isOnGround(), chain = Combat.inM1Chain(p);
             boolean ok = switch (idx) {
                 case 0 -> air ? diveDrain(p, e) : chain ? fingerStab(p, e) : lungeDrain(p, e);
@@ -1464,6 +1470,7 @@ public final class VampireJob implements JobType {
     public void onAwaken(ServerPlayerEntity p, PlayerData.Entry e) {
         if (PillarHeat.is(e)) { PillarHeat.onAwaken(p, e); return; }
         if (PillarWind.is(e)) { PillarWind.onAwaken(p, e); return; }
+        if (PillarLight.is(e)) { PillarLight.onAwaken(p, e); return; }
         ServerWorld w = p.getServerWorld();
         Motion.play(p, "vm_awaken");
         CutscenePayload pl = new CutscenePayload("vm_awaken", p.getId(), -1);
@@ -1550,6 +1557,7 @@ public final class VampireJob implements JobType {
     public boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) {
         if (PillarHeat.is(e)) return PillarHeat.ultimate(p, e);
         if (PillarWind.is(e)) return PillarWind.ultimate(p, e);
+        if (PillarLight.is(e)) return PillarLight.ultimate(p, e);
         ServerWorld w = p.getServerWorld();
         LivingEntity t = near(p, 7);
         if (t == null) { JobSkills.bar(p, "앞에 대상이 없습니다 (7칸)", Formatting.GRAY); return false; }

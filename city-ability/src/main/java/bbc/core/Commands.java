@@ -25,7 +25,7 @@ import net.minecraft.util.Formatting;
  * /bbc admin job <플레이어> <직업>  직업 주기 (관리자)
  * /bbc admin quit <플레이어>        직업 없애기 (관리자)
  * /bbc admin rank <플레이어> <등급> 등급 바꾸기 (관리자)
- * /bbc admin pillar <플레이어> <heat|none> 기둥 속 사내 루트 주기 (관리자)
+ * /bbc admin pillar <플레이어> <heat|wind|light|none> 기둥 속 사내 루트 주기 (관리자)
  * /bbc admin dummy               콤보 연습용 허수아비 소환 (관리자)
  * /bbc admin opponent <단계>      전투 AI 연습 상대 소환: grunt(하급) / skilled(숙련) / boss(보스)
  */
@@ -73,7 +73,7 @@ public final class Commands {
                         .then(CommandManager.literal("pillar")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .then(CommandManager.argument("route", StringArgumentType.word())
-                                                .suggests((c, b) -> { b.suggest("heat"); b.suggest("wind"); b.suggest("none"); return b.buildFuture(); })
+                                                .suggests((c, b) -> { b.suggest("heat"); b.suggest("wind"); b.suggest("light"); b.suggest("none"); return b.buildFuture(); })
                                                 .executes(Commands::setPillar))))
                         .then(CommandManager.literal("rank")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
@@ -122,14 +122,14 @@ public final class Commands {
     private static int setPillar(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player");
         String route = StringArgumentType.getString(c, "route");
-        if (!route.equals("heat") && !route.equals("wind") && !route.equals("none")) { c.getSource().sendError(Text.literal("heat(열)·wind(바람)·none 만 됩니다")); return 0; }
+        if (!route.equals("heat") && !route.equals("wind") && !route.equals("light") && !route.equals("none")) { c.getSource().sendError(Text.literal("heat(열)·wind(바람)·light(빛)·none 만 됩니다")); return 0; }
         PlayerData.Entry e = Jobs.entry(p);
         if (!bbc.job.vampire.VampireJob.is(e)) { CombatMode.set(p, false); Jobs.set(p, bbc.job.vampire.VampireJob.INSTANCE); e = Jobs.entry(p); }
         CombatMode.set(p, false);
         e.num(bbc.job.vampire.VampireJob.P + "rank", route.equals("none") ? 2 : 3);
         e.str(bbc.job.vampire.VampireJob.P + "route", route.equals("none") ? "" : route);
         Jobs.dirty(p);
-        ok(c, p.getName().getString() + (route.equals("none") ? " → 숙련된 뱀파이어" : route.equals("wind") ? " → 기둥 속 사내 · 바람" : " → 기둥 속 사내 · 열"));
+        ok(c, p.getName().getString() + (route.equals("none") ? " → 숙련된 뱀파이어" : route.equals("wind") ? " → 기둥 속 사내 · 바람" : route.equals("light") ? " → 기둥 속 사내 · 빛" : " → 기둥 속 사내 · 열"));
         return 1;
     }
 
