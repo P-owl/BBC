@@ -680,7 +680,7 @@ public final class Combat {
     private static void breakGuard(Fighter v) {
         v.guardGauge = 0;
         setState(v, Fighter.State.GUARD_BROKEN, Tuning.GUARD_BROKEN_STUN);
-        act(v, "guard_break");
+        act(v.e, "guard_break");
         sound(v.e, SoundEvents.ITEM_SHIELD_BREAK, 1f, 1f);
         if (v.e instanceof ServerPlayerEntity sp) JobSkills.bar(sp, "가드가 깨졌다!", Formatting.RED);
     }
