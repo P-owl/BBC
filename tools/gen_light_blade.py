@@ -1,56 +1,55 @@
 # 빛 칼날 모델(LightBladeRender.java) 만들기: python3 tools/gen_light_blade.py [미리보기용 상자 json]
+# 치수는 crescent.py. 상자 둘 종류: 돌린 상자 ROT [구역, 가운데 x, y, z, 폭, 길이, 두께, 각도°] · 곧은 상자 BOX [구역, x0, y0, z0, sx, sy, sz]
 import sys, os, json, math
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from crescent import blade, inner_x_at
-T = 0.5
-SEG = blade()
-jx = inner_x_at(7.4)   # 받침대가 닿는 칼날 안쪽
-# 토시·받침대 상자 [구역, x0, y0, z0, sx, sy, sz] (오른팔)
-BR = [
-    ['M', -3.45, 5.4, -2.45, 4.9, 4.3, 4.9],          # 토시 몸통
-    ['B', -3.55, 5.2, -2.55, 5.1, 0.45, 5.1],          # 윗테
-    ['B', -3.55, 9.35, -2.55, 5.1, 0.45, 5.1],         # 아랫테
-    ['K', -3.5, 7.25, -2.5, 5.0, 0.3, 5.0],            # 가운데 홈
-    ['M', -3.0, 5.85, -2.75, 4.0, 3.3, 0.3],           # 앞 판
-    ['M', -3.0, 5.85, 2.45, 4.0, 3.3, 0.3],            # 뒤 판
-    ['M', -3.85, 5.85, -1.6, 0.4, 3.3, 3.2],           # 바깥 판
-    ['K', 1.45, 6.4, -1.1, 0.3, 2.1, 2.2],             # 안쪽 끈
-    ['B', 1.7, 7.0, -0.55, 0.2, 0.9, 1.1],             # 끈 고리
-    ['B', -4.35, 6.8, -1.1, 0.5, 1.2, 2.2],            # 둥근 장식 (십자로 겹쳐 둥글게)
-    ['B', -4.35, 6.6, -0.9, 0.5, 1.6, 1.8],
-    ['K', -4.5, 7.15, -0.35, 0.2, 0.5, 0.7],           # 장식 가운데
-    ['M', jx - 0.15, 6.85, -0.55, -4.35 - jx + 0.2, 1.1, 1.1],   # 받침대 (장식 → 칼날)
-    ['B', jx - 0.15, 6.7, -0.3, -4.35 - jx + 0.2, 0.2, 0.6],     # 받침대 위 날개
-    ['B', jx - 0.15, 7.95, -0.3, -4.35 - jx + 0.2, 0.2, 0.6],    # 받침대 아래 날개
-    ['B', jx - 0.65, 6.35, -0.5, 0.9, 2.1, 1.0],                 # 칼날을 무는 죔쇠
-    ['K', jx - 0.45, 7.1, -0.6, 0.45, 0.55, 1.2],                # 죔쇠 못
-]
-for x in (-2.6, 0.1):   # 앞뒤 판 못 넷씩
-    for y in (6.15, 8.5):
-        BR.append(['B', x, y, -2.95, 0.5, 0.5, 0.25]); BR.append(['B', x, y, 2.7, 0.5, 0.5, 0.25])
-def seg_boxes(s):
-    w, L = s[2], s[3]
-    out = [['S', -w / 2, -L / 2, -T / 2, w, L, T], ['E', w / 2 - 0.22, -L / 2, -T / 2 - 0.04, 0.3, L, T + 0.08]]
-    if w > 0.5: out.append(['K', -w / 2 - 0.05, -L / 2, -T / 2 - 0.03, 0.2, L, T + 0.06])     # 안쪽 등줄
-    if w > 0.85: out.append(['K', -w * 0.1 - 0.06, -L / 2, -T / 2 - 0.02, 0.12, L, T + 0.04])  # 가운데 홈
-    return out
-def f(v): return ('%.3f' % v).rstrip('0').rstrip('.') + 'f'
-segs = ',\n            '.join('{%s}' % ', '.join(f(x) for x in s) for s in SEG)
-brs = '\n'.join('            box(%s, %s, %s, %s, %s, %s, %s),' % (b[0], *(f(x) for x in b[1:])) for b in BR)
-java = open(os.path.join(HERE, 'LightBladeRender.tmpl')).read()
-java = java.replace('%SEGS%', segs).replace('%BRACER%', brs.rstrip(','))
-open(os.path.join(HERE, '..', 'city-ability', 'src', 'main', 'java', 'bbc', 'client', 'LightBladeRender.java'), 'w').write(java)
-# 렌더러용: 모든 상자를 (가운데, 크기, 각도, 색) 로
-COL = {'S': 0x5a6fa6, 'E': 0xd6e2f8, 'M': 0x262c46, 'B': 0xa9b0c4, 'K': 0x14161f}
-R = []
+T = 0.45
+SEG, _ = blade()
+ROT_BLADE = []   # 칼날 (각성 때 따로 키움)
 for s in SEG:
-    a = s[4]
-    for b in seg_boxes(s):
-        lx, ly = b[1] + b[4] / 2, b[2] + b[5] / 2
-        ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
-        R.append(dict(c=[s[0] + lx * ca - ly * sa, s[1] + lx * sa + ly * ca, b[3] + b[6] / 2], s=[b[4], b[5], b[6]], a=a, col=COL[b[0]]))
-for b in BR:
-    R.append(dict(c=[b[1] + b[4] / 2, b[2] + b[5] / 2, b[3] + b[6] / 2], s=[b[4], b[5], b[6]], a=0, col=COL[b[0]]))
-if len(sys.argv) > 1: json.dump(R, open(sys.argv[1], 'w'))   # 렌더러 미리보기용 상자 목록
-print(len(SEG), len(BR), len(R))
+    x, y, w, L, a = s
+    ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+    def at(lx): return x + lx * ca, y + lx * sa
+    ROT_BLADE.append(['S', x, y, 0, w, L, T, a])                                     # 칼몸
+    ex, ey = at(w / 2 - 0.12); ROT_BLADE.append(['E', ex, ey, 0, 0.26, L, T + 0.06, a])   # 바깥 날 (밝게)
+    if w > 0.45:
+        ix, iy = at(-w / 2 + 0.07); ROT_BLADE.append(['D', ix, iy, 0, 0.16, L, T + 0.04, a])   # 안쪽 등 (짙은 파랑)
+def rod(a, b, wdt, region, z=0):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    return [region, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z, wdt, math.hypot(dx, dy) + 0.1, wdt, math.degrees(math.atan2(-dx, dy)) ]
+A = (-3.15, 3.9)                                   # 이음대가 팔에 붙는 자리 (팔꿈치 바깥)
+B1, B2 = (inner_x_at(2.8) + 0.1, 2.8), (inner_x_at(4.6) + 0.1, 4.6)
+ROT = [rod(A, B1, 0.22, 'K'), rod(A, B2, 0.22, 'K')]
+# 토시 아래 안쪽 갈고리 덮개 둘 (앞쪽, 손 안쪽으로 휘어 내려감)
+for off in (0.0, 0.55):
+    pts = [(0.3 + off, 8.9), (0.9 + off, 10.3), (1.05 + off, 11.6), (0.75 + off, 12.6)]
+    for i in range(len(pts) - 1): ROT.append(rod(pts[i], pts[i + 1], 0.42, 'B', z=-1.75 + off * 0.6))
+BOX = [
+    ['M', -3.4, 5.4, -2.4, 4.8, 3.4, 4.8],             # 토시 몸통
+    ['B', -3.5, 5.1, -2.5, 5.0, 0.4, 5.0],             # 윗테
+    ['B', -3.5, 8.75, -2.5, 5.0, 0.45, 5.0],           # 아랫테
+    ['D', -3.45, 6.05, -2.45, 4.9, 0.12, 4.9],         # 윗줄
+    ['D', -3.45, 8.35, -2.45, 4.9, 0.12, 4.9],         # 아랫줄
+    ['B', -1.7, 6.55, -2.65, 1.4, 1.0, 0.3],           # 앞 둥근 장식 (십자로 겹쳐 둥글게)
+    ['B', -1.5, 6.35, -2.65, 1.0, 1.4, 0.3],
+    ['D', -1.4, 6.65, -2.72, 0.8, 0.8, 0.1],           # 장식 안쪽 테
+    ['G', -1.25, 6.8, -2.82, 0.5, 0.5, 0.2],           # 금빛 가운데
+    ['B', -1.15, 7.9, -2.6, 0.3, 0.3, 0.2],            # 아래 작은 못
+    ['M', -3.85, 6.6, -0.5, 0.5, 2.0, 1.0],            # 칼날 뿌리 받침 (토시 바깥)
+    ['B', -3.95, 6.9, -0.6, 0.15, 1.4, 1.2],
+    ['B', A[0] - 0.3, A[1] - 0.3, -0.3, 0.6, 0.6, 0.6],   # 이음대 팔 쪽 꼭지
+    ['K', B1[0] - 0.25, B1[1] - 0.25, -0.3, 0.5, 0.5, 0.6],   # 칼날 쪽 꼭지
+    ['K', B2[0] - 0.25, B2[1] - 0.25, -0.3, 0.5, 0.5, 0.6],
+]
+def f(v): s = ('%.3f' % v).rstrip('0').rstrip('.'); return (s if s not in ('-0', '') else '0') + 'f'
+def rows(lst): return ',\n'.join('            {%s, %s}' % (r[0], ', '.join(f(x) for x in r[1:])) for r in lst)
+tmpl = open(os.path.join(HERE, 'LightBladeRender.tmpl')).read()
+java = tmpl.replace('%BLADE%', rows(ROT_BLADE)).replace('%ROT%', rows(ROT)).replace('%BOX%', rows(BOX))
+open(os.path.join(HERE, '..', 'city-ability', 'src', 'main', 'java', 'bbc', 'client', 'LightBladeRender.java'), 'w').write(java)
+COL = {'S': 0x7d9ad8, 'E': 0xeef4ff, 'D': 0x23356e, 'M': 0x2a3150, 'B': 0x9fb0cc, 'K': 0x121318, 'G': 0xd2a23c}
+out = []
+for r in ROT_BLADE + ROT: out.append(dict(c=[r[1], r[2], r[3]], s=[r[4], r[5], r[6]], a=r[7], col=COL[r[0]]))
+for b in BOX: out.append(dict(c=[b[1] + b[4] / 2, b[2] + b[5] / 2, b[3] + b[6] / 2], s=[b[4], b[5], b[6]], a=0, col=COL[b[0]]))
+if len(sys.argv) > 1: json.dump(out, open(sys.argv[1], 'w'))
+print(len(ROT_BLADE), len(ROT), len(BOX))

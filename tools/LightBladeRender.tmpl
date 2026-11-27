@@ -20,60 +20,56 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 기둥 속 사내 · 빛 칼날 (참고: 받은 그림 둘). 아래팔 아래쪽을 감싼 강철 토시 (위아래 테 · 가운데 홈 · 앞뒤 판과 못 · 바깥 판 · 안쪽 끈과 고리) →
- * 바깥쪽 둥근 장식에서 받침대가 뻗어 죔쇠로 칼날 가운데를 붙잡음 → 칼날은 주먹 아래에서 안으로 살짝 휜 갈고리로 시작해 바깥으로 크게 휘며 어깨 위까지
- * (가운데가 두껍고 양끝 뾰족, 오목한 쪽이 팔을 향함 · 푸른 강철 칼몸 + 밝은 바깥 날 + 어두운 안쪽 등줄과 가운데 홈).
- * 치수는 tools/crescent.py (렌더러 미리보기와 같은 값). 전투 모드에서만 보이고 모션의 팔꿈치·무릎 굽힘을 따라감.
- * 각성 땐 27틱에 칼날이 받침대에서부터 돋고, 발의 칼날 기술 땐 오른 정강이에도 같은 모양을 작게
+ * 기둥 속 사내 · 빛 칼날 (참고: 받은 그림 — 팔 내린 정면을 재서 옮김, 치수는 tools/crescent.py, 이 파일은 tools/gen_light_blade.py 가 만듦).
+ * 아래팔 아래쪽 강철 토시 (은빛 위아래 테 · 줄 · 앞면 둥근 장식과 금빛 가운데) → 토시 바깥 아래쪽에서 칼날이 돋아 팔에서 떨어진 채 바깥으로 완만히 휘며
+ * 어깨 위까지 (팔꿈치 높이에서 가장 넓고 끝이 뾰족, 흰빛 도는 푸른 강철 + 밝은 바깥 날 + 짙은 안쪽 등) → 팔꿈치 높이에서 검은 막대 둘이 V 로 팔과 칼날을 이음 →
+ * 토시 아래 안쪽엔 손 앞으로 휘어 내려가는 은빛 갈고리 덮개 둘.
+ * 전투 모드에서만 보이고 모션의 팔꿈치·무릎 굽힘을 따라감. 각성 땐 27틱에 칼날이 뿌리에서부터 돋고, 발의 칼날 기술 땐 오른 정강이에도 0.7배로
  */
 public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
     private static final Identifier TEX = Identifier.of("bbc", "textures/entity/light_blade.png");
     private static final int TW = 64, TH = 48;
-    /** 텍스처 구역: S 칼몸 · E 바깥 날 · M 토시 강철 · B 은빛 테·못·장식 · K 검은 홈·끈 */
-    private static final int[] S = {0, 0}, E = {32, 0}, M = {0, 16}, B = {32, 16}, K = {0, 32};
-    private static final float T = 0.5f;   // 칼날 두께
-    /** 칼날이 돋기 시작하는 자리 (받침대가 칼날을 무는 곳) */
-    private static final float GX = -6.2f, GY = 7.4f;
+    /** 텍스처 구역: S 칼몸 · E 날 · D 짙은 파랑 · M 토시 강철 · B 은빛 · K 검정 · G 금빛 */
+    private static final int S = 0, E = 1, D = 2, M = 3, B = 4, K = 5, G = 6;
+    private static final int[][] UV = {{0, 0}, {32, 0}, {32, 32}, {0, 16}, {32, 16}, {0, 32}, {48, 32}};
+    /** 칼날이 돋기 시작하는 자리 (뿌리) */
+    private static final float GX = -3.7f, GY = 7.6f;
 
-    /** 초승달 마디 {가운데 x, 가운데 y, 폭(반지름 방향), 길이(접선), 각도°} — 오른팔 좌표 (바깥 = -x, 아래 = +y) */
-    private static final float[][] SEGS = {
-            %SEGS%};
+    /** 돌린 상자 {구역, 가운데 x, y, z, 폭, 길이, 두께, 각도°} — 오른팔 좌표 (바깥 = -x, 아래 = +y). 폭 방향 = 각도 쪽 */
+    private static final float[][] BLADE = {
+%BLADE%};
+    private static final float[][] ROT = {
+%ROT%};
+    /** 곧은 상자 {구역, x0, y0, z0, sx, sy, sz} */
+    private static final float[][] BOX = {
+%BOX%};
 
-    static final ModelPart BLADE_R = blade(1), BLADE_L = blade(-1);
-    static final ModelPart BRACER_R = bracer(1), BRACER_L = bracer(-1);
+    static final ModelPart BLADE_R = rotParts(BLADE, 1), BLADE_L = rotParts(BLADE, -1);
+    static final ModelPart GEAR_R = gear(1), GEAR_L = gear(-1);
 
-    private static ModelPart blade(int side) {
+    /** 돌린 상자들 (왼팔은 x 와 각도를 뒤집음) */
+    private static ModelPart rotParts(float[][] rows, int side) {
         Map<String, ModelPart> kids = new HashMap<>();
-        for (int i = 0; i < SEGS.length; i++) {
-            float[] s = SEGS[i];
-            float w = s[2], l = s[3];
-            List<ModelPart.Cuboid> c = new ArrayList<>();
-            c.add(cub(S, -w / 2, -l / 2, -T / 2, w, l, T, 1));                                   // 칼몸
-            c.add(cub(E, w / 2 - 0.22f, -l / 2, -T / 2 - 0.04f, 0.3f, l, T + 0.08f, 1));           // 바깥 날 (밝게)
-            if (w > 0.5f) c.add(cub(K, -w / 2 - 0.05f, -l / 2, -T / 2 - 0.03f, 0.2f, l, T + 0.06f, 1));     // 안쪽 등줄
-            if (w > 0.85f) c.add(cub(K, -w * 0.1f - 0.06f, -l / 2, -T / 2 - 0.02f, 0.12f, l, T + 0.04f, 1)); // 가운데 홈
-            ModelPart seg = new ModelPart(c, Map.of());
-            seg.setPivot(s[0] * side, s[1], 0);
-            seg.roll = (float) Math.toRadians(side > 0 ? s[4] : 180f - s[4]);   // 왼팔은 좌우를 뒤집음
-            kids.put("s" + i, seg);
+        for (int i = 0; i < rows.length; i++) {
+            float[] r = rows[i];
+            float w = r[4], l = r[5], t = r[6];
+            ModelPart p = new ModelPart(List.of(cub((int) r[0], -w / 2, -l / 2, -t / 2, w, l, t)), Map.of());
+            p.setPivot(r[1] * side, r[2], r[3]);
+            p.roll = (float) Math.toRadians(side > 0 ? r[7] : 180f - r[7]);
+            kids.put("r" + i, p);
         }
         return new ModelPart(List.of(), kids);
     }
 
-    /** 토시 + 받침대 (오른팔 좌표로 적고 왼팔은 x 를 뒤집음) */
-    private static ModelPart bracer(int side) {
-        float[][] b = {
-%BRACER%
-        };
+    /** 토시 + 이음대 + 갈고리 덮개 */
+    private static ModelPart gear(int side) {
         List<ModelPart.Cuboid> c = new ArrayList<>();
-        for (float[] x : b) c.add(cub(region((int) x[0]), x[1], x[2], x[3], x[4], x[5], x[6], side));
-        return new ModelPart(c, Map.of());
-    }
-    private static final int[][] REGIONS = {S, E, M, B, K};
-    private static int[] region(int i) { return REGIONS[i]; }
-    private static float[] box(int[] r, float x, float y, float z, float sx, float sy, float sz) {
-        int i = 0; while (REGIONS[i] != r) i++;
-        return new float[]{i, x, y, z, sx, sy, sz};
+        for (float[] b : BOX) {
+            float x = side > 0 ? b[1] : -(b[1] + b[4]);
+            c.add(cub((int) b[0], x, b[2], b[3], b[4], b[5], b[6]));
+        }
+        ModelPart rods = rotParts(ROT, side);
+        return new ModelPart(c, Map.of("rods", rods));
     }
 
     public LightBladeRender(FeatureRendererContext<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> ctx) {
@@ -91,22 +87,22 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
         if ("pl_awaken".equals(mo) && age < 31) grow = age < 27 ? 0f : (age - 27) / 4f;   // 각성: 27틱에 칼날이 돋음 (토시는 그대로)
         PlayerEntityModel<AbstractClientPlayerEntity> m = getContextModel();
         float[] rb = BbcClient.bend(player, "rightArm"), lb = BbcClient.bend(player, "leftArm");
-        draw(BRACER_R, m.rightArm, rb, 4f, 1f, 0, 0, null, light, matrices, vcp);
-        draw(BRACER_L, m.leftArm, lb, 4f, 1f, 0, 0, null, light, matrices, vcp);
+        draw(GEAR_R, m.rightArm, rb, 4f, 1f, 0, 0, null, light, matrices, vcp);
+        draw(GEAR_L, m.leftArm, lb, 4f, 1f, 0, 0, null, light, matrices, vcp);
         if (grow > 0f) {
             draw(BLADE_R, m.rightArm, rb, 4f, grow, GX, GY, null, light, matrices, vcp);
             draw(BLADE_L, m.leftArm, lb, 4f, grow, -GX, GY, null, light, matrices, vcp);
         }
         boolean leg = mo != null && age < 20 && Set.of("pl_4", "pl_leg", "pl_leg_q", "pl_leg_air").contains(mo);
-        if (leg) {   // 오른 정강이: 같은 모양을 0.7배로, 토시 가운데(-1, 7.4) → 정강이(0, 8.6)
-            float[] xf = {-1f, 7.4f, 0f, 8.6f, 0.7f};
+        if (leg) {   // 오른 정강이: 같은 모양을 0.7배로, 토시 가운데(-1, 7.2) → 정강이(0, 8.4)
+            float[] xf = {-1f, 7.2f, 0f, 8.4f, 0.7f};
             float[] kb = BbcClient.bend(player, "rightLeg");
-            draw(BRACER_R, m.rightLeg, kb, 6f, 1f, 0, 0, xf, light, matrices, vcp);
+            draw(GEAR_R, m.rightLeg, kb, 6f, 1f, 0, 0, xf, light, matrices, vcp);
             draw(BLADE_R, m.rightLeg, kb, 6f, Math.min(1f, age / 3f), GX, GY, xf, light, matrices, vcp);
         }
     }
 
-    /** 굽힘 아래쪽: 팔다리 변환 → 굽힘 → (다리면 옮겨 줄임) → (돋는 중이면 받침대에서부터 키움) → 그림 */
+    /** 굽힘 아래쪽: 팔다리 변환 → 굽힘 → (다리면 옮겨 줄임) → (돋는 중이면 뿌리에서부터 키움) → 그림 */
     private static void draw(ModelPart part, ModelPart follow, float[] bend, float mid, float grow, float bx, float by, float[] xf,
                              int light, MatrixStack matrices, VertexConsumerProvider vcp) {
         matrices.push();
@@ -134,9 +130,8 @@ public class LightBladeRender extends FeatureRenderer<AbstractClientPlayerEntity
         matrices.pop();
     }
 
-    /** side < 0 이면 x 를 뒤집음 */
-    private static ModelPart.Cuboid cub(int[] uv, float x, float y, float z, float sx, float sy, float sz, int side) {
-        if (side < 0) x = -(x + sx);
+    private static ModelPart.Cuboid cub(int region, float x, float y, float z, float sx, float sy, float sz) {
+        int[] uv = UV[region];
         return new ModelPart.Cuboid(uv[0], uv[1], x, y, z, sx, sy, sz, 0, 0, 0, false, TW, TH, EnumSet.allOf(Direction.class));
     }
 }
