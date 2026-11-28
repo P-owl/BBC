@@ -110,7 +110,7 @@ public final class UltimateForm {
     }
 
     // ═════════ 연출 도구 ═════════
-    static final DustParticleEffect SPARK_BLUE = new DustParticleEffect(new Vector3f(0.35f, 0.7f, 1f), 0.9f);
+    static final DustParticleEffect SPARK_BLUE = new DustParticleEffect(new Vector3f(0.7f, 0.9f, 1f), 0.6f);   // 옅은 청백색 (참고 영상의 파문)
     static final DustParticleEffect SPARK_GOLD = new DustParticleEffect(new Vector3f(1f, 0.85f, 0.25f), 0.9f);
     static final DustParticleEffect FLESH = new DustParticleEffect(new Vector3f(0.75f, 0.12f, 0.1f), 1.3f);
     static final DustParticleEffect FLESH_DARK = new DustParticleEffect(new Vector3f(0.4f, 0.05f, 0.05f), 1.1f);
@@ -131,20 +131,10 @@ public final class UltimateForm {
     static void arc(ServerPlayerEntity p, Vec3d a, Vec3d b) { fx(p, "arc", xyz(a) + "," + xyz(b)); }
     static void flesh(ServerPlayerEntity p, Vec3d c, float size) { fx(p, "flesh", xyz(c) + "," + n(size)); }
 
-    /** 파문 불꽃: 파랑·금빛 지직 + 전기 불꽃 */
+    /** 파문 불꽃: 옅은 청백색 전기 불꽃 몇 점 (번개 모양은 클라이언트 UltimateFx 가 그림) */
     static void spark(ServerWorld w, Vec3d c, float size) {
-        w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, (int) (10 * size), 0.25 * size, 0.25 * size, 0.25 * size, 0.4);
-        w.spawnParticles(SPARK_BLUE, c.x, c.y, c.z, (int) (8 * size), 0.3 * size, 0.3 * size, 0.3 * size, 0);
-        w.spawnParticles(SPARK_GOLD, c.x, c.y, c.z, (int) (5 * size), 0.25 * size, 0.25 * size, 0.25 * size, 0);
-        for (int i = 0; i < 3; i++) {   // 갈라지는 번개 줄기
-            Vec3d d = new Vec3d(w.random.nextGaussian(), w.random.nextGaussian() * 0.6, w.random.nextGaussian()).normalize().multiply(0.9 * size);
-            Vec3d a = c, b = c;
-            for (int s = 0; s < 4; s++) {
-                b = a.add(d.multiply(0.25)).add(w.random.nextGaussian() * 0.08, w.random.nextGaussian() * 0.08, w.random.nextGaussian() * 0.08);
-                w.spawnParticles(s % 2 == 0 ? SPARK_BLUE : SPARK_GOLD, b.x, b.y, b.z, 1, 0, 0, 0, 0);
-                a = b;
-            }
-        }
+        w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, (int) (5 * size) + 1, 0.2 * size, 0.2 * size, 0.2 * size, 0.25);
+        w.spawnParticles(SPARK_BLUE, c.x, c.y, c.z, (int) (3 * size) + 1, 0.2 * size, 0.2 * size, 0.2 * size, 0);
     }
 
     /** 파문이 터짐 (맞은 자리): 불꽃 + 섬광 + 고리 */
@@ -152,7 +142,6 @@ public final class UltimateForm {
         zap(p, c, size);
         spark(w, c, size * 0.6f);
         Fx.impactFlash(w, c, 0.8f * size);
-        Fx.ring3d(w, c, new Vec3d(0, 1, 0), 0.2, 1.2 * size, 0.15f, 5, BLUE);
         if (word != null) Fx.word(w, c.add(0, 1.0, 0), word, 1.0f + 0.25f * size);
         se(w, c, SE_RIPPLE, 0.9f + 0.3f * size, 1.0f);
     }
@@ -397,7 +386,6 @@ public final class UltimateForm {
             spark(w, hand, 0.8f);
             zap(p, hand, 1.2f);
             se(w, hand, SE_RIPPLE_BIG, 1.6f, 1.0f);
-            Fx.ring3d(w, hand, Combat.horizontal(p.getRotationVec(1f)), 0.2, 1.8, 0.2f, 6, BLUE);
             for (LivingEntity t : Combat.targets(p, 3.2, 50, 3)) if (Combat.hit(p, t, PALM) != Combat.Result.MISS) {
                 arc(p, hand, t.getBoundingBox().getCenter());
                 rippleHit(p, w, t.getBoundingBox().getCenter(), 1.5f, Fx.Sfx.DOGON);

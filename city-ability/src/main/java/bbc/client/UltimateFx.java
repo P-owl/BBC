@@ -155,7 +155,8 @@ public final class UltimateFx {
     }
 
     // ───────── 빛 도구 ─────────
-    static final float[] GOLD = {1f, 0.78f, 0.22f}, CORE = {1f, 1f, 0.82f}, BLUE = {0.45f, 0.75f, 1f}, RED = {1f, 0.12f, 0.08f};
+    // 참고 영상의 파문: 번개는 가늘고 옅은 청백색 (금빛 아님) · 맞은 자리는 카메라를 향한 둥근 물결 고리 · 금빛은 맞을 때 뻗는 가는 빛줄기 · 큰 타격만 노란 섬광
+    static final float[] GOLD = {1f, 0.8f, 0.3f}, ORANGE = {1f, 0.62f, 0.18f}, CORE = {0.92f, 0.98f, 1f}, BLUE = {0.5f, 0.82f, 1f}, PALE = {0.75f, 0.9f, 1f}, RING = {0.5f, 0.75f, 1f}, RED = {1f, 0.12f, 0.08f};
 
     /** 카메라를 보는 띠 (양면) */
     static void ribbon(VertexConsumer vc, Matrix4f m, Vec3d a, Vec3d b, float w, float r, float g, float bl, float al) {
@@ -215,6 +216,50 @@ public final class UltimateFx {
             quad(vc, m, c, e0, e1, e1, col[0], col[1], col[2], al, 0, 0, 0);
         }
     }
+    /** 카메라를 향한 둥근 고리 (테두리가 밝고 안쪽은 옅게 차오름 — 물결/구 느낌) */
+    static void cring(VertexConsumer vc, Matrix4f m, Vec3d c, double rad, double width, float[] col, float rim, float fill) {
+        Vec3d f = c.subtract(cam).normalize();
+        Vec3d rt = f.crossProduct(new Vec3d(0, 1, 0));
+        if (rt.lengthSquared() < 1e-6) rt = new Vec3d(1, 0, 0);
+        rt = rt.normalize();
+        Vec3d up = rt.crossProduct(f).normalize();
+        int n = 48;
+        double ri = Math.max(0, rad - width), ro = rad + width * 0.6, rf = rad * 0.55;
+        for (int i = 0; i < n; i++) {
+            double a0 = Math.PI * 2 * i / n, a1 = Math.PI * 2 * (i + 1) / n;
+            Vec3d d0 = rt.multiply(Math.cos(a0)).add(up.multiply(Math.sin(a0))), d1 = rt.multiply(Math.cos(a1)).add(up.multiply(Math.sin(a1)));
+            if (fill > 0) quad(vc, m, c.add(d0.multiply(rf)), c.add(d1.multiply(rf)), c.add(d1.multiply(ri)), c.add(d0.multiply(ri)), col[0], col[1], col[2], 0, 0, fill, fill);
+            quad(vc, m, c.add(d0.multiply(ri)), c.add(d1.multiply(ri)), c.add(d1.multiply(rad)), c.add(d0.multiply(rad)), col[0], col[1], col[2], fill, fill, rim, rim);
+            quad(vc, m, c.add(d0.multiply(rad)), c.add(d1.multiply(rad)), c.add(d1.multiply(ro)), c.add(d0.multiply(ro)), col[0], col[1], col[2], rim, rim, 0, 0);
+        }
+    }
+    /** 카메라를 향한 호 (a0~a1 라디안, 양끝이 옅어짐) — 여러 겹을 돌리면 소용돌이치는 물결 구 */
+    static void carc(VertexConsumer vc, Matrix4f m, Vec3d c, double rad, double width, double a0, double a1, float[] col, float al) {
+        Vec3d f = c.subtract(cam).normalize();
+        Vec3d rt = f.crossProduct(new Vec3d(0, 1, 0));
+        if (rt.lengthSquared() < 1e-6) rt = new Vec3d(1, 0, 0);
+        rt = rt.normalize();
+        Vec3d up = rt.crossProduct(f).normalize();
+        int n = Math.max(6, (int) ((a1 - a0) / (Math.PI * 2) * 48));
+        for (int i = 0; i < n; i++) {
+            double u0 = i / (double) n, u1 = (i + 1) / (double) n;
+            double b0 = a0 + (a1 - a0) * u0, b1 = a0 + (a1 - a0) * u1;
+            float e0 = (float) Math.sin(Math.PI * u0) * al, e1 = (float) Math.sin(Math.PI * u1) * al;
+            Vec3d d0 = rt.multiply(Math.cos(b0)).add(up.multiply(Math.sin(b0))), d1 = rt.multiply(Math.cos(b1)).add(up.multiply(Math.sin(b1)));
+            double ri = rad - width, ro = rad + width;
+            quad(vc, m, c.add(d0.multiply(ri)), c.add(d1.multiply(ri)), c.add(d1.multiply(rad)), c.add(d0.multiply(rad)), col[0], col[1], col[2], 0, 0, e1, e0);
+            quad(vc, m, c.add(d0.multiply(rad)), c.add(d1.multiply(rad)), c.add(d1.multiply(ro)), c.add(d0.multiply(ro)), col[0], col[1], col[2], e0, e1, 0, 0);
+        }
+    }
+
+    /** 끝으로 갈수록 가늘어지는 곧은 빛줄기 */
+    static void streak(VertexConsumer vc, Matrix4f m, Vec3d a, Vec3d b, float w, float[] col, float al) {
+        Vec3d d = b.subtract(a), view = a.add(b).multiply(0.5).subtract(cam), s = d.crossProduct(view);
+        if (s.lengthSquared() < 1e-9) return;
+        s = s.normalize().multiply(w / 2);
+        quad(vc, m, a.subtract(s), a.add(s), b, b, col[0], col[1], col[2], al, al, 0, 0);
+    }
+
     /** 땅과 나란한 고리 (안팎이 투명) */
     static void ring(VertexConsumer vc, Matrix4f m, Vec3d c, double rad, double width, float[] col, float al) {
         int n = 40;
@@ -229,27 +274,58 @@ public final class UltimateFx {
     static Vec3d rand(Random r) { Vec3d v = new Vec3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()); return v.lengthSquared() < 1e-6 ? new Vec3d(0, 1, 0) : v.normalize(); }
 
     // ───────── 파문 ─────────
-    /** 파문이 터짐 */
+    /** 파문이 터짐 (참고 3:21.4): 소용돌이치는 물결 구 (옅은 청백색 호 여러 겹이 돌며 퍼짐, 안은 옅게 차오름) + 가운데에 몰린 밝은 청백색 번개 +
+     *  맞는 순간 한쪽으로 굵은 금빛 빛줄기 두셋. 큰 타격(size ≥ 1.4, 참고 3:27.7)은 노란 가시 조각이 사방으로 터지고 크고 옅은 고리가 퍼짐 */
     static final class Zap extends Fx {
-        final Vec3d c; final float size; List<List<Vec3d>> bolts = new ArrayList<>(); List<float[]> cols = new ArrayList<>();
-        Zap(Vec3d c, float size) { super(9); this.c = c; this.size = Math.max(0.3f, size); regen(); }
+        final Vec3d c; final float size; final boolean big; final Vec3d[] rays, shards; final double[][] arcs;
+        List<List<Vec3d>> bolts = new ArrayList<>();
+        Zap(Vec3d c, float size) {
+            super(11); this.c = c; this.size = Math.max(0.3f, size); big = size >= 1.4f;
+            Vec3d main = rand(R);   // 금빛 줄기는 한쪽으로 몰림
+            rays = new Vec3d[big ? 4 : 2 + R.nextInt(2)];
+            for (int i = 0; i < rays.length; i++) rays[i] = main.add(rand(R).multiply(0.35)).normalize().multiply((1.3 + R.nextDouble() * 0.8) * this.size);
+            shards = new Vec3d[big ? 14 : 0];
+            for (int i = 0; i < shards.length; i++) shards[i] = rand(R).multiply((0.9 + R.nextDouble() * 0.9) * this.size);
+            arcs = new double[4][];
+            for (int i = 0; i < 4; i++) arcs[i] = new double[]{0.9 + R.nextDouble() * 0.16, R.nextDouble() * Math.PI * 2, Math.PI * (1.1 + R.nextDouble() * 0.6), (R.nextBoolean() ? 1 : -1) * (0.18 + R.nextDouble() * 0.12)};
+            regen();
+        }
+        double rad() { double x = Math.min(1, (age + delta) / 7.0); return (0.4 + 1.0 * (1 - (1 - x) * (1 - x))) * size; }
         void regen() {
-            bolts.clear(); cols.clear();
-            int n = (int) (5 + 4 * size);
-            for (int k = 0; k < n; k++) {
-                Vec3d end = c.add(rand(R).multiply((0.5 + R.nextDouble() * 0.9) * size));
-                List<Vec3d> b = bolt(c, end, c.distanceTo(end) * 0.13, 3, R);   // 꺾임은 길이에 비례 (엉키지 않고 사방으로 뻗게)
-                bolts.add(b); cols.add(k % 3 == 2 ? BLUE : GOLD);
-                if (R.nextInt(3) == 0) { Vec3d s = b.get(b.size() / 2); Vec3d e2 = s.add(rand(R).multiply(0.35 * size)); bolts.add(bolt(s, e2, s.distanceTo(e2) * 0.15, 2, R)); cols.add(GOLD); }
+            bolts.clear();
+            double r = (0.4 + 0.85 * Math.min(1, age / 7.0)) * size;
+            int n = 4 + (int) (3 * size);
+            for (int k = 0; k < n; k++) {   // 가운데에서 시작해 고리 안쪽까지
+                Vec3d p0 = c.add(rand(R).multiply(r * 0.1)), p1 = c.add(rand(R).multiply(r * (0.45 + R.nextDouble() * 0.5)));
+                List<Vec3d> b = bolt(p0, p1, p0.distanceTo(p1) * 0.17, 3, R);
+                bolts.add(b);
+                if (R.nextBoolean()) { Vec3d q = b.get(b.size() / 2), e2 = q.add(rand(R).multiply(r * 0.3)); bolts.add(bolt(q, e2, q.distanceTo(e2) * 0.18, 2, R)); }
             }
         }
         @Override void tick(ClientWorld w) { if (age % 2 == 0) regen(); }
         @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
-            float k = 1f - life();
-            for (int i = 0; i < bolts.size(); i++) drawBolt(vc, m, bolts.get(i), 0.035f * size, cols.get(i), k);
-            blob(vc, m, c, 0.9f * size * (0.4f + k * 0.6f), GOLD, 0.8f * k);
-            blob(vc, m, c, 0.4f * size * k, CORE, k);
-            ring(vc, m, c, 0.3 + 1.6 * size * life(), 0.12 * size, GOLD, 0.6f * k);
+            float t = age + delta, k = 1f - life();
+            double r = rad();
+            cring(vc, m, c, r * 0.97, 0.02 * size, PALE, 0, 0.1f * k);   // 옅게 차오른 안쪽
+            for (double[] a : arcs) {   // 소용돌이 호 (돌며 퍼짐)
+                double st = a[1] + a[3] * t;
+                carc(vc, m, c, r * a[0], 0.065 * size, st, st + a[2], RING, 0.85f * k);
+                carc(vc, m, c, r * a[0] * 0.96, 0.025 * size, st + 0.3, st + a[2] * 0.8, CORE, 0.6f * k);
+            }
+            float bk = t < 6 ? 1f : k * 1.6f;
+            for (List<Vec3d> b : bolts) drawBolt(vc, m, b, 0.016f * size, BLUE, Math.min(1f, bk));
+            blob(vc, m, c, 0.35f * size * (0.5f + k * 0.5f), BLUE, 0.5f * k);
+            if (t < 2) blob(vc, m, c, 0.5f * size, CORE, 0.9f * (1 - t / 2f));
+            if (t < 5) {   // 금빛 빛줄기 (한쪽으로, 굵게)
+                float a = 1f - t / 5f;
+                for (Vec3d d : rays) streak(vc, m, c.subtract(d.multiply(0.25)), c.add(d.multiply(0.6 + t * 0.2)), 0.13f * size, GOLD, 0.95f * a);
+            }
+            if (big && t < 5) {   // 큰 타격: 노란 가시 조각 + 주황 가운데
+                float a = 1f - t / 5f;
+                for (Vec3d d : shards) streak(vc, m, c.add(d.multiply(0.15)), c.add(d.multiply(0.55 + t * 0.12)), 0.22f * size, GOLD, 0.9f * a);
+                blob(vc, m, c, 0.55f * size, new float[]{1f, 0.78f, 0.25f}, 0.7f * a);
+            }
+            if (big) for (int i = 0; i < 2; i++) { double rr = 0.8 * size + 2.6 * size * life(); carc(vc, m, c, rr, 0.05 * size, i * 3.3 + t * 0.1, i * 3.3 + t * 0.1 + 2.6, new float[]{0.86f, 0.86f, 0.9f}, 0.5f * k); }
         }
     }
 
@@ -272,7 +348,7 @@ public final class UltimateFx {
             float k = 0.6f + 0.4f * R.nextFloat();
             for (int i = 0; i < bolts.size(); i++) {
                 List<Vec3d> b = new ArrayList<>(); for (Vec3d p : bolts.get(i)) b.add(p.add(off));
-                drawBolt(vc, m, b, 0.022f, i == 0 ? BLUE : GOLD, k);
+                drawBolt(vc, m, b, 0.014f, i == 0 ? PALE : BLUE, k);
             }
         }
         static Vec3d onBox(Box b) {
@@ -302,9 +378,9 @@ public final class UltimateFx {
             Entity e = w.getEntityById(id);
             if (e == null) return;
             Vec3d off = e.getLerpedPos(delta).subtract(e.getPos());
-            for (int i = 0; i < bolts.size(); i++) { List<Vec3d> b = new ArrayList<>(); for (Vec3d p : bolts.get(i)) b.add(p.add(off)); drawBolt(vc, m, b, 0.018f, i % 2 == 0 ? GOLD : BLUE, 0.9f); }
+            for (int i = 0; i < bolts.size(); i++) { List<Vec3d> b = new ArrayList<>(); for (Vec3d p : bolts.get(i)) b.add(p.add(off)); drawBolt(vc, m, b, 0.012f, i % 2 == 0 ? PALE : BLUE, 0.9f); }
             float pulse = 0.75f + 0.25f * (float) Math.sin((age + delta) * 1.3f);
-            for (int s = -1; s <= 1; s += 2) { blob(vc, m, hand(e, s, delta), 0.28f * pulse, GOLD, 0.7f); blob(vc, m, hand(e, s, delta), 0.12f, CORE, 0.9f); }
+            for (int s = -1; s <= 1; s += 2) { blob(vc, m, hand(e, s, delta), 0.2f * pulse, BLUE, 0.45f); blob(vc, m, hand(e, s, delta), 0.07f, CORE, 0.8f); }
         }
     }
 
@@ -315,8 +391,8 @@ public final class UltimateFx {
         @Override void tick(ClientWorld w) { pts = bolt(a, b, a.distanceTo(b) * 0.12, 4, R); }
         @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
             float k = 1f - life();
-            drawBolt(vc, m, pts, 0.06f, GOLD, k);
-            blob(vc, m, b, 0.7f * k, GOLD, 0.8f * k);
+            drawBolt(vc, m, pts, 0.03f, PALE, k);
+            blob(vc, m, b, 0.35f * k, CORE, 0.7f * k);
         }
     }
 
@@ -327,7 +403,7 @@ public final class UltimateFx {
         @Override void tick(ClientWorld w) {
             bolts.clear();
             double r = rad * life();
-            for (int k = 0; k < 10; k++) {
+            for (int k = 0; k < 6; k++) {
                 double a = R.nextDouble() * Math.PI * 2;
                 Vec3d p = c.add(Math.cos(a) * r, 0.1, Math.sin(a) * r);
                 Vec3d p1 = p.add(Math.cos(a + 1.2) * 0.5, 0.3 + R.nextDouble() * 0.5, Math.sin(a + 1.2) * 0.5); bolts.add(bolt(p, p1, p.distanceTo(p1) * 0.15, 2, R));
@@ -335,10 +411,10 @@ public final class UltimateFx {
         }
         @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
             float k = 1f - life();
-            ring(vc, m, c.add(0, 0.08, 0), rad * life(), 0.35, GOLD, 0.8f * k);
-            ring(vc, m, c.add(0, 0.1, 0), rad * life() * 0.85, 0.15, BLUE, 0.6f * k);
-            for (int i = 0; i < bolts.size(); i++) drawBolt(vc, m, bolts.get(i), 0.03f, i % 3 == 0 ? BLUE : GOLD, k);
-            if (age < 4) blob(vc, m, c.add(0, 0.6, 0), 2.2f * (1 - age / 4f), GOLD, 0.7f);
+            ring(vc, m, c.add(0, 0.08, 0), rad * life(), 0.3, PALE, 0.7f * k);
+            ring(vc, m, c.add(0, 0.1, 0), rad * life() * 0.8, 0.12, BLUE, 0.5f * k);
+            for (int i = 0; i < bolts.size(); i++) drawBolt(vc, m, bolts.get(i), 0.016f, i % 2 == 0 ? PALE : BLUE, k);
+            if (age < 4) { blob(vc, m, c.add(0, 0.6, 0), 2.0f * (1 - age / 4f), ORANGE, 0.6f); blob(vc, m, c.add(0, 0.6, 0), 1.2f * (1 - age / 4f), GOLD, 0.8f); }
         }
     }
 
