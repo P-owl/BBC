@@ -238,9 +238,9 @@ public final class UltimateFx {
             int n = (int) (5 + 4 * size);
             for (int k = 0; k < n; k++) {
                 Vec3d end = c.add(rand(R).multiply((0.5 + R.nextDouble() * 0.9) * size));
-                List<Vec3d> b = bolt(c, end, 0.18 * size, 3, R);
+                List<Vec3d> b = bolt(c, end, c.distanceTo(end) * 0.13, 3, R);   // 꺾임은 길이에 비례 (엉키지 않고 사방으로 뻗게)
                 bolts.add(b); cols.add(k % 3 == 2 ? BLUE : GOLD);
-                if (R.nextInt(3) == 0) { Vec3d s = b.get(b.size() / 2); bolts.add(bolt(s, s.add(rand(R).multiply(0.35 * size)), 0.08 * size, 2, R)); cols.add(GOLD); }
+                if (R.nextInt(3) == 0) { Vec3d s = b.get(b.size() / 2); Vec3d e2 = s.add(rand(R).multiply(0.35 * size)); bolts.add(bolt(s, e2, s.distanceTo(e2) * 0.15, 2, R)); cols.add(GOLD); }
             }
         }
         @Override void tick(ClientWorld w) { if (age % 2 == 0) regen(); }
@@ -263,7 +263,7 @@ public final class UltimateFx {
             Entity e = w.getEntityById(id);
             if (e == null) return;
             Box b = e.getBoundingBox().expand(0.08);
-            for (int k = 0; k < 3; k++) bolts.add(bolt(onBox(b), onBox(b), 0.12, 3, R));
+            for (int k = 0; k < 3; k++) { Vec3d p0 = onBox(b), p1 = onBox(b); bolts.add(bolt(p0, p1, p0.distanceTo(p1) * 0.12, 3, R)); }
         }
         @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
             Entity e = w.getEntityById(id);
@@ -296,7 +296,7 @@ public final class UltimateFx {
             bolts.clear();
             Entity e = w.getEntityById(id);
             if (e == null) return;
-            for (int s = -1; s <= 1; s += 2) { Vec3d h = hand(e, s, 1f); for (int k = 0; k < 2; k++) bolts.add(bolt(h.add(rand(R).multiply(0.1)), h.add(rand(R).multiply(0.4)), 0.07, 2, R)); }
+            for (int s = -1; s <= 1; s += 2) { Vec3d h = hand(e, s, 1f); for (int k = 0; k < 2; k++) { Vec3d p0 = h.add(rand(R).multiply(0.1)), p1 = h.add(rand(R).multiply(0.4)); bolts.add(bolt(p0, p1, p0.distanceTo(p1) * 0.15, 2, R)); } }
         }
         @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
             Entity e = w.getEntityById(id);
@@ -330,7 +330,7 @@ public final class UltimateFx {
             for (int k = 0; k < 10; k++) {
                 double a = R.nextDouble() * Math.PI * 2;
                 Vec3d p = c.add(Math.cos(a) * r, 0.1, Math.sin(a) * r);
-                bolts.add(bolt(p, p.add(Math.cos(a + 1.2) * 0.5, 0.3 + R.nextDouble() * 0.5, Math.sin(a + 1.2) * 0.5), 0.1, 2, R));
+                Vec3d p1 = p.add(Math.cos(a + 1.2) * 0.5, 0.3 + R.nextDouble() * 0.5, Math.sin(a + 1.2) * 0.5); bolts.add(bolt(p, p1, p.distanceTo(p1) * 0.15, 2, R));
             }
         }
         @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
