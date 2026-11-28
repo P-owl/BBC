@@ -2299,9 +2299,9 @@ _ue += [(26, IO, G(body=(-6, -40, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(4, 26), si
 anim("ul_eat_hit", 40, seq(_ue))
 
 # ── 의식 (60초, 서버가 2초마다 다시 틂): 무릎을 꿇고 두 손으로 얼굴(가면)을 감쌈, 몸이 떨림 ──
-UL_KNEEL = G(body=(-10, 0, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(10, 0), rightArm=R_FACE, leftArm=L_FACE)
-anim("ul_ritual", 40, seq([(0, LIN, UL_KNEEL), (2, IO, dict(UL_KNEEL, body=(-12, 2, 0))), (4, IO, dict(UL_KNEEL, body=(-9, -2, 0))),
-                           (20, IO, dict(UL_KNEEL, body=(-14, 0, 0))), (22, IO, dict(UL_KNEEL, body=(-10, 2, 0))), (40, IO, UL_KNEEL)]), loop=True, ret=0)
+UL_KNEEL = G(body=(-30, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(22, 0), sink=0.1, rightArm=R_FACE, leftArm=L_FACE)   # 웅크려 두 손으로 가면을 감쌈
+anim("ul_ritual", 40, seq([(0, LIN, UL_KNEEL), (2, IO, dict(UL_KNEEL, body=(-33, 3, 0))), (4, IO, dict(UL_KNEEL, body=(-28, -3, 0))),
+                           (20, IO, dict(UL_KNEEL, body=(-34, 0, 0))), (22, IO, dict(UL_KNEEL, body=(-29, 3, 0))), (40, IO, UL_KNEEL)]), loop=True, ret=0)
 
 # ── 변신 (의식이 끝날 때 140틱, 참고 2:53.5~3:05.5 — 붉은 돌을 가면에 → 몸부림 → 금빛으로 웅크림 → 껍질이 깨지며 '바-앙' → 날개를 펴고 날아오름) ──
 #   0~14 두 손으로 가면을 감쌈 → 16~40 고개를 젖히고 몸부림 (3틱마다 들썩) → 44~64 금빛에 싸여 깊게 웅크림 → 68 껍질이 깨지며 일어서 가슴을 폄 (바-앙) →
