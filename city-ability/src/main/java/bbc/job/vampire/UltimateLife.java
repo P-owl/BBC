@@ -311,6 +311,7 @@ public final class UltimateLife {
     public static void setFlight(ServerPlayerEntity p, boolean on) {
         if (p.isCreative() || p.isSpectator()) return;
         p.getAbilities().allowFlying = on;
+        p.getAbilities().setFlySpeed(on ? 0.085f : 0.05f);   // 날개: 기본 비행보다 빠르게
         if (!on) p.getAbilities().flying = false;
         p.sendAbilitiesUpdate();
         Jobs.entry(p).flag(P + "flying", on);

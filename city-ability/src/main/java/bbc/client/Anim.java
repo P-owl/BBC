@@ -63,6 +63,14 @@ final class Anim {
             if (!free) GROUND_AT.put(id, c.world.getTime());
             boolean air = free && c.world.getTime() - GROUND_AT.getOrDefault(id, c.world.getTime()) >= 2;
             String legs = null;
+            // 완전생물이 날개를 펴고 떠 있으면: 제자리 = 날개짓하며 떠 있는 자세, 움직이면 몸을 눕혀 활공 (다리 층은 끔)
+            boolean ulFly = "stance_ul".equals(STANCE_BASE.get(id)) && UltimateRender.flagged(id) && !pl.isOnGround() && !pl.isTouchingWater() && !pl.hasVehicle()
+                    && c.world.getTime() - GROUND_AT.getOrDefault(id, c.world.getTime()) >= 3;
+            if (!ulFly && !pl.isOnGround() && pl.getAbilities().flying && "stance_ul".equals(STANCE_BASE.get(id))) ulFly = true;
+            if (ulFly) {
+                want = sp > 0.12 ? "ul_fly_go" : "ul_fly_hover";
+                air = false; running = false; moving = false;
+            }
             if (air) {
                 want = ARMS_ONLY.getOrDefault(want, want);
                 legs = pl.getY() - pl.prevY > 0.02 ? "air_up" : "air_fall";

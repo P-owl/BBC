@@ -123,6 +123,14 @@ public final class UltimateForm {
             REDG = Blocks.RED_STAINED_GLASS.getDefaultState();
     private static final BlockStateParticleEffect THORN = new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.BLACK_CONCRETE.getDefaultState());
 
+    // ───────── 클라이언트 이펙트 신호 (client/UltimateFx — 번개·생물·가시·살점 모델) ─────────
+    static String n(double v) { return String.format(java.util.Locale.ROOT, "%.2f", v); }
+    static String xyz(Vec3d v) { return n(v.x) + "," + n(v.y) + "," + n(v.z); }
+    static void fx(ServerPlayerEntity p, String kind, String args) { Motion.play(p, "#ulfx:" + kind + ":" + args); }
+    static void zap(ServerPlayerEntity p, Vec3d c, float size) { fx(p, "zap", xyz(c) + "," + n(size)); }
+    static void arc(ServerPlayerEntity p, Vec3d a, Vec3d b) { fx(p, "arc", xyz(a) + "," + xyz(b)); }
+    static void flesh(ServerPlayerEntity p, Vec3d c, float size) { fx(p, "flesh", xyz(c) + "," + n(size)); }
+
     /** 파문 불꽃: 파랑·금빛 지직 + 전기 불꽃 */
     static void spark(ServerWorld w, Vec3d c, float size) {
         w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, (int) (10 * size), 0.25 * size, 0.25 * size, 0.25 * size, 0.4);
@@ -140,8 +148,9 @@ public final class UltimateForm {
     }
 
     /** 파문이 터짐 (맞은 자리): 불꽃 + 섬광 + 고리 */
-    static void rippleHit(ServerWorld w, Vec3d c, float size, Fx.Sfx word) {
-        spark(w, c, size);
+    static void rippleHit(ServerPlayerEntity p, ServerWorld w, Vec3d c, float size, Fx.Sfx word) {
+        zap(p, c, size);
+        spark(w, c, size * 0.6f);
         Fx.impactFlash(w, c, 0.8f * size);
         Fx.ring3d(w, c, new Vec3d(0, 1, 0), 0.2, 1.2 * size, 0.15f, 5, BLUE);
         if (word != null) Fx.word(w, c.add(0, 1.0, 0), word, 1.0f + 0.25f * size);
@@ -367,6 +376,7 @@ public final class UltimateForm {
     private static boolean ripple(ServerPlayerEntity p, boolean aw) {
         Motion.play(p, "ul_ripple");
         Combat.afterSkill(p, 24);
+        fx(p, "charge", "20");
         ServerWorld w = p.getServerWorld();
         Tasks.later(2, () -> { if (alive(p)) Combat.move(p, Combat.horizontal(p.getRotationVec(1f)).multiply(0.7)); });
         int[] jabs = aw ? new int[]{4, 6, 8, 10, 12, 14} : new int[]{4, 7, 10, 13};
@@ -375,32 +385,36 @@ public final class UltimateForm {
             Tasks.later(jabs[k], () -> {
                 if (!alive(p)) return;
                 Vec3d hand = front(p, 1.1, 1.3);
-                spark(w, hand, 0.5f);
+                spark(w, hand, 0.3f);
+                zap(p, hand, 0.45f);
                 if (kk % 2 == 0) se(w, hand, SE_RIPPLE, 0.7f, 1.2f);
-                for (LivingEntity t : Combat.targets(p, 2.9, 50, 2)) if (Combat.hit(p, t, JAB) != Combat.Result.MISS) rippleHit(w, t.getBoundingBox().getCenter(), 0.7f, kk == 0 ? Fx.Sfx.BAKI : null);
+                for (LivingEntity t : Combat.targets(p, 2.9, 50, 2)) if (Combat.hit(p, t, JAB) != Combat.Result.MISS) rippleHit(p, w, t.getBoundingBox().getCenter(), 0.7f, kk == 0 ? Fx.Sfx.BAKI : null);
             });
         }
         Tasks.later(18, () -> {
             if (!alive(p)) return;
             Vec3d hand = front(p, 1.4, 1.3);
-            spark(w, hand, 1.4f);
+            spark(w, hand, 0.8f);
+            zap(p, hand, 1.2f);
             se(w, hand, SE_RIPPLE_BIG, 1.6f, 1.0f);
             Fx.ring3d(w, hand, Combat.horizontal(p.getRotationVec(1f)), 0.2, 1.8, 0.2f, 6, BLUE);
             for (LivingEntity t : Combat.targets(p, 3.2, 50, 3)) if (Combat.hit(p, t, PALM) != Combat.Result.MISS) {
-                rippleHit(w, t.getBoundingBox().getCenter(), 1.5f, Fx.Sfx.DOGON);
-                paralyze(t, 40);
+                arc(p, hand, t.getBoundingBox().getCenter());
+                rippleHit(p, w, t.getBoundingBox().getCenter(), 1.5f, Fx.Sfx.DOGON);
+                paralyze(p, t, 40);
             }
             if (aw) {
-                Fx.ring3d(w, p.getPos().add(0, 0.3, 0), new Vec3d(0, 1, 0), 0.5, 4.0, 0.3f, 8, BLUE);
-                for (int i = 0; i < 16; i++) { double a = Math.PI * 2 * i / 16; spark(w, p.getPos().add(Math.cos(a) * 3, 0.6, Math.sin(a) * 3), 0.4f); }
-                for (LivingEntity t : around(p, p.getPos().add(0, 1, 0), 4.0)) if (Combat.hit(p, t, PALM_RING) != Combat.Result.MISS) paralyze(t, 30);
+                fx(p, "wave", xyz(p.getPos()) + ",4.5");
+                for (int i = 0; i < 8; i++) { double a = Math.PI * 2 * i / 8; spark(w, p.getPos().add(Math.cos(a) * 3, 0.6, Math.sin(a) * 3), 0.3f); }
+                for (LivingEntity t : around(p, p.getPos().add(0, 1, 0), 4.0)) if (Combat.hit(p, t, PALM_RING) != Combat.Result.MISS) paralyze(p, t, 30);
             }
         });
         return true;
     }
 
     /** 파문 마비: 느려짐 + 파란 불꽃이 몸에서 튐 */
-    static void paralyze(LivingEntity t, int ticks) {
+    static void paralyze(ServerPlayerEntity p, LivingEntity t, int ticks) {
+        fx(p, "shock", t.getId() + "," + ticks);
         t.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, ticks, 3, false, true));
         t.addStatusEffect(new StatusEffectInstance(StatusEffects.MINING_FATIGUE, ticks, 1, false, true));
         if (!(t.getWorld() instanceof ServerWorld w)) return;
@@ -410,11 +424,12 @@ public final class UltimateForm {
     private static boolean rippleQ(ServerPlayerEntity p) {
         Motion.play(p, "ul_ripple_q");
         Combat.afterSkill(p, 8);
+        fx(p, "charge", "5");
         ServerWorld w = p.getServerWorld();
         Tasks.later(4, () -> {
             if (!alive(p)) return;
             spark(w, front(p, 1.2, 1.3), 0.7f);
-            for (LivingEntity t : Combat.targets(p, 3.0, 50, 2)) if (Combat.hit(p, t, JAB_Q) != Combat.Result.MISS) rippleHit(w, t.getBoundingBox().getCenter(), 1f, Fx.Sfx.BAKI);
+            for (LivingEntity t : Combat.targets(p, 3.0, 50, 2)) if (Combat.hit(p, t, JAB_Q) != Combat.Result.MISS) rippleHit(p, w, t.getBoundingBox().getCenter(), 1f, Fx.Sfx.BAKI);
         });
         return true;
     }
@@ -422,11 +437,12 @@ public final class UltimateForm {
     private static boolean rippleAir(ServerPlayerEntity p) {
         Motion.play(p, "ul_ripple_air");
         Combat.afterSkill(p, 12);
+        fx(p, "charge", "6");
         ServerWorld w = p.getServerWorld();
         Tasks.later(2, () -> { if (alive(p)) spark(w, p.getPos().add(0, 2.2, 0), 0.6f); });
         Tasks.later(5, () -> {
             if (!alive(p)) return;
-            for (LivingEntity t : around(p, front(p, 1.2, -0.6), 2.4)) if (Combat.hit(p, t, RIPPLE_DOWN) != Combat.Result.MISS) { rippleHit(w, t.getBoundingBox().getCenter(), 1.2f, Fx.Sfx.DOGO); paralyze(t, 20); }
+            for (LivingEntity t : around(p, front(p, 1.2, -0.6), 2.4)) if (Combat.hit(p, t, RIPPLE_DOWN) != Combat.Result.MISS) { rippleHit(p, w, t.getBoundingBox().getCenter(), 1.2f, Fx.Sfx.DOGO); paralyze(p, t, 20); }
         });
         return true;
     }
@@ -456,7 +472,9 @@ public final class UltimateForm {
                 LivingEntity t = ts.isEmpty() ? null : ts.get(i % ts.size());
                 double a = (i - (n - 1) / 2.0) * 0.35;
                 Vec3d dir = PillarHeat.rotY(fw, a);
-                critter(p, w, g.add(dir.multiply(0.4)), t, dir, aw, i * 2);
+                Vec3d st = g.add(dir.multiply(0.4));
+                fx(p, "crit", xyz(st) + "," + (t != null ? t.getId() : -1) + "," + n(dir.x) + "," + n(dir.z) + "," + (i * 2));
+                critter(p, w, st, t, dir, aw, i * 2);
             }
         });
         return true;
@@ -477,7 +495,7 @@ public final class UltimateForm {
                 // 좌우로 꿈틀대며
                 Vec3d side = new Vec3d(-step.z, 0, step.x).multiply(Math.sin(k * 1.3) * 0.25);
                 pos[0] = groundAt(w, pos[0].add(step).add(side));
-                drawCritter(w, pos[0], step);
+                if (k % 3 == 0) w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, w.getBlockState(BlockPos.ofFloored(pos[0]).down())), pos[0].x, pos[0].y + 0.05, pos[0].z, 2, 0.1, 0.02, 0.1, 0);
                 if (k % 5 == 0) w.playSound(null, BlockPos.ofFloored(pos[0]), SoundEvents.ENTITY_SILVERFISH_STEP, SoundCategory.PLAYERS, 0.5f, 1.4f);
                 if (t != null && t.isAlive() && t.squaredDistanceTo(pos[0]) < 1.1) {
                     latched[0] = true;
@@ -502,7 +520,6 @@ public final class UltimateForm {
             Tasks.later(k * 4, () -> {
                 if (!alive(p) || !t.isAlive()) return;
                 Vec3d c = t.getPos().add(w.random.nextGaussian() * 0.25, 0.3 + w.random.nextFloat() * 1.2, w.random.nextGaussian() * 0.25);
-                drawCritter(w, c, new Vec3d(w.random.nextGaussian(), 0, w.random.nextGaussian()));
                 w.spawnParticles(VampireJob.BLOOD, c.x, c.y, c.z, 3, 0.1, 0.1, 0.1, 0);
                 if (kk % 2 == 0) w.playSound(null, t.getBlockPos(), SoundEvents.ENTITY_SILVERFISH_HURT, SoundCategory.PLAYERS, 0.6f, 1.5f);
                 Combat.hit(p, t, BITE);
@@ -512,10 +529,8 @@ public final class UltimateForm {
         Tasks.later(8, () -> {   // 대군: 발밑에서 검은 가시가 솟음 (참고 3:09 'アギィィ')
             if (!alive(p) || !t.isAlive()) return;
             Vec3d g = t.getPos();
-            for (int i = 0; i < 10; i++) {
-                double a = Math.PI * 2 * i / 10;
-                for (int h = 0; h < 6; h++) { double rr = 0.15 + h * 0.08; w.spawnParticles(THORN, g.x + Math.cos(a) * rr, g.y + h * 0.3, g.z + Math.sin(a) * rr, 2, 0.02, 0.05, 0.02, 0); }
-            }
+            fx(p, "thorn", xyz(g));
+            w.spawnParticles(THORN, g.x, g.y + 0.3, g.z, 16, 0.4, 0.2, 0.4, 0.1);
             Fx.word(w, g.add(0, 2.2, 0), Fx.Sfx.ZUBA, 1.2f);
             se(w, g, SE_FLESH, 1.3f, 0.7f);
             if (Combat.hit(p, t, THORN_HIT) != Combat.Result.MISS) Fx.impactFlash(w, t.getBoundingBox().getCenter(), 1f);
@@ -570,7 +585,7 @@ public final class UltimateForm {
                         double ang = Math.toDegrees(Math.atan2(to2.normalize().crossProduct(fw0).y, to2.normalize().dotProduct(fw0)));
                         double lo = Math.min(from + (to - from) * u0, from + (to - from) * u1) - 12, hi = Math.max(from + (to - from) * u0, from + (to - from) * u1) + 12;
                         if (-ang < lo || -ang > hi || !got.add(t.getId())) continue;
-                        if (Combat.hit(p, t, ARM) != Combat.Result.MISS) { Vec3d c = t.getBoundingBox().getCenter(); Fx.impactFlash(w, c, 1.1f); w.spawnParticles(FLESH, c.x, c.y, c.z, 10, 0.3, 0.3, 0.3, 0); Fx.word(w, c.add(0, 1, 0), Fx.Sfx.DOGO, 1.2f); }
+                        if (Combat.hit(p, t, ARM) != Combat.Result.MISS) { Vec3d c = t.getBoundingBox().getCenter(); Fx.impactFlash(w, c, 1.1f); flesh(p, c, 1.1f); w.spawnParticles(FLESH, c.x, c.y, c.z, 10, 0.3, 0.3, 0.3, 0); Fx.word(w, c.add(0, 1, 0), Fx.Sfx.DOGO, 1.2f); }
                     }
                 }
             });
@@ -594,6 +609,7 @@ public final class UltimateForm {
             if (hit == null || Combat.hit(p, hit, ARM_POKE) == Combat.Result.MISS) return;
             final LivingEntity t = hit;
             Fx.impactFlash(w, t.getBoundingBox().getCenter(), 1f);
+            flesh(p, t.getBoundingBox().getCenter(), 0.8f);
             Vec3d want = front(p, 1.6, 0);
             for (int i = 1; i <= 4; i++) Tasks.later(i, () -> { if (t.isAlive()) { Vec3d c = t.getPos(); Vec3d q = c.lerp(want, 0.45); t.requestTeleport(q.x, q.y, q.z); t.setVelocity(0, 0, 0); t.velocityModified = true; } });
         });
@@ -613,7 +629,8 @@ public final class UltimateForm {
                 Vec3d g = groundAt(w, p.getPos().add(fw.multiply(s)));
                 w.spawnParticles(FLESH, g.x, g.y + 0.3, g.z, 6, 0.2, 0.2, 0.2, 0);
                 Fx.debris(w, g, 3, 0.6);
-                for (LivingEntity t : around(p, g.add(0, 0.5, 0), 1.4)) if (got.add(t.getId()) && Combat.hit(p, t, ARM_SLAM) != Combat.Result.MISS) Fx.impactFlash(w, t.getBoundingBox().getCenter(), 1f);
+                if (s == 4) flesh(p, g.add(0, 0.3, 0), 1.3f);
+                for (LivingEntity t : around(p, g.add(0, 0.5, 0), 1.4)) if (got.add(t.getId()) && Combat.hit(p, t, ARM_SLAM) != Combat.Result.MISS) { Fx.impactFlash(w, t.getBoundingBox().getCenter(), 1f); flesh(p, t.getBoundingBox().getCenter(), 0.9f); }
             }
             Fx.word(w, groundAt(w, p.getPos().add(fw.multiply(4))).add(0, 1.4, 0), Fx.Sfx.ZUDON, 1.3f);
             Fx.shakeAround(w, p.getPos(), 8, 0.5f);
@@ -726,6 +743,7 @@ public final class UltimateForm {
         Combat.invuln(p, 30);
         PillarHeat.root(p, 1, 30);
         say(p, S_EAT_HIT);
+        fx(p, "drain", t.getId() + "," + (aw ? 30 : 28));
         PlayerData.Entry e = bbc.job.Jobs.entry(p);
         Vec3d hold = front(p, 1.1, 0);
         for (int i = 0; i < 28; i++) Tasks.later(i, () -> { if (t.isAlive()) { t.requestTeleport(hold.x, hold.y, hold.z); t.setVelocity(0, 0, 0); t.velocityModified = true; } });
@@ -750,7 +768,7 @@ public final class UltimateForm {
             Vec3d c = t.getBoundingBox().getCenter();
             Fx.impactFlash(w, c, 1.3f);
             Fx.word(w, c.add(0, 1.2, 0), Fx.Sfx.DOGOOON, 1.4f);
-            w.spawnParticles(FLESH, c.x, c.y, c.z, 16, 0.4, 0.4, 0.4, 0);
+            flesh(p, c, 1.4f);
             if (t.isAlive()) VampireJob.drink(p, e, t);
         });
     }
@@ -876,21 +894,25 @@ public final class UltimateForm {
                 Fx.slash(w, p, 3.45, right ? 35 : -35, !right, BLUE);
                 PillarLight.arcSparkle(w, p, 3.6, right ? 35 : -35, !right);
                 Vec3d c = t.getBoundingBox().getCenter();
-                spark(w, c, 1.3f);
+                spark(w, c, 0.8f);
+                zap(p, c, 1.3f);
                 PillarLight.se(w, c, PillarLight.SE_BIG, 1.6f, right ? 1.0f : 1.1f);
                 se(w, c, SE_RIPPLE, 1.4f, 0.9f);
                 if (Combat.hit(p, t, ULT_SLASH) != Combat.Result.MISS) PillarLight.cutHit(w, c, 1.3f, kk == 0 ? Fx.Sfx.ZAN : kk == 3 ? Fx.Sfx.ZUBA : null);
             });
         }
         Tasks.later(72, () -> { if (alive(p)) { Fx.ring3d(w, p.getPos().add(0, 1.0, 0), new Vec3d(0, 1, 0), 0.5, 3.0, 0.3f, 6, PURPLE); feathers(w, p.getPos().add(0, 1.2, 0), 16, 1.0); se(w, p.getPos(), SE_WING, 1.6f, 1.2f); } });
-        for (int i = 76; i < 90; i += 2) Tasks.later(i, () -> { if (alive(p)) { PillarLight.ray(w, p.getPos().add(0, 1, 0), p.getPos().add(0, 3, 0)); spark(w, p.getPos().add(fw.multiply(1.0)).add(0, 0.5, 0), 0.5f); } });
+        for (int i = 76; i < 90; i += 2) Tasks.later(i, () -> { if (alive(p)) { PillarLight.ray(w, p.getPos().add(0, 1, 0), p.getPos().add(0, 3, 0)); spark(w, p.getPos().add(fw.multiply(1.0)).add(0, 0.5, 0), 0.4f); if (t.isAlive()) arc(p, p.getPos().add(0, 1.2, 0), t.getBoundingBox().getCenter()); } });
         Tasks.later(90, () -> {
             if (!alive(p)) return;
             Vec3d g = start.add(fw.multiply(3.2));
             Fx.ring3d(w, g.add(0, 0.15, 0), new Vec3d(0, 1, 0), 0.5, 6.0, 0.4f, 12, BLUE);
             Fx.ring3d(w, g.add(0, 0.2, 0), new Vec3d(0, 1, 0), 0.4, 4.0, 0.3f, 10, Fx.GOLD);
             Fx.debris(w, g, 30, 2.0);
-            for (int i = 0; i < 20; i++) { double a = Math.PI * 2 * i / 20; spark(w, g.add(Math.cos(a) * 2.5, 0.4, Math.sin(a) * 2.5), 0.4f); }
+            fx(p, "wave", xyz(g) + ",6.5");
+            zap(p, g.add(0, 0.8, 0), 2.2f);
+            fx(p, "thorn", xyz(g.add(0.8, 0, 0)));
+            fx(p, "thorn", xyz(g.add(-0.8, 0, 0.5)));
             w.spawnParticles(ParticleTypes.FLASH, g.x, g.y + 1, g.z, 1, 0, 0, 0, 0);
             Fx.word(w, g.add(0, 2.4, 0), Fx.Sfx.DOGOOON, 2.0f);
             Fx.shakeAround(w, g, 16, 1.0f);
@@ -904,7 +926,7 @@ public final class UltimateForm {
             Tasks.later(92 + k * 2, () -> {
                 if (!alive(p) || !t.isAlive()) return;
                 Vec3d c = t.getPos().add(Math.cos(kk) * 0.5, 0.2 + kk * 0.2, Math.sin(kk) * 0.5);
-                drawCritter(w, c, new Vec3d(-Math.cos(kk), 0, -Math.sin(kk)));
+                fx(p, "crit", xyz(t.getPos().add(Math.cos(kk) * 0.6, 0, Math.sin(kk) * 0.6)) + "," + t.getId() + ",0,0,0");
                 w.spawnParticles(FLESH, c.x, c.y, c.z, 6, 0.2, 0.2, 0.2, 0);
                 w.spawnParticles(THORN, c.x, c.y, c.z, 6, 0.1, 0.4, 0.1, 0);
                 if (kk % 2 == 0) se(w, c, SE_SWARM, 1.4f, 1.0f);

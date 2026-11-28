@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
     private static final Identifier TEX = Identifier.of("bbc", "textures/entity/ultimate.png");
-    private static final int TW = 64, TH = 32;
+    private static final int TW = 64, TH = 48;
     /** 텍스처 구역 (16×16): 짙은 깃털 · 중간 깃털 · 밝은 덮깃 · 분홍 끝 / 뼈 · 붉은 살 · 짙은 붉은 · 흰 가시 */
     private static final int F_DARK = 0, F_MID = 1, F_LIGHT = 2, F_TIP = 3, BONE = 4, RED = 5, RED_DARK = 6, SPIKE = 7;
     private static final int[][] UV = {{0, 0}, {16, 0}, {32, 0}, {48, 0}, {0, 16}, {16, 16}, {32, 16}, {48, 16}};
@@ -50,6 +50,8 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
     }
     /** 변형 팔: 단위 상자를 늘려 그림 */
     private static final ModelPart UNIT_RED = part(RED, -0.5f, 0, -0.5f, 1, 1, 1), UNIT_DARK = part(RED_DARK, -0.5f, 0, -0.5f, 1, 1, 1), UNIT_SPIKE = part(SPIKE, -0.5f, 0, -0.5f, 1, 1, 1);
+    /** 끝의 뼈 칼날 (휜 낫 모양: 세 마디) */
+    private static final ModelPart CLAW_A = part(SPIKE, -1.2f, 0, -0.5f, 2.4f, 3.2f, 1.0f), CLAW_B = part(SPIKE, -0.9f, 0, -0.4f, 1.8f, 3.0f, 0.8f), CLAW_C = part(SPIKE, -0.5f, 0, -0.3f, 1.0f, 2.6f, 0.6f);
 
     private static final Map<Integer, Long> WING = new ConcurrentHashMap<>();
     private static final Map<Integer, Float> SPREAD = new ConcurrentHashMap<>();
@@ -104,8 +106,12 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
             float vis = show ? 1f : Math.min(1f, cur / 0.22f);   // 사라질 땐 접히며 작아짐
             boolean flap = !player.isOnGround() && cur > 0.6f;
             float tt = animationProgress;
-            float f1 = flap ? (float) Math.sin(tt * 0.45f) : (float) Math.sin(tt * 0.08f) * 0.15f;
-            float f2 = flap ? (float) Math.sin(tt * 0.45f - 0.7f) : 0f;
+            double spd = Math.hypot(player.getX() - player.prevX, player.getZ() - player.prevZ);
+            boolean glide = flap && spd > 0.25;
+            float fq = glide ? 0.22f : 0.55f, amp = glide ? 0.6f : 1f;
+            float f1 = flap ? (float) Math.sin(tt * fq) * amp : (float) Math.sin(tt * 0.08f) * 0.15f;
+            float f2 = flap ? (float) Math.sin(tt * fq - 0.7f) * amp : 0f;
+            boolean trail = flap && spd > 0.2;
             matrices.push();
             m.body.rotate(matrices);
             for (int side = 1; side >= -1; side -= 2) {
@@ -114,7 +120,7 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
                 matrices.translate(1.6f / 16f, 3.2f / 16f, 2.3f / 16f);
                 float sc = 1.45f * vis;
                 matrices.scale(sc, sc, sc);
-                drawWing(matrices, vc, light, cur, f1, f2);
+                drawWing(matrices, vc, light, cur, f1, f2, trail ? id : -1, side > 0 ? 1 : 0);
                 matrices.pop();
             }
             matrices.pop();
@@ -139,7 +145,7 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
     }
 
     /** 한쪽 날개 (왼쪽 기준: +x 바깥, -y 위, +z 뒤). s = 펴짐 0~1 */
-    private static void drawWing(MatrixStack ms, VertexConsumer vc, int light, float s, float f1, float f2) {
+    private static void drawWing(MatrixStack ms, VertexConsumer vc, int light, float s, float f1, float f2, int trailId, int side) {
         // 위팔: 접으면 등 뒤로 비스듬히 내려감 (아래 55° · 뒤 70°), 펴면 옆 위로 38° · 뒤 12°
         ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(lerp(-70, -12, s)));
         ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(lerp(55, -38, s) + f1 * 24));
@@ -173,6 +179,11 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
             ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees(lerp(14, 3, s)));
             render(PRIM[i], ms, vc, light);
             render(PRIM_TIP[i], ms, vc, light);
+            if (trailId >= 0 && i == PRIM.length - 2) {   // 가장 긴 깃털 끝 → 바람 자국 (세상 좌표 = 카메라 기준 + 카메라 자리)
+                org.joml.Vector3f v = ms.peek().getPositionMatrix().transformPosition(new org.joml.Vector3f(0, P_LEN[i] / 16f, 0));
+                net.minecraft.util.math.Vec3d c = net.minecraft.client.MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
+                UltimateFx.trail(trailId, side, new net.minecraft.util.math.Vec3d(v.x() + c.x, v.y() + c.y, v.z() + c.z));
+            }
             ms.pop();
         }
     }
@@ -188,31 +199,43 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
             ms.translate(0, -4f / 16f, 0);
         }
         ms.translate(-1f / 16f, 7.5f / 16f, 0);
-        int n = 16;
+        int n = 18;
         float seg = length / n;
         for (int i = 0; i < n; i++) {
-            float w = 4.6f - 2.8f * i / n;
+            float u = i / (float) n;
+            float pulse = 1f + 0.06f * (float) Math.sin(t * 0.5f - i * 0.7f);   // 살이 꿈틀대며 부풂
+            float w = (5.2f - 3.4f * u + (i < 3 ? 1.4f - i * 0.45f : 0)) * pulse;   // 손목 쪽은 근육 덩어리
             ms.push();
-            ms.scale(w / 16f, (seg + 0.6f) / 16f, w / 16f);
+            ms.scale(w / 16f, (seg + 0.6f) / 16f, w * 0.9f / 16f);
             render(UNIT_RED, ms, vc, light);
             ms.pop();
-            if (i % 2 == 1) {
-                ms.push();   // 바깥쪽 가시 (-x)
-                ms.translate(-w / 2f / 16f, seg * 0.4f / 16f, 0);
-                ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(70));
-                ms.scale(0.9f / 16f, 2.6f / 16f, 0.9f / 16f);
-                render(UNIT_SPIKE, ms, vc, light);
-                ms.pop();
+            if (i % 3 == 1) {   // 핏줄 고리 (짙은 띠)
+                ms.push(); ms.translate(0, seg * 0.45f / 16f, 0); ms.scale((w + 0.35f) / 16f, Math.max(0.5f, seg * 0.18f) / 16f, (w * 0.9f + 0.35f) / 16f); render(UNIT_DARK, ms, vc, light); ms.pop();
+            }
+            if (i % 2 == 1 && i < n - 1) {
+                for (int sd = -1; sd <= 1; sd += 2) {   // 양옆 흰 가시 (바깥쪽이 더 큼)
+                    float sl = (sd < 0 ? 3.4f : 2.2f) * (1f - u * 0.5f);
+                    ms.push();
+                    ms.translate(sd * w / 2f / 16f, seg * 0.4f / 16f, 0);
+                    ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(sd < 0 ? 62 : -62));
+                    ms.scale(1.0f / 16f, sl / 16f, 1.0f / 16f);
+                    render(UNIT_SPIKE, ms, vc, light);
+                    ms.pop();
+                }
                 ms.push();   // 앞쪽 빨판 (-z)
-                ms.translate(0, seg * 0.3f / 16f, -w / 2f / 16f);
-                ms.scale(w * 0.45f / 16f, w * 0.45f / 16f, 0.6f / 16f);
+                ms.translate(0, seg * 0.3f / 16f, -w * 0.45f / 16f);
+                ms.scale(w * 0.45f / 16f, w * 0.45f / 16f, 0.7f / 16f);
                 render(UNIT_DARK, ms, vc, light);
                 ms.pop();
             }
             ms.translate(0, seg / 16f, 0);
-            ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) Math.sin(t * 0.3f + i * 0.6f) * 3f));
-            ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) Math.sin(t * 0.25f + i * 0.5f) * 2f));
+            ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) Math.sin(t * 0.3f + i * 0.6f) * 3.5f));
+            ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees((float) Math.sin(t * 0.25f + i * 0.5f) * 2.5f));
         }
+        // 끝: 바깥으로 휜 뼈 칼날
+        render(CLAW_A, ms, vc, light);
+        ms.translate(0, 3.0f / 16f, 0); ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(22)); render(CLAW_B, ms, vc, light);
+        ms.translate(0, 2.8f / 16f, 0); ms.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(26)); render(CLAW_C, ms, vc, light);
         ms.pop();
     }
 

@@ -2298,6 +2298,17 @@ _ue += [(26, IO, G(body=(-6, -40, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(4, 26), si
         (34, LIN, G(body=(-12, 36, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, -24), sink=0.14, z=0.2, rightArm=R_SIDE, leftArm=L_BACK_LO)), (40, IO, UL_STANCE)]
 anim("ul_eat_hit", 40, seq(_ue))
 
+# ── 비행 (날개를 펴고 떠 있을 때 자세 층에 깔림 — client/Anim 이 고름) ──
+# 제자리 (참고 3:03.5·3:13.5): 꼿꼿이 조금 앞으로, 다리는 힘을 빼 늘어뜨려 뒤로 살짝 굽힘, 두 팔은 옆 아래로 벌려 균형 — 날갯짓에 맞춰 위아래로 출렁 (12틱)
+UL_HOV = AIR(body=(-6, 0, 0), rl=(12, 6, 24), ll=(26, 6, 42), look=(10, 0), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
+anim("ul_fly_hover", 12, seq([(0, LIN, dict(UL_HOV, bodyPos=(0, 0.04, 0))), (6, IO, dict(UL_HOV, body=(-8, 0, 0), bodyPos=(0, -0.05, 0), rightLeg=(18, 0, 6, 30), leftLeg=(30, 0, -6, 48))),
+                             (12, IO, dict(UL_HOV, bodyPos=(0, 0.04, 0)))]), loop=True, ret=0)
+# 활공 (참고 3:33~3:36 날아듦): 몸을 거의 눕혀 머리부터 나아감, 고개를 들어 앞을 봄, 다리는 곧게 뒤로 모으고 두 팔은 몸 옆 뒤로 — 좌우로 조금 기울며 (30틱)
+R_ALONG = HR((0.32, -0.92, 0.22), (0.44, 0.76, 0.3))           # 몸 옆을 따라 발 쪽으로 (몸 기준 아래 = 누우면 뒤)
+L_ALONG = HL((-0.32, -0.92, 0.22), (-0.44, 0.76, 0.3))
+UL_GO = AIR(body=(-68, 0, 0), rl=(8, 4, 6), ll=(14, 4, 12), look=(58, 0), rightArm=R_ALONG, leftArm=L_ALONG)
+anim("ul_fly_go", 30, seq([(0, LIN, UL_GO), (15, IO, dict(UL_GO, body=(-66, 0, 8))), (30, IO, UL_GO)]), loop=True, ret=0)
+
 # ── 의식 (60초, 서버가 2초마다 다시 틂): 무릎을 꿇고 두 손으로 얼굴(가면)을 감쌈, 몸이 떨림 ──
 UL_KNEEL = G(body=(-30, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(22, 0), sink=0.1, rightArm=R_FACE, leftArm=L_FACE)   # 웅크려 두 손으로 가면을 감쌈
 anim("ul_ritual", 40, seq([(0, LIN, UL_KNEEL), (2, IO, dict(UL_KNEEL, body=(-33, 3, 0))), (4, IO, dict(UL_KNEEL, body=(-28, -3, 0))),
