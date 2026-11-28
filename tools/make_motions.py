@@ -2200,6 +2200,46 @@ _lu += [(53, IO, G(body=(-30, -30, 0), rl=WIDE_RL, ll=WIDE_LL, look=(22, 16), si
         (100, IO, PL_STANCE)]
 anim("pl_ult", 100, seq(_lu))
 
+def _low_full(d):
+    """자세 전체(몸·머리·팔·다리)의 가장 낮은 점 높이 (bodyPos 0 기준, 블록). 렌더러 worldVerts 와 같은 계산 — 누운 자세를 땅에 붙일 때"""
+    import numpy as _np, math as _m
+    def R3(p, y, r):
+        p, y, r = _m.radians(p), _m.radians(y), _m.radians(r)
+        Rx = _np.array([[1, 0, 0], [0, _m.cos(p), -_m.sin(p)], [0, _m.sin(p), _m.cos(p)]])
+        Ry = _np.array([[_m.cos(y), 0, _m.sin(y)], [0, 1, 0], [-_m.sin(y), 0, _m.cos(y)]])
+        Rz = _np.array([[_m.cos(r), -_m.sin(r), 0], [_m.sin(r), _m.cos(r), 0], [0, 0, 1]])
+        return Rz @ Ry @ Rx
+    MODEL = dict(head=((0, 0, 0), (-4, -8, -4), (8, 8, 8)), body=((0, 0, 0), (-4, 0, -2), (8, 12, 4)),
+                 rightArm=((-5, 2, 0), (-3, -2, -2), (4, 12, 4)), leftArm=((5, 2, 0), (-1, -2, -2), (4, 12, 4)),
+                 rightLeg=((-1.9, 12, 0), (-2, 0, -2), (4, 12, 4)), leftLeg=((1.9, 12, 0), (-2, 0, -2), (4, 12, 4)))
+    W = R3(*d["body"][:3])
+    low = 9.9
+    for part, (piv, o, sz) in MODEL.items():
+        v = d.get(part, (0, 0, 0, 0)) if part != "body" else (0, 0, 0)
+        R = R3(v[0], v[1], v[2])
+        b = _m.radians(v[3]) if part not in ("head", "body") and len(v) > 3 else 0
+        RB = _np.array([[1, 0, 0], [0, _m.cos(b), -_m.sin(b)], [0, _m.sin(b), _m.cos(b)]])
+        mid = _np.array([o[0] + sz[0] / 2, o[1] + sz[1] / 2, o[2] + sz[2] / 2])
+        for x in (o[0], o[0] + sz[0]):
+            for y in (o[1], o[1] + sz[1] / 2, o[1] + sz[1]):
+                for zz in (o[2], o[2] + sz[2]):
+                    q = _np.array([x, y, zz], float)
+                    if b and y > mid[1] - 1e-6 and part not in ("head", "body"): q = RB @ (q - mid) + mid
+                    q = R @ q + _np.array(piv)
+                    w = _np.array([-q[0], -q[1], q[2]]) / 16 + _np.array([0, 1.501, 0])
+                    w = W @ (w - _np.array([0, 0.7, 0])) + _np.array([0, 0.7, 0])
+                    low = min(low, w[1])
+    return low
+
+
+def ground(d, lift=0.0):
+    """자세 전체를 땅에 붙임 (가장 낮은 점 = 땅 + lift)"""
+    out = dict(d)
+    bp = out.get("bodyPos", (0, 0, 0))
+    out["bodyPos"] = (bp[0], round(-_low_full(out) + lift, 3), bp[2])
+    return out
+
+
 # ═════════ 완전생물 (뱀파이어 4단계, 참고: 올스타 배틀 R 카즈 플레이 영상 2:53~3:51 — 변신·날개·파문·생물 창조·변형 팔. 자세·기술 원칙만, 이름·연출은 우리 것) ═════════
 # 대기 (참고 3:24 · 3:51): 가슴을 펴고 꼿꼿이, 왼손은 허리에 얹고 오른손은 힘을 빼 앞으로 살짝 — 거만하게 내려다봄
 R_EASY = HR((0.22, -0.95, -0.2), (0.32, 0.78, -0.3))            # 오른팔 힘 빼고 조금 앞으로
@@ -2314,42 +2354,71 @@ UL_KNEEL = G(body=(-30, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(22, 0), sink=0.1,
 anim("ul_ritual", 40, seq([(0, LIN, UL_KNEEL), (2, IO, dict(UL_KNEEL, body=(-33, 3, 0))), (4, IO, dict(UL_KNEEL, body=(-28, -3, 0))),
                            (20, IO, dict(UL_KNEEL, body=(-34, 0, 0))), (22, IO, dict(UL_KNEEL, body=(-29, 3, 0))), (40, IO, UL_KNEEL)]), loop=True, ret=0)
 
-# ── 탄생 (의식이 끝날 때 320틱 = 16초) — 참고: TV 애니 카즈 변신(가면 속 붉은 돌 → 빛에 삼켜짐) + 탄생 장면(일출 · 해를 등진 실루엣 · 바-앙 · 해를 향해 뻗는 손 · 반짝이 속 상반신).
-#    서버가 몸을 서쪽으로 돌려 세우고 시간을 새벽 → 일출로 돌림 (컷신 앞쪽 카메라 = 해를 등진 역광)
-#   0~24 무릎 꿇고 두 손으로 가면을 감쌈 (붉은 빛) → 26 보라·흰 섬광에 움찔 → 40~58 손을 내리며 고개를 듦 →
-#   60 오른손으로 땅을 할큄 (몸부림) → 78~100 무릎 꿇은 채 등을 크게 젖히고 고개를 뒤로 (빛에 삼켜짐) → 100~122 빛 속에서 일어서며 두 팔을 아래로 펼침 →
-#   124~154 해를 등지고 다리를 벌리고 서서 두 팔을 펼친 채 올려봄 → 156 바-앙 (한 손 허리, 가슴을 내밀고 고개를 기울임) → 190~218 꼿꼿이 서서 내려다봄 (눈이 빛남) →
-#   222~248 해 쪽으로 몸을 돌려 오른손을 펴 하늘로 뻗음 → 252~266 돌아서서 내려다봄 → 268 날개를 펴며 두 팔을 활짝 → 272~ 떠오름 → 296~320 공중에서 가슴을 펴고 내려다봄 (반짝이)
-UL_SHUDDER = lambda base, k: dict(base, body=(base["body"][0] + (2 if k % 2 else -2), base["body"][1] + (k % 3 - 1) * 3, base["body"][2]))
-UL_CLAW = G(body=(-42, -12, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(28, 8), sink=0.12, rightArm=R_GROUND, leftArm=HL((-0.4, -0.75, -0.5), (-0.45, 0.35, -0.5)))
-UL_ARCH = G(body=(26, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(-34, 0), sink=0.16, rightArm=R_BACK_LO, leftArm=L_BACK_LO)
-UL_SPREAD = G(body=(4, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-18, 0), sink=0.02, rightArm=HR((0.85, -0.5, 0.1), (1.05, 0.95, -0.05)), leftArm=HL((-0.85, -0.5, 0.1), (-1.05, 0.95, -0.05)))
-UL_BAAN2 = G(body=(6, -16, 5), rl=(8, 10, 6), ll=(-14, 10, 10), look=(-8, 12), rightArm=R_HIP, leftArm=L_LOOSE)
-UL_LOOK = G(body=(4, 0, 0), rl=UL_RL, ll=UL_LL, look=(10, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)
-UL_REACH = G(body=(8, 160, 0), rl=(6, 8, 4), ll=(-10, 8, 8), look=(-26, 0), rightArm=HR((0.25, 0.8, -0.55), (0.38, 2.15, -0.65)), leftArm=L_LOOSE)
-UL_WINGS = G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, 0), sink=0.04, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)
+# ── 탄생 (의식이 끝날 때 530틱 = 26.5초) — 참고: TV 애니 카즈 변신(밤, 자외선 속 가면) + 탄생(새벽 일출) 장면의 컷 순서 · 구도 · 자세를 다시 뜯어봄.
+#    서버가 몸을 서쪽으로 세우고 (해를 보는 컷은 몸을 180° 돌린 자세로), 밤 → 일출로 시간을 돌림. 컷 경계에서 자세가 바뀌므로 바뀌는 순간은 화면에 안 걸림
+#   0~28 한쪽 무릎을 꿇고 두 손으로 가면을 누름 (떨림) → 28~46 섬광에 손을 떼며 고개를 듦 (얼굴에 빛) → 46~70 몸을 숙여 오른손으로 땅을 움켜쥠 (몸부림) →
+#   70~130 주저앉아 왼팔로 뒤를 짚고 오른무릎을 세운 채 등을 젖히고 고개를 뒤로 (경련 — 빛 속 뼈가 비치는 장면) → 130~146 일어서 정면 (눈 클로즈업) →
+#   146~196 해 쪽(동쪽)으로 서서 오른주먹을 가슴 앞에 쥐고 떠오르는 해를 봄 → 196~226 해를 등지고 다리를 벌리고 서서 두 팔을 아래로 펼침 (빛에 휩싸임) →
+#   226~262 '바-앙': 왼손 허리, 가슴을 내밀고 몸을 틀어 내려다봄 → 262~340 해 쪽으로 서서 올려다봄 (머리 너머 해) → 340~440 해를 향해 오른손을 펴 뻗음 →
+#   440~462 해를 등지고 고개를 숙여 치뜸 (어둠 속 눈) → 462~530 팔짱을 끼고 고개를 기울여 내려다봄 (반짝이 속 상반신)
+def UL_TURN(d):
+    """해 쪽(뒤)으로 몸 전체를 돌림: 몸·머리 yaw +180, 다리는 몸과 같이 (발끝도 돎)"""
+    d = dict(d)
+    b = d["body"]; h = d["head"]
+    d["body"] = (b[0], b[1] + 180, b[2]); d["head"] = (h[0], h[1] + 180, h[2])
+    for leg in ("rightLeg", "leftLeg"):
+        v = d[leg]; d[leg] = (v[0], 0) + tuple(v[2:])
+    return d
+UL_SHUDDER = lambda base, k, a=2: dict(base, body=(base["body"][0] + (a if k % 2 else -a), base["body"][1] + (k % 3 - 1) * a * 1.5, base["body"][2]))
+UL_MASK = G(body=(-16, 0, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(10, 0), rightArm=R_FACE, leftArm=L_FACE)
+UL_JOLT = G(body=(-4, 0, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(-14, 0), rightArm=HR((0.6, -0.55, -0.6), (0.4, 0.95, -0.5)), leftArm=HL((-0.6, -0.55, -0.6), (-0.4, 0.95, -0.5)))
+UL_CLAW = G(body=(-46, -10, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(30, 6), sink=0.1, rightArm=HR((0.3, -0.7, -0.65), (0.3, 0.06, -0.72)), leftArm=HL((-0.4, -0.75, -0.5), (-0.4, 0.55, -0.45)))
+# 몸 기울기(+ = 뒤로)만큼 팔다리의 '아래'도 앞으로 돌아가므로 세계 각 = 부위 각 − 몸 각 (허벅지를 땅과 나란히 = −90 + 46)
+UL_SPRAWL = ground(dict(body=(46, 8, -6), head=(-40, 14, 10),
+                        rightArm=(-30, 0, 78, -24), leftArm=(80, 0, -16, -6),
+                        rightLeg=(-16, 0, 10, 112), leftLeg=(-46, 0, -12, 6)))
+UL_SPRAWL2 = ground(dict(body=(50, 4, -4), head=(-52, 10, 6),
+                         rightArm=(-48, 0, 84, -10), leftArm=(84, 0, -14, -6),
+                         rightLeg=(-12, 0, 12, 116), leftLeg=(-42, 0, -12, 6)))
+UL_FRONT = G(body=(2, 0, 0), rl=UL_RL, ll=UL_LL, look=(0, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)
+R_FIST_CHEST = HR((0.45, -0.55, -0.7), (0.1, 1.3, -0.42))          # 오른주먹을 가슴 앞에 쥠
+UL_WATCH = UL_TURN(G(body=(2, -8, 0), rl=(6, 8, 4), ll=(-14, 8, 10), look=(-10, 8), rightArm=R_FIST_CHEST, leftArm=L_LOOSE))
+R_OPEN_LO = HR((0.8, -0.58, -0.1), (0.95, 0.72, -0.18))            # 팔을 아래로 벌려 손바닥을 앞으로
+L_OPEN_LO = HL((-0.8, -0.58, -0.1), (-0.95, 0.72, -0.18))
+UL_BLAST = G(body=(8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 0), sink=0.0, rightArm=R_OPEN_LO, leftArm=L_OPEN_LO)
+UL_BAAN3 = G(body=(7, 14, -3), rl=(8, 10, 6), ll=(-16, 10, 12), look=(6, -18), rightArm=HR((0.35, -0.9, 0.1), (0.5, 0.72, -0.05)), leftArm=L_HIP)
+UL_GAZE = UL_TURN(G(body=(3, 0, 0), rl=UL_RL, ll=UL_LL, look=(-22, 0), rightArm=R_LOOSE, leftArm=L_LOOSE))
+R_SUN0 = HR((0.35, -0.2, -0.9), (0.3, 1.55, -0.68))                # 가슴 앞으로 들어 올리는 중
+R_SUN = HR((0.05, 0.55, -0.83), (0.33, 1.85, -0.62))               # 손을 펴 해 쪽 위로 곧게 뻗음
+UL_REACH0 = UL_TURN(G(body=(4, 0, 0), rl=(6, 8, 4), ll=(-14, 8, 10), look=(-18, 0), rightArm=R_SUN0, leftArm=L_LOOSE))
+UL_REACH = UL_TURN(G(body=(6, 4, 0), rl=(8, 8, 4), ll=(-16, 8, 12), look=(-24, -4), rightArm=R_SUN, leftArm=L_LOOSE))
+UL_DARK = G(body=(-4, 0, 0), rl=UL_RL, ll=UL_LL, look=(16, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)
+R_CROSS = HR((0.2, -0.55, -0.8), (-0.18, 1.06, -0.3))              # 팔짱 (오른팔이 아래)
+L_CROSS = HL((-0.2, -0.5, -0.82), (0.2, 1.13, -0.33))
+UL_CROSSED = G(body=(6, -12, 0), rl=UL_RL, ll=UL_LL, look=(-4, 8), rightArm=R_CROSS, leftArm=L_CROSS)
+UL_SMUG = dict(G(body=(8, -14, 0), rl=UL_RL, ll=UL_LL, look=(-8, 12), rightArm=R_CROSS, leftArm=L_CROSS))
+UL_SMUG["head"] = (UL_SMUG["head"][0], UL_SMUG["head"][1], 10)
+# 의식 · 각성 등에서도 쓰는 자세
 UL_COCOON = G(body=(-44, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(30, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)
 UL_BAAN = G(body=(8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 0), sink=0.02, rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
 UL_HOVER = AIR(body=(6, 0, 0), rl=(10, 8, 14), ll=(20, 8, 30), look=(14, 0), rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)
-UL_PROUD = AIR(body=(8, -10, 0), rl=(10, 8, 14), ll=(22, 8, 30), look=(-12, 8), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
-_ut = [(0, LIN, UL_KNEEL)]
-for k, t in enumerate(range(2, 24, 3)): _ut.append((t, IO, UL_SHUDDER(UL_KNEEL, k)))
-_ut += [(26, EX, dict(UL_KNEEL, body=(-18, 0, 0), head=(-6, 0, 0))), (32, IO, UL_KNEEL),
-        (42, IO, G(body=(-22, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(-6, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)),
-        (58, LIN, G(body=(-20, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(-10, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)),
-        (61, EX, UL_CLAW)]
-for k, t in enumerate(range(63, 77, 3)): _ut.append((t, IO, UL_SHUDDER(UL_CLAW, k)))
-_ut += [(82, OQ, UL_ARCH)]
-for k, t in enumerate(range(85, 99, 3)): _ut.append((t, IO, UL_SHUDDER(UL_ARCH, k)))
-_ut += [(112, IO, G(body=(-6, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 0), sink=0.14, rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)),
-        (124, IO, UL_SPREAD), (154, LIN, dict(UL_SPREAD, body=(5, 0, 0))),
-        (157, EX, UL_BAAN2), (188, LIN, dict(UL_BAAN2, body=(7, -16, 5))),
-        (194, IO, UL_LOOK), (218, LIN, UL_LOOK),
-        (228, IO, UL_REACH), (248, LIN, dict(UL_REACH, body=(9, 160, 0))),
-        (256, IO, UL_LOOK), (266, LIN, UL_LOOK),
-        (270, EX, UL_WINGS), (276, OQ, UL_RISE), (288, IO, UL_HOVER),
-        (298, IO, UL_PROUD), (320, LIN, dict(UL_PROUD, body=(9, -10, 0)))]
-anim("ul_transform", 320, seq(_ut))
+
+_ut = [(0, LIN, UL_MASK)]
+for k, t in enumerate(range(3, 27, 3)): _ut.append((t, IO, UL_SHUDDER(UL_MASK, k)))
+_ut += [(28, CONST, UL_MASK), (30, EX, UL_JOLT), (46, LIN, dict(UL_JOLT, body=(-6, 0, 0))),
+        (47, CONST, UL_CLAW)]
+for k, t in enumerate(range(49, 70, 2)): _ut.append((t, IO, UL_SHUDDER(UL_CLAW, k, 3)))
+_ut += [(71, CONST, UL_SPRAWL)]
+for k, t in enumerate(range(74, 130, 3)): _ut.append((t, IO, UL_SHUDDER(UL_SPRAWL if k % 4 < 2 else UL_SPRAWL2, k, 3)))
+_ut += [(131, CONST, UL_FRONT), (146, LIN, UL_FRONT),
+        (147, CONST, UL_WATCH), (196, LIN, dict(UL_WATCH, head=(UL_WATCH["head"][0] - 4, UL_WATCH["head"][1], 0))),
+        (197, CONST, dict(UL_BLAST, body=(-6, 0, 0))), (200, EX, UL_BLAST), (226, LIN, dict(UL_BLAST, body=(10, 0, 0))),
+        (227, CONST, UL_BAAN3), (262, LIN, dict(UL_BAAN3, body=(8, 14, -3))),
+        (263, CONST, UL_GAZE), (340, LIN, UL_GAZE),
+        (341, CONST, UL_REACH0), (358, IO, UL_REACH), (440, LIN, dict(UL_REACH, body=(7, 184, 0))),
+        (441, CONST, UL_DARK), (462, LIN, UL_DARK),
+        (463, CONST, UL_CROSSED), (486, IO, UL_SMUG), (530, LIN, UL_SMUG)]
+anim("ul_transform", 530, seq(_ut))
 
 # ── 각성 '궁극 생명' (64틱): 금빛에 싸여 웅크림 (4~18) → 22 '바-앙' 하고 가슴을 폄 → 36 날개를 활짝 펴며 두 팔을 벌림 → 56 자세 ──
 _ua = [(0, LIN, UL_STANCE), (4, IO, UL_COCOON), (18, LIN, dict(UL_COCOON, body=(-46, 0, 0))), (22, EX, UL_BAAN), (32, LIN, UL_BAAN),
@@ -2390,46 +2459,6 @@ anim("run_w", 12, run_cycle(weapon=True), loop=True, ret=0)
 # ═════════ 기본 모션 2: 걷기 · 공중 · 맞기 · 다운 · 일어나기 ═════════
 # 참고: YSM 모델팩 걷기·점프·맞기 5종과 Epic Fight walk·jump·fall·landing·hit_short·hit_long·knockdown 을 같은 렌더러에 올려
 # 같은 위상으로 비교하고 원리만 뽑음 (키프레임 값은 안 옮김)
-
-def _low_full(d):
-    """자세 전체(몸·머리·팔·다리)의 가장 낮은 점 높이 (bodyPos 0 기준, 블록). 렌더러 worldVerts 와 같은 계산 — 누운 자세를 땅에 붙일 때"""
-    import numpy as _np, math as _m
-    def R3(p, y, r):
-        p, y, r = _m.radians(p), _m.radians(y), _m.radians(r)
-        Rx = _np.array([[1, 0, 0], [0, _m.cos(p), -_m.sin(p)], [0, _m.sin(p), _m.cos(p)]])
-        Ry = _np.array([[_m.cos(y), 0, _m.sin(y)], [0, 1, 0], [-_m.sin(y), 0, _m.cos(y)]])
-        Rz = _np.array([[_m.cos(r), -_m.sin(r), 0], [_m.sin(r), _m.cos(r), 0], [0, 0, 1]])
-        return Rz @ Ry @ Rx
-    MODEL = dict(head=((0, 0, 0), (-4, -8, -4), (8, 8, 8)), body=((0, 0, 0), (-4, 0, -2), (8, 12, 4)),
-                 rightArm=((-5, 2, 0), (-3, -2, -2), (4, 12, 4)), leftArm=((5, 2, 0), (-1, -2, -2), (4, 12, 4)),
-                 rightLeg=((-1.9, 12, 0), (-2, 0, -2), (4, 12, 4)), leftLeg=((1.9, 12, 0), (-2, 0, -2), (4, 12, 4)))
-    W = R3(*d["body"][:3])
-    low = 9.9
-    for part, (piv, o, sz) in MODEL.items():
-        v = d.get(part, (0, 0, 0, 0)) if part != "body" else (0, 0, 0)
-        R = R3(v[0], v[1], v[2])
-        b = _m.radians(v[3]) if part not in ("head", "body") and len(v) > 3 else 0
-        RB = _np.array([[1, 0, 0], [0, _m.cos(b), -_m.sin(b)], [0, _m.sin(b), _m.cos(b)]])
-        mid = _np.array([o[0] + sz[0] / 2, o[1] + sz[1] / 2, o[2] + sz[2] / 2])
-        for x in (o[0], o[0] + sz[0]):
-            for y in (o[1], o[1] + sz[1] / 2, o[1] + sz[1]):
-                for zz in (o[2], o[2] + sz[2]):
-                    q = _np.array([x, y, zz], float)
-                    if b and y > mid[1] - 1e-6 and part not in ("head", "body"): q = RB @ (q - mid) + mid
-                    q = R @ q + _np.array(piv)
-                    w = _np.array([-q[0], -q[1], q[2]]) / 16 + _np.array([0, 1.501, 0])
-                    w = W @ (w - _np.array([0, 0.7, 0])) + _np.array([0, 0.7, 0])
-                    low = min(low, w[1])
-    return low
-
-
-def ground(d, lift=0.0):
-    """자세 전체를 땅에 붙임 (가장 낮은 점 = 땅 + lift)"""
-    out = dict(d)
-    bp = out.get("bodyPos", (0, 0, 0))
-    out["bodyPos"] = (bp[0], round(-_low_full(out) + lift, 3), bp[2])
-    return out
-
 
 def _pose0(name):
     """만들어 둔 모션의 0틱 자세 (부위 → 튜플)"""

@@ -78,7 +78,7 @@ public final class Fx {
 
     /** tools/make_sfx_font.py 의 WORDS 와 같은 순서. 단어 하나 = 그림 글꼴 bbc:sfx_jp 의 글자 하나 (U+E000~) */
     public enum Sfx {
-        DON, BAKI, DOGO, GA, ZUDON, DOGON, ZAN, ZUBA, GAGIN, BAKIN, GOGO, DODODO, BUON, DOGOOON, MEKYAN, GOOA, DOGUSHA, PIKIN;
+        DON, BAKI, DOGO, GA, ZUDON, DOGON, ZAN, ZUBA, GAGIN, BAKIN, GOGO, DODODO, BUON, DOGOOON, MEKYAN, GOOA, DOGUSHA, PIKIN, BAAN;
         String glyph() { return SfxGlyphs.WORDS[ordinal()]; }
     }
     public static final Sfx[] BLUNT = {Sfx.DON, Sfx.BAKI, Sfx.DOGO, Sfx.GA};   // 주먹·둔기 마무리

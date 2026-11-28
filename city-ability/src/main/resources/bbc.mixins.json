@@ -13,7 +13,8 @@
     "KeyboardInputMixin",
     "LivingEntityRendererMixin",
     "CameraMixin",
-    "PlayerRendererMixin"
+    "PlayerRendererMixin",
+    "InGameHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -504,6 +504,7 @@ final class CombatHud {
     }
 
     private static void render(DrawContext ctx) {
+        if (Cutscene.active()) return;   // 컷신 동안 전투 HUD 숨김
         MinecraftClient c = MinecraftClient.getInstance();
         if (c.options.hudHidden) return;
         // 번쩍임: 화면 전체를 하얗게, 6틱에 걸쳐 사라짐

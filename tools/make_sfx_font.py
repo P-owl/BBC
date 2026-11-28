@@ -37,6 +37,7 @@ WORDS = [
     ("GOOA", "ゴォアッ!", "ink", 1.3),
     ("DOGUSHA", "ドグシャア!!", "ink", 1.3),
     ("PIKIN", "ピキィン!", "white", 1.3),
+    ("BAAN", "バァァァン!!", "white", 1.3),
 ]
 SIZE = 110
 SMALL = set("ァィゥェォッャュョ")

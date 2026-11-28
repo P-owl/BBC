@@ -171,25 +171,16 @@
   },
   {
    "type": "bitmap",
+   "file": "bbc:font/sfx/baan.png",
+   "height": 18,
+   "ascent": 15,
+   "chars": [
+    "\ue023\ue024"
+   ]
+  },
+  {
+   "type": "bitmap",
    "file": "bbc:font/sfx/shape_ring.png",
-   "height": 32,
-   "ascent": 16,
-   "chars": [
-    "\ue023"
-   ]
-  },
-  {
-   "type": "bitmap",
-   "file": "bbc:font/sfx/shape_flash.png",
-   "height": 32,
-   "ascent": 16,
-   "chars": [
-    "\ue024"
-   ]
-  },
-  {
-   "type": "bitmap",
-   "file": "bbc:font/sfx/shape_star.png",
    "height": 32,
    "ascent": 16,
    "chars": [
@@ -198,7 +189,7 @@
   },
   {
    "type": "bitmap",
-   "file": "bbc:font/sfx/shape_crescent.png",
+   "file": "bbc:font/sfx/shape_flash.png",
    "height": 32,
    "ascent": 16,
    "chars": [
@@ -207,11 +198,29 @@
   },
   {
    "type": "bitmap",
-   "file": "bbc:font/sfx/shape_swish.png",
+   "file": "bbc:font/sfx/shape_star.png",
    "height": 32,
    "ascent": 16,
    "chars": [
     "\ue027"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_crescent.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue028"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "bbc:font/sfx/shape_swish.png",
+   "height": 32,
+   "ascent": 16,
+   "chars": [
+    "\ue029"
    ]
   }
  ]

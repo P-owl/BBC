@@ -127,9 +127,14 @@ public final class VampireJob implements JobType {
 
     /** 각성 테마곡: 각성한 사람과 주변 24칸 사람에게 (각성이 끝나면 같은 사람들에게서 멈춤) */
     private static final Map<UUID, List<UUID>> THEME_LISTENERS = new HashMap<>();
-    private static void startTheme(ServerPlayerEntity p) {
+    /** 루트별 각성 테마곡 (리소스팩 — 에시디시 · 와무우 · 카즈 · 완전생물 테마) */
+    static final Identifier THEME_HEAT = Identifier.of("bbc", "pillar_heat.theme"), THEME_WIND = Identifier.of("bbc", "pillar_wind.theme"),
+            THEME_LIGHT = Identifier.of("bbc", "pillar_light.theme"), THEME_ULTIMATE = Identifier.of("bbc", "ultimate_being.theme");
+    private static void startTheme(ServerPlayerEntity p) { startTheme(p, VampireSounds.THEME); }
+    private static void startTheme(ServerPlayerEntity p, Identifier theme) {
+        stopTheme(p);
         List<UUID> ls = new ArrayList<>();
-        CutscenePayload pl = new CutscenePayload("#music:" + VampireSounds.THEME, p.getId(), -1);
+        CutscenePayload pl = new CutscenePayload("#music:" + theme, p.getId(), -1);
         for (ServerPlayerEntity o : p.getServerWorld().getPlayers()) {
             if (o != p && o.squaredDistanceTo(p) > 24 * 24) continue;
             if (!ServerPlayNetworking.canSend(o, CutscenePayload.ID)) continue;
@@ -1492,10 +1497,10 @@ public final class VampireJob implements JobType {
 
     @Override
     public void onAwaken(ServerPlayerEntity p, PlayerData.Entry e) {
-        if (UltimateForm.is(e)) { UltimateForm.onAwaken(p, e); return; }
-        if (PillarHeat.is(e)) { PillarHeat.onAwaken(p, e); return; }
-        if (PillarWind.is(e)) { PillarWind.onAwaken(p, e); return; }
-        if (PillarLight.is(e)) { PillarLight.onAwaken(p, e); return; }
+        if (UltimateForm.is(e)) { UltimateForm.onAwaken(p, e); startTheme(p, THEME_ULTIMATE); return; }
+        if (PillarHeat.is(e)) { PillarHeat.onAwaken(p, e); startTheme(p, THEME_HEAT); return; }
+        if (PillarWind.is(e)) { PillarWind.onAwaken(p, e); startTheme(p, THEME_WIND); return; }
+        if (PillarLight.is(e)) { PillarLight.onAwaken(p, e); startTheme(p, THEME_LIGHT); return; }
         ServerWorld w = p.getServerWorld();
         Motion.play(p, "vm_awaken");
         CutscenePayload pl = new CutscenePayload("vm_awaken", p.getId(), -1);
