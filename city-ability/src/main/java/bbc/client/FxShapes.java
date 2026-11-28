@@ -122,6 +122,17 @@ public final class FxShapes {
             side = r.multiply(Math.cos(t)).add(0, Math.sin(t), 0);
         }
         Vec3d at(double a, double rad) { return o.add(f.multiply(Math.cos(a) * rad)).add(side.multiply(-Math.sin(a) * rad)); }
+        /** 폭 방향: 호 바깥쪽(반지름)을 카메라 쪽으로 돌려서 — 휘두른 면을 옆에서 봐도(뒤 3인칭) 띠가 실처럼 가늘어지지 않음 */
+        Vec3d wdir(double a) {
+            Vec3d radial = f.multiply(Math.cos(a)).add(side.multiply(-Math.sin(a)));
+            Vec3d tangent = f.multiply(-Math.sin(a)).add(side.multiply(-Math.cos(a)));
+            Vec3d face = tangent.crossProduct(at(a, radius).subtract(cam));
+            if (face.lengthSquared() < 1e-9) return radial;
+            face = face.normalize();
+            if (face.dotProduct(radial) < 0) face = face.multiply(-1);
+            Vec3d w = radial.multiply(0.35).add(face);
+            return w.normalize();
+        }
         void draw(VertexConsumer vc, Matrix4f m, float[] c, float alpha, double widthMul, boolean rim) {
             float t = age + delta;
             double head = Math.min(1, t / 2.2), thin = t < 3 ? 1 : Math.max(0, 1 - (t - 3) / 6.0);
@@ -135,11 +146,12 @@ public final class FxShapes {
                 double w0 = (0.2 + 0.45 * Math.cos(a0)) * thin * widthMul, w1 = (0.2 + 0.45 * Math.cos(a1)) * thin * widthMul;
                 float tail0 = (float) (0.55 + 0.45 * (u0 / Math.max(0.01, head))), tail1 = (float) (0.55 + 0.45 * (u1 / Math.max(0.01, head)));
                 float al0 = alpha * tail0 * (float) thin, al1 = alpha * tail1 * (float) thin;
+                Vec3d c0 = at(a0, radius), c1 = at(a1, radius), d0 = wdir(a0), d1 = wdir(a1);
                 if (rim) {
-                    double ro0 = radius + w0 * 0.5, ro1 = radius + w1 * 0.5;
-                    quad(vc, m, at(a0, ro0), at(a1, ro1), at(a1, ro1 + 0.035), at(a0, ro0 + 0.035), c[0], c[1], c[2], al0, al1, al1, al0);
+                    Vec3d o0 = c0.add(d0.multiply(w0 * 0.5)), o1 = c1.add(d1.multiply(w1 * 0.5));
+                    quad(vc, m, o0, o1, o1.add(d1.multiply(0.04)), o0.add(d0.multiply(0.04)), c[0], c[1], c[2], al0, al1, al1, al0);
                 } else {
-                    quad(vc, m, at(a0, radius - w0 * 0.5), at(a1, radius - w1 * 0.5), at(a1, radius + w1 * 0.5), at(a0, radius + w0 * 0.5), c[0], c[1], c[2], 0, 0, al1, al0);
+                    quad(vc, m, c0.subtract(d0.multiply(w0 * 0.5)), c1.subtract(d1.multiply(w1 * 0.5)), c1.add(d1.multiply(w1 * 0.5)), c0.add(d0.multiply(w0 * 0.5)), c[0], c[1], c[2], 0, 0, al1, al0);
                 }
             }
         }
