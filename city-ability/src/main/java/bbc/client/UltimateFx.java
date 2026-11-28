@@ -55,12 +55,16 @@ public final class UltimateFx {
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             if (c.world == null || c.isPaused()) return;
             synchronized (LIVE) {
+                ticking = true;
                 for (Iterator<Fx> it = LIVE.iterator(); it.hasNext(); ) {
                     Fx f = it.next();
                     f.age++;
                     f.tick(c.world);
                     if (f.age >= f.ttl) it.remove();
                 }
+                ticking = false;
+                LIVE.addAll(PENDING);
+                PENDING.clear();
             }
             long now = c.world.getTime();
             TRAILS.values().forEach(d -> { while (!d.isEmpty() && now - d.peekFirst().t > 10) d.pollFirst(); });
@@ -69,7 +73,7 @@ public final class UltimateFx {
         WorldRenderEvents.AFTER_ENTITIES.register(UltimateFx::render);
     }
 
-    public static void clear() { synchronized (LIVE) { LIVE.clear(); } TRAILS.clear(); }
+    public static void clear() { synchronized (LIVE) { LIVE.clear(); PENDING.clear(); } TRAILS.clear(); }
 
     /** "#ulfx:…" 처리했으면 true */
     public static boolean handle(int sender, String msg) {
@@ -112,8 +116,18 @@ public final class UltimateFx {
     }
 
     // ═════════ 그리기 ═════════
-    private static Vec3d cam;
-    private static float delta;
+    static Vec3d cam = Vec3d.ZERO;
+    static float delta;
+
+    /** 다른 이펙트(FxShapes)도 같은 목록에 넣어 같이 그림 */
+    private static final List<Fx> PENDING = new ArrayList<>();
+    private static boolean ticking;
+    static void add(Fx f) {
+        synchronized (LIVE) {
+            if (LIVE.size() + PENDING.size() >= 1500) return;
+            if (ticking) PENDING.add(f); else LIVE.add(f);   // 다른 이펙트의 tick 안에서 더하면 다음에 합침 (목록을 도는 중이라)
+        }
+    }
 
     private static void render(WorldRenderContext ctx) {
         VertexConsumerProvider vcp = ctx.consumers();
@@ -123,8 +137,11 @@ public final class UltimateFx {
         MatrixStack ms = ctx.matrixStack();
         ms.push();
         ms.translate(-cam.x, -cam.y, -cam.z);
-        VertexConsumer glow = vcp.getBuffer(RenderLayer.getLightning());
         Matrix4f m = ms.peek().getPositionMatrix();
+        // 층 순서: 반투명(보통 섞기 — 흰 칼자국·먹선·김) → 빛(더하기 섞기) → 모델. 층을 바꾸면 앞 층은 그려져 끝나므로 다시 쓰지 않음
+        VertexConsumer tl = vcp.getBuffer(RenderLayer.getDebugQuads());
+        synchronized (LIVE) { for (Fx f : LIVE) f.tl(tl, m, ctx.world()); }
+        VertexConsumer glow = vcp.getBuffer(RenderLayer.getLightning());
         long now = ctx.world().getTime();
         for (ArrayDeque<TP> d : TRAILS.values()) {   // 바람 자국: 오래될수록 옅고 가늘게
             TP prev = null;
@@ -151,6 +168,7 @@ public final class UltimateFx {
         float life() { return Math.min(1f, (age + delta) / ttl); }
         void tick(ClientWorld w) {}
         void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {}
+        void tl(VertexConsumer vc, Matrix4f m, ClientWorld w) {}
         void solid(MatrixStack ms, VertexConsumer vc, ClientWorld w) {}
     }
 

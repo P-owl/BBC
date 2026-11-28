@@ -25,7 +25,8 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
- * 파티클 말고 다른 연출들.
+ * 파티클 말고 다른 연출들. 칼자국·충격파·고리·파열·번쩍·먹 초승달·소용돌이·속도선·드롭킥은 이제 클라이언트 모델 (WorldFx → client/FxShapes),
+ * 흙덩이(블록 디스플레이)·효과음 글자(글자 디스플레이)는 그대로.
  *  - 칼자국(스미어): 얇은 반투명 판(블록 디스플레이) 여러 장을 휘두른 호를 따라 차례로 띄웠다가 클라이언트 보간으로 얇아지며 사라짐
  *    (에픽파이트가 무기 끝을 따라 그리는 '트레일'과 같은 역할)
  *  - 충격파: 둥글게 놓은 판들이 보간으로 바깥으로 퍼지며 얇아짐
@@ -53,79 +54,22 @@ public final class Fx {
      * 판은 0.5틱 간격으로 순서대로 생겨서 휘두르는 방향이 보이고, 5틱 동안 얇아지며 사라진다.
      */
     public static void slash(ServerWorld w, LivingEntity p, double radius, double tilt, boolean reverse, BlockState color) {
-        Vec3d f = Combat.horizontal(p.getRotationVec(1f));
-        Vec3d r = new Vec3d(-f.z, 0, f.x);
-        double t = Math.toRadians(tilt);
-        Vec3d side = r.multiply(Math.cos(t)).add(0, Math.sin(t), 0);   // 호가 시작하는 쪽
-        Vec3d o = p.getPos().add(0, 1.15, 0);
-        int n = 11;
-        for (int i = 0; i < n; i++) {
-            double u = (reverse ? n - 1 - i : i) / (double) (n - 1);
-            double a = Math.PI * (u - 0.5) * 0.95;                      // -85° ~ +85°
-            Vec3d radial = f.multiply(Math.cos(a)).add(side.multiply(-Math.sin(a)));
-            Vec3d tangent = f.multiply(-Math.sin(a)).add(side.multiply(-Math.cos(a)));
-            Vec3d normal = radial.crossProduct(tangent).normalize();
-            // 가운데(정면)가 가장 넓고 양끝이 가늘게: 붓으로 그은 듯한 초승달
-            float width = (float) (0.2 + 0.45 * Math.cos(a));
-            Vec3d at = o.add(radial.multiply(radius));
-            double seg = Math.PI * radius / n * 1.15;
-            int delay = i / 3;
-            Tasks.later(delay, () -> plate(w, at, tangent, normal, radial, (float) seg, 0.05f, width, color, 5));
-            // 바깥쪽 가장자리에 가는 먹선: 만화 칼자국처럼 흰 호에 검은 테두리
-            Vec3d edge = o.add(radial.multiply(radius + width * 0.5 + 0.02));
-            Tasks.later(delay, () -> plate(w, edge, tangent, normal, radial, (float) seg, 0.06f, 0.05f, INK, 4));
-        }
+        // 클라이언트가 붓으로 그은 초승달 띠로 그림 (client/FxShapes.Smear — 바깥 날 진하게, 흰색은 먹선 테두리, 2틱에 걸쳐 그어 나감)
+        WorldFx.slash(w, p.getPos().add(0, 1.15, 0), Combat.horizontal(p.getRotationVec(1f)), radius, tilt, reverse, WorldFx.rgb(color));
     }
 
     /** 판 하나: 중심 at, 길이 방향 tangent(길이 len), 두께 방향 normal(thick), 폭 방향 radial(width). life 틱 동안 얇아지며 사라짐 */
     static void plate(ServerWorld w, Vec3d at, Vec3d tangent, Vec3d normal, Vec3d radial, float len, float thick, float width, BlockState color, int life) {
-        DisplayEntity.BlockDisplayEntity d = EntityType.BLOCK_DISPLAY.create(w);
-        if (d == null) return;
-        d.refreshPositionAndAngles(at.x, at.y, at.z, 0, 0);
-        DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
-        ((BlockDisplayAccessor) d).bbc$setBlockState(color);
-        acc.bbc$setBrightness(new Brightness(15, 15));
-        Quaternionf q = basis(tangent, normal, radial);
-        acc.bbc$setTransformation(centered(q, new Vector3f(len, thick, width)));
-        w.spawnEntity(d);
-        // 다음 틱: 보간을 켜고 길이는 그대로, 두께·폭을 0으로 → 클라이언트가 life 틱 동안 부드럽게 줄임
-        Tasks.later(1, () -> {
-            if (d.isRemoved()) return;
-            acc.bbc$setInterpolationDuration(life);
-            acc.bbc$setStartInterpolation(0);
-            acc.bbc$setTransformation(centered(q, new Vector3f(len * 1.1f, 0.001f, 0.001f)));
-        });
-        Tasks.later(life + 2, d::discard);
+        // 클라이언트가 가늘어지며 사라지는 띠로 그림 (찌르기 줄기 등)
+        Vec3d half = tangent.normalize().multiply(len / 2.0);
+        WorldFx.path(w, java.util.List.of(at.subtract(half), at.add(half)), Math.max(0.04, width), life + 1, WorldFx.rgb(color), false);
     }
 
     // ═════════ 충격파 ═════════
 
     /** 바닥에 둥근 충격파: 판 16장이 r0 에서 r1 까지 퍼지며 얇아짐 */
     public static void wave(ServerWorld w, Vec3d c, double r0, double r1, BlockState color, int life) {
-        int n = 16;
-        for (int i = 0; i < n; i++) {
-            double a = Math.PI * 2 * i / n;
-            Vec3d radial = new Vec3d(Math.cos(a), 0, Math.sin(a));
-            Vec3d tangent = new Vec3d(-Math.sin(a), 0, Math.cos(a));
-            Vec3d up = new Vec3d(0, 1, 0);
-            DisplayEntity.BlockDisplayEntity d = EntityType.BLOCK_DISPLAY.create(w);
-            if (d == null) return;
-            d.refreshPositionAndAngles(c.x, c.y, c.z, 0, 0);
-            DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
-            ((BlockDisplayAccessor) d).bbc$setBlockState(color);
-            acc.bbc$setBrightness(new Brightness(15, 15));
-            Quaternionf q = basis(tangent, up, radial);
-            float seg0 = (float) (Math.PI * 2 * r0 / n * 1.1), seg1 = (float) (Math.PI * 2 * r1 / n * 1.1);
-            acc.bbc$setTransformation(at(q, radial.multiply(r0), new Vector3f(seg0, 0.35f, 0.25f)));
-            w.spawnEntity(d);
-            Tasks.later(1, () -> {
-                if (d.isRemoved()) return;
-                acc.bbc$setInterpolationDuration(life);
-                acc.bbc$setStartInterpolation(0);
-                acc.bbc$setTransformation(at(q, radial.multiply(r1), new Vector3f(seg1, 0.01f, 0.05f)));
-            });
-            Tasks.later(life + 2, d::discard);
-        }
+        WorldFx.wave(w, c, r0, r1, life, WorldFx.rgb(color));
     }
 
     // ═════════ 타격 글자 ═════════
@@ -191,19 +135,7 @@ public final class Fx {
 
     /** 색을 고른 파열 (예: 금빛 가시 = 올스타 배틀식 타격 줄기) */
     public static void burst(ServerWorld w, Vec3d c, Vec3d dir, float size, BlockState main, BlockState accent) {
-        var rnd = w.getRandom();
-        int n = 11;
-        for (int i = 0; i < n; i++) {
-            Vec3d d = new Vec3d(rnd.nextGaussian(), rnd.nextGaussian() * 0.7, rnd.nextGaussian()).normalize();
-            if (dir != null) d = d.add(dir.multiply(0.8)).normalize();
-            Vec3d side = d.crossProduct(new Vec3d(0, 1, 0));
-            if (side.lengthSquared() < 1e-4) side = new Vec3d(1, 0, 0);
-            side = side.normalize();
-            Vec3d up = d.crossProduct(side).normalize();
-            float len = size * (0.6f + rnd.nextFloat() * 0.9f);
-            BlockState col = i % 5 == 0 ? accent : main;
-            spike(w, c.add(d.multiply(len * 0.5 + 0.2)), d, up, side, len, size * 0.09f, col, 3 + rnd.nextInt(2));
-        }
+        WorldFx.burst(w, c, dir, size, WorldFx.rgb(main), WorldFx.rgb(accent));
     }
 
     /** 가시 하나: 길이 방향 d, 바깥으로 밀려나며 가늘어짐 */
@@ -261,45 +193,14 @@ public final class Fx {
      * 날아가는 상대 뒤에 남는 속도선 (만화의 흐름선): ticks 동안 매 틱 몸 뒤로 가늘고 긴 흰·검은 선을 몇 개 그림
      */
     public static void streak(LivingEntity t, int ticks) {
-        ServerWorld w = (ServerWorld) t.getWorld();
-        for (int k = 1; k <= ticks; k++) {
-            final int kk = k;
-            Tasks.later(k, () -> {
-                if (!t.isAlive()) return;
-                Vec3d v = t.getVelocity();
-                if (v.lengthSquared() < 0.04) return;
-                Vec3d d = v.normalize();
-                Vec3d side = d.crossProduct(new Vec3d(0, 1, 0));
-                if (side.lengthSquared() < 1e-4) side = new Vec3d(1, 0, 0);
-                side = side.normalize();
-                Vec3d up = d.crossProduct(side).normalize();
-                var rnd = w.getRandom();
-                for (int i = 0; i < 3; i++) {
-                    Vec3d off = side.multiply((rnd.nextDouble() - 0.5) * 1.0).add(up.multiply((rnd.nextDouble() - 0.5) * 1.4));
-                    float len = 1.2f + rnd.nextFloat() * 1.6f;
-                    Vec3d at = t.getBoundingBox().getCenter().add(off).subtract(d.multiply(len * 0.5 + 0.4));
-                    plate(w, at, d, up, side, len, 0.015f, 0.04f, (kk + i) % 3 == 0 ? INK : PAPER, 3);
-                }
-            });
-        }
+        if (t.getWorld() instanceof ServerWorld w) WorldFx.lines(w, t, ticks);
     }
 
     /**
      * 드롭킥 (ABA): 맞은 자리에서 뒤쪽(차는 쪽)으로 길게 뻗는 흰 원뿔 줄기 + 날아가는 방향에 수직인 고리
      */
     public static void kickStreak(ServerWorld w, Vec3d at, Vec3d dir) {
-        Vec3d d = dir.normalize();
-        Vec3d side = d.crossProduct(new Vec3d(0, 1, 0)).normalize();
-        Vec3d up = d.crossProduct(side).normalize();
-        var rnd = w.getRandom();
-        for (int i = 0; i < 9; i++) {
-            float len = 2.5f + rnd.nextFloat() * 3.0f;
-            double spread = 0.15 + 0.5 * (i / 9.0);
-            Vec3d off = side.multiply((rnd.nextDouble() - 0.5) * spread * 2).add(up.multiply((rnd.nextDouble() - 0.5) * spread * 1.6));
-            Vec3d c = at.add(off).subtract(d.multiply(len * 0.5));
-            plate(w, c, d, up, side, len, 0.03f, 0.08f + rnd.nextFloat() * 0.08f, PAPER, 4 + rnd.nextInt(3));
-        }
-        Tasks.later(2, () -> ring3d(w, at.add(d.multiply(0.6)), d, 0.4, 2.4, 0.25f, 6, PAPER));
+        WorldFx.kick(w, at, dir);
     }
 
     /** 집중선 (화면 가장자리에서 가운데로 몰리는 검은 선) */
@@ -348,56 +249,22 @@ public final class Fx {
 
     /** 고리 하나: 판 20장을 axis 둘레로 둥글게 놓고 r0 → r1 로 퍼지며 얇아짐 */
     public static void ring3d(ServerWorld w, Vec3d c, Vec3d axis, double r0, double r1, float width, int life, BlockState color) {
-        Vec3d u = axis.crossProduct(Math.abs(axis.y) > 0.9 ? new Vec3d(1, 0, 0) : new Vec3d(0, 1, 0)).normalize();
-        Vec3d v = axis.crossProduct(u).normalize();
-        int n = 20;
-        for (int i = 0; i < n; i++) {
-            double a = Math.PI * 2 * i / n;
-            Vec3d radial = u.multiply(Math.cos(a)).add(v.multiply(Math.sin(a)));
-            Vec3d tangent = axis.crossProduct(radial).normalize();
-            DisplayEntity.BlockDisplayEntity d = EntityType.BLOCK_DISPLAY.create(w);
-            if (d == null) return;
-            d.refreshPositionAndAngles(c.x, c.y, c.z, 0, 0);
-            DisplayEntityAccessor acc = (DisplayEntityAccessor) d;
-            ((BlockDisplayAccessor) d).bbc$setBlockState(color);
-            acc.bbc$setBrightness(new Brightness(15, 15));
-            Quaternionf q = basis(tangent, axis, radial);
-            float seg0 = (float) (Math.PI * 2 * r0 / n * 1.15), seg1 = (float) (Math.PI * 2 * r1 / n * 1.15);
-            acc.bbc$setTransformation(at(q, radial.multiply(r0), new Vector3f(seg0, 0.03f, width)));
-            w.spawnEntity(d);
-            Tasks.later(1, () -> {
-                if (d.isRemoved()) return;
-                acc.bbc$setInterpolationDuration(life);
-                acc.bbc$setStartInterpolation(0);
-                acc.bbc$setTransformation(at(q, radial.multiply(r1), new Vector3f(seg1, 0.005f, 0.02f)));
-            });
-            Tasks.later(life + 2, d::discard);
-        }
+        WorldFx.ring(w, c, axis, r0, r1, width, life, WorldFx.rgb(color));
     }
 
     /** 맞은 자리 번쩍 (ABA 의 흰 구가 확 커졌다 사라짐) */
     public static void impactFlash(ServerWorld w, Vec3d c, float size) {
-        pop(w, c, Shape.FLASH, 0.5f * size, 2.0f * size, 2, 0, 2, 0);
+        WorldFx.flash(w, c, size);
     }
 
     /** 먹 초승달 칼자국 (만화식 베기): 맞은 자리 둘레로 2~3개가 여러 각도로 그어짐 */
     public static void inkSlashes(ServerWorld w, Vec3d c, int n, float size) {
-        var rnd = w.getRandom();
-        for (int i = 0; i < n; i++) {
-            float rot = rnd.nextFloat() * 360;
-            Vec3d at = c.add((rnd.nextDouble() - 0.5) * 0.5, (rnd.nextDouble() - 0.5) * 0.5, (rnd.nextDouble() - 0.5) * 0.5);
-            Tasks.later(i, () -> pop(w, at, Shape.CRESCENT, 0.5f * size, 2.4f * size, 2, 2, 3, rot));
-        }
+        WorldFx.ink(w, c, n, size);
     }
 
     /** 흰 바람 소용돌이 (ABA 가프 영상의 회오리 붓자국): 몸 둘레로 흰 초승달 n 개가 여러 각도로 돌며 퍼짐 */
     public static void swirl(ServerWorld w, Vec3d c, int n, float size) {
-        var rnd = w.getRandom();
-        for (int i = 0; i < n; i++) {
-            float rot = rnd.nextFloat() * 360;
-            Vec3d at = c.add((rnd.nextDouble() - 0.5) * 0.8, (rnd.nextDouble() - 0.3) * 0.8, (rnd.nextDouble() - 0.5) * 0.8);
-            pop(w, at, Shape.SWISH, size * 0.8f, size * 1.6f, 3, 1, 2, rot);
-        }
+        WorldFx.swirl(w, c, n, size);
     }
 
     /** ABA 처럼 큰 타격 뒤에 남는 흙먼지 구름 (낮게 퍼져 1~2초 머묾) */

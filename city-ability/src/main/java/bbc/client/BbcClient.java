@@ -66,6 +66,7 @@ public class BbcClient implements ClientModInitializer {
         GrowthClient.init();
         Cutscene.init();
         UltimateFx.init();
+        ClientPlayNetworking.registerGlobalReceiver(bbc.net.WorldFxPayload.ID, (payload, ctx) -> ctx.client().execute(() -> FxShapes.handle(payload.spec())));
         WindSight.init();
         // 연금술사: 진리의 통행료로 잃은 팔·다리와 오토메일을 플레이어 모델에
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(bbc.job.alchemy.BodyPayload.ID, (payload, ctx) -> {
