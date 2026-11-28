@@ -119,13 +119,11 @@ public final class Alchemy {
 
     /** 연성진 위에 원이 번쩍 */
     public static void fx(ServerWorld w, BlockPos pos, boolean stone) {
+        // 연성 반응: 발밑에 연성진이 번쩍 그어지고 푸른 연성 번개가 튐 (클라이언트 모델 — client/FxShapes.Circle · Sparks)
         Vec3d c = Vec3d.ofBottomCenter(pos).add(0, 0.1, 0);
-        DustParticleEffect col = BLUE; // 연성 임팩트는 전부 푸른색 (현자 계열 붉은 연출은 나중에 따로)
-        for (int i = 0; i < 28; i++) {
-            double a = Math.PI * 2 * i / 28;
-            w.spawnParticles(col, c.x + Math.cos(a) * 0.9, c.y, c.z + Math.sin(a) * 0.9, 1, 0, 0, 0, 0);
-        }
-        w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y + 0.3, c.z, 8, 0.3, 0.3, 0.3, 0.2);
+        bbc.combat.WorldFx.circle(w, c, 1.1, 16, stone ? 0xFF3A30 : 0x5AB8FF, stone ? 1 : 0);
+        bbc.combat.WorldFx.sparks(w, c.add(0, 0.4, 0), 0.9, 5, 7, stone ? 0xFF6A50 : 0x8AD0FF);
+        w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y + 0.3, c.z, 4, 0.3, 0.3, 0.3, 0.2);
         w.playSound(null, pos, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 0.6f, 1.2f);
     }
 
@@ -138,18 +136,15 @@ public final class Alchemy {
                 if (p.isRemoved()) return;
                 ServerWorld w = p.getServerWorld();
                 Vec3d c = p.getPos().add(0, 1.0, 0);
-                w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, 10, 0.5, 0.8, 0.5, 0.35);
-                w.spawnParticles(BLUE, c.x, c.y, c.z, 6, 0.4, 0.7, 0.4, 0);
+                bbc.combat.WorldFx.sparks(w, c, 1.0, 5, 3, 0x8AD0FF);
+                w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y, c.z, 4, 0.5, 0.8, 0.5, 0.35);
             });
         }
         Tasks.later(20, () -> {
             if (p.isRemoved()) return;
             ServerWorld w = p.getServerWorld();
             Vec3d b = p.getPos().add(0, 0.1, 0);
-            for (int i = 0; i < 48; i++) {
-                double a = Math.PI * 2 * i / 48;
-                w.spawnParticles(BLUE, b.x + Math.cos(a) * 1.5, b.y, b.z + Math.sin(a) * 1.5, 1, 0, 0, 0, 0);
-            }
+            bbc.combat.WorldFx.circle(w, b, 1.6, 40, 0x5AB8FF, 2);
             w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 1.0f, 1.0f);
         });
     }

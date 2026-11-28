@@ -184,17 +184,9 @@ public final class PillarLight {
 
     /** 반짝 (키랏): 네 갈래 빛줄기 별 + 가운데 섬광 + 무지개 알갱이 */
     static void glint(ServerWorld w, Vec3d c, float size) {
-        double r = 0.55 * size;
-        for (int k = 0; k < 4; k++) {
-            double a = Math.PI / 4 * k + Math.PI / 8;
-            Vec3d d = new Vec3d(Math.cos(a), Math.sin(a), 0);
-            int n = (int) (6 * size);
-            for (int i = 1; i <= n; i++) { Vec3d q = c.add(d.multiply(r * i / n * (k % 2 == 0 ? 1.0 : 0.55))); Vec3d q2 = c.subtract(d.multiply(r * i / n * (k % 2 == 0 ? 1.0 : 0.55)));
-                w.spawnParticles(LIGHT, q.x, q.y, q.z, 1, 0, 0, 0, 0); w.spawnParticles(LIGHT, q2.x, q2.y, q2.z, 1, 0, 0, 0, 0); }
-        }
-        w.spawnParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, (int) (4 * size), 0.05, 0.05, 0.05, 0.06);
-        w.spawnParticles(ParticleTypes.FLASH, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-        for (DustParticleEffect d : PRISM) w.spawnParticles(d, c.x, c.y, c.z, (int) (2 * size), 0.3 * size, 0.3 * size, 0.3 * size, 0);
+        // 반짝 (키랏): 네 갈래 빛줄기 별은 클라이언트 모델, 둘레에 무지개 알갱이만
+        bbc.combat.WorldFx.glint(w, c, 0.9 * size, 0xBFE4FF);
+        for (DustParticleEffect d : PRISM) w.spawnParticles(d, c.x, c.y, c.z, (int) (1.5 * size) + 1, 0.3 * size, 0.3 * size, 0.3 * size, 0);
     }
 
     /** 두 아래팔 칼날이 빛남 (손목 둘레에 빛 알갱이) */
@@ -249,8 +241,7 @@ public final class PillarLight {
 
     /** a 에서 b 까지 빛 선 */
     static void ray(ServerWorld w, Vec3d a, Vec3d b) {
-        int n = (int) Math.max(4, a.distanceTo(b) * 5);
-        for (int i = 0; i <= n; i++) { Vec3d q = a.lerp(b, i / (double) n); w.spawnParticles(i % 4 == 0 ? LIGHT_GOLD : LIGHT, q.x, q.y, q.z, 1, 0, 0, 0, 0); }
+        bbc.combat.WorldFx.beam(w, a, b, 0.07, 5, 0xCFEAFF);   // 흰빛 도는 푸른 빛줄기
     }
 
     private static List<LivingEntity> around(ServerPlayerEntity p, Vec3d c, double r) {

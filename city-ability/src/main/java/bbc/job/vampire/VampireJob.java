@@ -657,10 +657,10 @@ public final class VampireJob implements JobType {
     /** 피가 대상에서 내 입으로 흘러드는 줄 */
     private static void bloodLine(ServerWorld w, LivingEntity from, ServerPlayerEntity to) {
         Vec3d a = from.getPos().add(0, from.getHeight() * 0.75, 0), b = to.getPos().add(0, 1.5, 0);
-        for (int i = 0; i <= 8; i++) {
-            Vec3d q = a.lerp(b, i / 8.0);
-            Tasks.later(i / 2, () -> w.spawnParticles(BLOOD, q.x, q.y, q.z, 2, 0.02, 0.02, 0.02, 0));
-        }
+        java.util.List<Vec3d> pts = new java.util.ArrayList<>();
+        for (int i = 0; i <= 10; i++) { double s = i / 10.0; pts.add(a.lerp(b, s).add(0, Math.sin(Math.PI * s) * 0.25, 0)); }
+        bbc.combat.WorldFx.path(w, pts, 0.07, 7, 0xB0001A, true);   // 피 줄기 (붉게 빛남)
+        w.spawnParticles(BLOOD, a.x, a.y, a.z, 4, 0.08, 0.08, 0.08, 0);
     }
 
     /**
@@ -745,6 +745,8 @@ public final class VampireJob implements JobType {
     /** 얼음이 산산조각 */
     private static void shatterFx(ServerWorld w, LivingEntity t) {
         Vec3d c = t.getBoundingBox().getCenter();
+        bbc.combat.WorldFx.burst(w, c, null, 1.4, 0xD6F2FF, 0xFFFFFF);   // 얼음 조각이 사방으로
+        bbc.combat.WorldFx.glint(w, c.add(0, 0.4, 0), 1.2, 0xCFEFFF);
         w.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.BLUE_ICE.getDefaultState()), c.x, c.y, c.z, 40, 0.4, 0.6, 0.4, 0.3);
         w.spawnParticles(ParticleTypes.SNOWFLAKE, c.x, c.y, c.z, 30, 0.5, 0.7, 0.5, 0.15);
         Fx.impactFlash(w, c, 0.8f);
@@ -1271,16 +1273,24 @@ public final class VampireJob implements JobType {
             DustParticleEffect core = new DustParticleEffect(new Vector3f(1.0f, 0.45f, 0.6f), 0.7f);
             DustParticleEffect ring = new DustParticleEffect(new Vector3f(1.0f, 0.97f, 0.97f), 0.65f);
             Vec3d eyeR = start.add(sA.multiply(0.11)), eyeL = start.add(sA.multiply(-0.11));
+            // 두 눈에서 나온 가는 분홍빛 두 줄이 멀어질수록 가운데로 모이고 (빛줄기 모델), 둘레를 감싼 흰 고리가 1칸마다
+            Vec3d endC = start.add(look.multiply(len));
+            for (Vec3d e0 : new Vec3d[]{eyeR, eyeL}) {
+                Vec3d mid = e0.add(look.multiply(Math.min(3, len))).add(start.subtract(e0).multiply(1));
+                bbc.combat.WorldFx.beam(w, e0, mid, 0.05, frames + 2, 0xFF6E9A);
+                if (len > 3) bbc.combat.WorldFx.beam(w, mid, endC, 0.06, frames + 2, 0xFF6E9A);
+            }
+            for (double d = 0.8; d < len; d += 1.0) bbc.combat.WorldFx.ring(w, start.add(look.multiply(d)), look, 0.16, 0.3, 0.05, frames + 3, 0xFFF4F4);
             for (int i = 0; i < frames; i++) {
                 final int k = i;
                 Tasks.later(i, () -> {
-                    for (double d = 0; d < len; d += 0.2) {   // 두 눈에서 나온 가는 두 줄 (멀어질수록 가운데로 모임)
+                    if (k < 0) for (double d = 0; d < len; d += 0.2) {   // (예전 입자 줄 — 이제 위의 빛줄기 모델)
                         double pull = Math.min(1, d / 3.0) * 0.11;
                         Vec3d qR = eyeR.add(look.multiply(d)).add(sA.multiply(-pull)), qL = eyeL.add(look.multiply(d)).add(sA.multiply(pull));
                         w.spawnParticles(core, qR.x, qR.y, qR.z, 1, 0, 0, 0, 0);
                         w.spawnParticles(core, qL.x, qL.y, qL.z, 1, 0, 0, 0, 0);
                     }
-                    for (double d = 0.6 + (k % 3) * 0.17; d < len; d += 0.5) {   // 둘레를 감싼 고리가 앞으로 흘러감
+                    if (k < 0) for (double d = 0.6 + (k % 3) * 0.17; d < len; d += 0.5) {   // (예전 입자 고리)
                         Vec3d c = start.add(look.multiply(d));
                         double r = 0.2 + 0.05 * Math.sin(d * 3);
                         for (int q = 0; q < 8; q++) {

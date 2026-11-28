@@ -171,15 +171,10 @@ public final class PillarWind {
 
     /** 축 dir 을 따라 len 만큼 감기는 나선 (바람 소용돌이) */
     static void helix(ServerWorld w, Vec3d from, Vec3d dir, double len, double r, int turns, double phase, int pts, DustParticleEffect dust) {
-        Vec3d d = dir.normalize();
-        Vec3d a = Math.abs(d.y) > 0.9 ? new Vec3d(1, 0, 0) : new Vec3d(0, 1, 0);
-        Vec3d u = d.crossProduct(a).normalize(), v = d.crossProduct(u).normalize();
-        int n = Math.max(6, pts * turns);
-        for (int i = 0; i < n; i++) {
-            double f = i / (double) n, ang = phase + f * turns * Math.PI * 2;
-            Vec3d q = from.add(d.multiply(f * len)).add(u.multiply(Math.cos(ang) * r)).add(v.multiply(Math.sin(ang) * r));
-            w.spawnParticles(dust, q.x, q.y, q.z, 1, 0, 0, 0, 0);
-        }
+        // 클라이언트가 감기는 바람 띠로 그림 (돌며 사라짐)
+        org.joml.Vector3f c = dust.getColor();
+        int rgb = ((int) (c.x() * 255) << 16) | ((int) (c.y() * 255) << 8) | (int) (c.z() * 255);
+        bbc.combat.WorldFx.helix(w, from, dir, len, r, turns, phase, 4, rgb, 0.1 + r * 0.04);
     }
 
     /** 가로 회오리 한 덩어리 (신사폭풍): from 에서 dir 로 len, 반지름 r — 나선 둘 + 흙먼지·바위 조각 */
@@ -969,8 +964,9 @@ public final class PillarWind {
     private static Vec3d horn(ServerPlayerEntity p) { return p.getEyePos().add(0, 0.35, 0).add(Combat.horizontal(p.getRotationVec(1f)).multiply(0.2)); }
 
     private static void beam(ServerWorld w, Vec3d a, Vec3d b, DustParticleEffect dust) {
-        int n = (int) Math.max(4, a.distanceTo(b) * 6);
-        for (int i = 0; i <= n; i++) { Vec3d q = a.lerp(b, i / (double) n); w.spawnParticles(dust, q.x, q.y, q.z, 1, 0, 0, 0, 0); }
+        org.joml.Vector3f c = dust.getColor();
+        int rgb = ((int) (c.x() * 255) << 16) | ((int) (c.y() * 255) << 8) | (int) (c.z() * 255);
+        bbc.combat.WorldFx.beam(w, a, b, 0.07, 3, rgb);
     }
 
     /** 뿔에서 이어진 바람 칼날이 상대 둘레로 8 자를 그리며 지나감 (at 틱에 한 번 벰) */

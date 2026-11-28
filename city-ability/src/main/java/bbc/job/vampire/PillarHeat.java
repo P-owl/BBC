@@ -262,17 +262,11 @@ public final class PillarHeat {
 
     /** from → to 를 잇는 혈관 한 가닥 (가운데가 bend 만큼 옆으로 휨), life 틱 뒤 사라짐 */
     static void vein(ServerWorld w, Vec3d from, Vec3d to, Vec3d bend, int life, boolean hot) {
-        int n = 7;
-        Vec3d prev = from;
-        List<Entity> segs = new ArrayList<>();
-        for (int i = 1; i <= n; i++) {
-            double s = i / (double) n;
-            Vec3d q = from.lerp(to, s).add(bend.multiply(4 * s * (1 - s)));
-            Entity e = segment(w, prev, q, hot ? VEIN_HOT : VEIN_BLOCK, 0.07f);
-            if (e != null) segs.add(e);
-            prev = q;
-        }
-        Tasks.later(life, () -> segs.forEach(Entity::discard));
+        // 클라이언트가 굵은 혈관 띠로 그림 (뜨거우면 주황빛으로 빛남)
+        java.util.List<Vec3d> pts = new java.util.ArrayList<>();
+        int n = 9;
+        for (int i = 0; i <= n; i++) { double s = i / (double) n; pts.add(from.lerp(to, s).add(bend.multiply(4 * s * (1 - s)))); }
+        bbc.combat.WorldFx.path(w, pts, 0.1, life, hot ? 0xFF8A30 : 0xA8141A, hot);
     }
 
     /** 몸을 중심으로 앞을 둥글게 휘감는 혈관 채찍 (각도는 정면 기준, 도), 가닥 여러 개 */
@@ -284,16 +278,14 @@ public final class PillarHeat {
             final int kk = k;
             Tasks.later(k, () -> {
                 double a0 = Math.toRadians(fromDeg), a1 = Math.toRadians(toDeg);
-                Vec3d prev = sh;
-                for (int i = 1; i <= 8; i++) {
-                    double s = i / 8.0;
+                java.util.List<Vec3d> pts = new java.util.ArrayList<>(java.util.List.of(sh));
+                for (int i = 1; i <= 12; i++) {
+                    double s = i / 12.0;
                     double a = a0 + (a1 - a0) * s;
                     double rr = r * Math.min(1, s * 2.2) + kk * 0.25;
-                    Vec3d q = p.getPos().add(fw.multiply(Math.cos(a) * rr)).add(side.multiply(Math.sin(a) * rr)).add(0, h + 0.2 * Math.sin(s * 9 + kk), 0);
-                    Entity e = segment(w, prev, q, VEIN_BLOCK, 0.07f);
-                    if (e != null) Tasks.later(life, e::discard);
-                    prev = q;
+                    pts.add(p.getPos().add(fw.multiply(Math.cos(a) * rr)).add(side.multiply(Math.sin(a) * rr)).add(0, h + 0.2 * Math.sin(s * 9 + kk), 0));
                 }
+                bbc.combat.WorldFx.path(w, pts, 0.1, life, 0xA8141A, false);
             });
         }
         w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.8f, 0.7f);
@@ -590,7 +582,8 @@ public final class PillarHeat {
             Tasks.later(i, () -> {
                 if (done[0]) return;
                 Vec3d next = pos[0].add(dir.multiply(1.1)).add(0, -0.02, 0);
-                for (double s = 0; s < 1; s += 0.34) {
+                bbc.combat.WorldFx.beam(w, pos[0], next, 0.14, 3, 0xFF4A18);   // 끓는 피 덩이 (빛나는 꼬리)
+                for (double s = 0; s < 1; s += 0.67) {
                     Vec3d q = pos[0].lerp(next, s);
                     w.spawnParticles(blob, q.x, q.y, q.z, 1, 0.03, 0.03, 0.03, 0);
                     w.spawnParticles(ParticleTypes.SMALL_FLAME, q.x, q.y, q.z, 1, 0.05, 0.05, 0.05, 0);
@@ -611,6 +604,8 @@ public final class PillarHeat {
     }
 
     private static void splash(ServerWorld w, Vec3d c) {
+        bbc.combat.WorldFx.puff(w, c, 0.5, 10, 0xE6DED6);
+        bbc.combat.WorldFx.burst(w, c, null, 0.7, 0xFF7A24, 0xA8141A);
         w.spawnParticles(ParticleTypes.LAVA, c.x, c.y, c.z, 5, 0.2, 0.2, 0.2, 0);
         w.spawnParticles(VeinDust.BLOOD, c.x, c.y, c.z, 10, 0.25, 0.25, 0.25, 0);
         w.spawnParticles(ParticleTypes.WHITE_SMOKE, c.x, c.y, c.z, 6, 0.2, 0.2, 0.2, 0.02);
@@ -1209,7 +1204,8 @@ public final class PillarHeat {
         w.spawnParticles(ParticleTypes.EXPLOSION, c.x, c.y, c.z, Math.max(1, (int) (size * 2)), 0.3 * size, 0.3 * size, 0.3 * size, 0);
         w.spawnParticles(ParticleTypes.FLAME, c.x, c.y, c.z, (int) (30 * size), 0.4 * size, 0.4 * size, 0.4 * size, 0.12);
         w.spawnParticles(ParticleTypes.LAVA, c.x, c.y, c.z, (int) (8 * size), 0.3, 0.3, 0.3, 0);
-        w.spawnParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, (int) (14 * size), 0.5 * size, 0.5 * size, 0.5 * size, 0.08);
+        bbc.combat.WorldFx.puff(w, c, 1.1 * size, 18, 0xEDE6DE);   // 끓어 터진 김
+        bbc.combat.WorldFx.flash(w, c, 1.4 * size);
         Fx.ring3d(w, c, new Vec3d(0, 1, 0), 0.3, 2.2 * size, 0.2f, 7, ORANGE);
         Fx.burst(w, c, new Vec3d(0, 1, 0), 1.2f * size, ORANGE, Fx.RED);
         Fx.impactFlash(w, c, 1.2f * size);

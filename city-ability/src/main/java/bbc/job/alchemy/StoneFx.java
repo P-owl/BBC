@@ -70,11 +70,12 @@ public final class StoneFx {
     public static void circleAt(ServerWorld w, Vec3d c0, int ticks) {
         w.playSound(null, BlockPos.ofFloored(c0), SoundEvents.BLOCK_RESPAWN_ANCHOR_CHARGE, SoundCategory.PLAYERS, 1.0f, 0.8f);
         Vec3d c = c0.add(0, 0.05, 0);
+        bbc.combat.WorldFx.circle(w, c, 2.0, ticks + 12, 0x5AB8FF, 2);   // 연성진 모델 (그어지며 돌다가 번쩍)
         for (int t = 0; t < ticks; t += 2) {
             final int tick = t;
             Tasks.later(t, () -> {
                 double radius = 2.0;
-                int n = 48;
+                int n = 0;   // 원·삼각은 위의 연성진 모델이 그림
                 for (int i = 0; i < n; i++) {
                     double a = Math.PI * 2 * i / n;
                     w.spawnParticles(BLUE, c.x + Math.cos(a) * radius, c.y, c.z + Math.sin(a) * radius, 1, 0, 0, 0, 0);
@@ -82,7 +83,8 @@ public final class StoneFx {
                 }
                 double prog = (double) tick / ticks;
                 double a0 = prog * prog * Math.PI * 6;
-                for (int k = 0; k < 3; k++) {
+                if (tick % 6 == 0) bbc.combat.WorldFx.sparks(w, c.add(0, 0.3, 0), 1.6, 3 + (int) (prog * 6), 4, 0x8AD0FF);
+                for (int k = 0; k < 0; k++) {
                     double a1 = a0 + k * Math.PI * 2 / 3, a2 = a0 + (k + 1) * Math.PI * 2 / 3;
                     Vec3d p1 = c.add(Math.cos(a1) * radius, 0, Math.sin(a1) * radius);
                     Vec3d p2 = c.add(Math.cos(a2) * radius, 0, Math.sin(a2) * radius);
@@ -99,7 +101,9 @@ public final class StoneFx {
         }
         Tasks.later(ticks, () -> {
             w.spawnParticles(ParticleTypes.FLASH, c.x, c.y + 0.8, c.z, 1, 0, 0, 0, 0);
-            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y + 0.8, c.z, 120, 0.8, 1.0, 0.8, 0.8);
+            bbc.combat.WorldFx.sparks(w, c.add(0, 0.8, 0), 2.2, 14, 8, 0x9ADAFF);
+            bbc.combat.WorldFx.flash(w, c.add(0, 0.8, 0), 2.0);
+            w.spawnParticles(ParticleTypes.ELECTRIC_SPARK, c.x, c.y + 0.8, c.z, 30, 0.8, 1.0, 0.8, 0.8);
             w.playSound(null, BlockPos.ofFloored(c), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.PLAYERS, 0.8f, 1.4f);
         });
     }
@@ -108,18 +112,7 @@ public final class StoneFx {
     private static void arc(ServerWorld w, Vec3d start, double length, int segments) {
         ThreadLocalRandom r = ThreadLocalRandom.current();
         Vec3d dir = new Vec3d(r.nextGaussian(), r.nextGaussian() * 0.6, r.nextGaussian()).normalize();
-        double step = length / segments;
-        Vec3d cur = start;
-        for (int s = 0; s < segments; s++) {
-            Vec3d jitter = new Vec3d(r.nextGaussian(), r.nextGaussian(), r.nextGaussian()).multiply(step * 0.6);
-            Vec3d next = cur.add(dir.multiply(step)).add(jitter);
-            // 선분을 촘촘히 찍어서 끊김 없는 번개처럼
-            for (int k = 0; k <= 3; k++) {
-                Vec3d q = cur.lerp(next, k / 3.0);
-                w.spawnParticles(k == 0 ? CORE : RED, q.x, q.y, q.z, 1, 0, 0, 0, 0);
-            }
-            cur = next;
-        }
+        bbc.combat.WorldFx.bolt(w, start, start.add(dir.multiply(length)), 4, 0xFF3A30);   // 붉은 연성 번개 (현자의 돌)
     }
 
     private static Vec3d handPos(ServerPlayerEntity p) {
