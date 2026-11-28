@@ -76,6 +76,10 @@ public final class Commands {
                                         .then(CommandManager.argument("route", StringArgumentType.word())
                                                 .suggests((c, b) -> { b.suggest("heat"); b.suggest("wind"); b.suggest("light"); b.suggest("none"); return b.buildFuture(); })
                                                 .executes(Commands::setPillar))))
+                        .then(CommandManager.literal("ultimate")   // 완전생물로 (의식 없이, 변신 장면은 그대로)
+                                .then(CommandManager.argument("player", EntityArgumentType.player())
+                                        .executes(c -> { ServerPlayerEntity t = EntityArgumentType.getPlayer(c, "player"); CombatMode.set(t, false); bbc.job.vampire.UltimateLife.become(t, true); ok(c, t.getName().getString() + " → 완전생물"); return 1; })))
+                        .then(CommandManager.literal("aja").executes(c -> { bbc.job.vampire.UltimateLife.give(c.getSource().getPlayerOrThrow()); ok(c, "에이자의 적석"); return 1; }))
                         .then(CommandManager.literal("rank")
                                 .then(CommandManager.argument("player", EntityArgumentType.player())
                                         .then(CommandManager.argument("rank", IntegerArgumentType.integer(1, 99))
@@ -119,7 +123,7 @@ public final class Commands {
         return 1;
     }
 
-    /** 기둥 속 사내 (뱀파이어 3단계) 루트 주기: heat(열) / none(숙련된 뱀파이어로 되돌림). 바람·빛·흡수는 다음 이식 */
+    /** 기둥 속 사내 (뱀파이어 3단계) 루트 주기: heat(열) · wind(바람) · light(빛) / none(숙련된 뱀파이어로 되돌림) */
     private static int setPillar(CommandContext<ServerCommandSource> c) throws CommandSyntaxException {
         ServerPlayerEntity p = EntityArgumentType.getPlayer(c, "player");
         String route = StringArgumentType.getString(c, "route");

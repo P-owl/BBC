@@ -118,10 +118,10 @@ final class Anim {
     private static final java.util.Map<Integer, Long> MOVED_AT = new java.util.HashMap<>(), RAN_AT = new java.util.HashMap<>();
     /** 걷기 판이 있는 자세 (자세 + '_walk' = 위몸은 그 자세, 다리는 걷기. 재생 속도 = 이동 속도) */
     private static final java.util.Set<String> WALKS = java.util.Set.of("stance", "stance_sword", "stance_spear", "stance_gs",
-            "stance_al", "stance_vm", "stance_ph", "stance_pw", "stance_pl");
+            "stance_al", "stance_vm", "stance_ph", "stance_pw", "stance_pl", "stance_ul");
     /** 다리까지 잡은 대기 자세 → 공중에선 팔만 잡은 판으로 (다리는 다리 층) */
     private static final java.util.Map<String, String> ARMS_ONLY = java.util.Map.of("stance_al", "stance_al_arms", "stance_vm", "stance_vm_arms",
-            "stance_ph", "stance_ph_arms", "stance_pw", "stance_pw_arms", "stance_pl", "stance_pl_arms");
+            "stance_ph", "stance_ph_arms", "stance_pw", "stance_pw_arms", "stance_pl", "stance_pl_arms", "stance_ul", "stance_ul_arms");
     /** 걷기 모션이 1배속으로 맞는 이동 속도 (칸/틱). 바닐라 걷기(0.216)에선 1.35배 = 두 걸음에 약 12틱 (바닐라 다리 흔들기와 비슷한 빠르기) */
     private static final double WALK_SPEED = 0.16;
     /** 마지막으로 땅에 있던 틱 · 지금 다리 층에 깐 모션 */
@@ -144,7 +144,7 @@ final class Anim {
     private static final java.util.Map<Integer, String> LAST_MOTION = new java.util.HashMap<>();
     private static final java.util.Map<Integer, Long> LAST_MOTION_AT = new java.util.HashMap<>();
     /** 기둥 속 사내 · 빛 이고 전투 모드인가 (아래팔 칼날을 그림) */
-    public static boolean lightBlades(int id) { return "stance_pl".equals(STANCE_BASE.get(id)) && STANCE_ON.containsKey(id); }
+    public static boolean lightBlades(int id) { String b = STANCE_BASE.get(id); return ("stance_pl".equals(b) || "stance_ul".equals(b)) && STANCE_ON.containsKey(id); }
     public static String lastMotion(int id) { return LAST_MOTION.get(id); }
     /** 마지막 모션을 튼 뒤 지난 틱 (없으면 큰 값) */
     public static float motionAge(int id, float tickDelta) {

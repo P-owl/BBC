@@ -24,5 +24,7 @@
   "item.bbc.alchemy_spear": "연성 창",
   "item.bbc.stone_mask": "석가면",
   "subtitles.bbc.light_se": "빛 칼날 소리",
-  "key.bbc.pick": "캐릭터 선택 (테스트용)"
+  "key.bbc.pick": "캐릭터 선택 (테스트용)",
+  "item.bbc.aja_stone": "에이자의 적석",
+  "subtitles.bbc.ultimate_se": "완전생물 소리"
 }

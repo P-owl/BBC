@@ -123,7 +123,7 @@ public final class PillarLight {
     // ───────── 상태 ─────────
     private static final Map<UUID, Long> MODE_UNTIL = new HashMap<>();
 
-    public static boolean is(PlayerData.Entry e) { return VampireJob.stage(e) >= 3 && ROUTE.equals(e.str(VampireJob.P + "route")); }
+    public static boolean is(PlayerData.Entry e) { return VampireJob.stage(e) == 3 && ROUTE.equals(e.str(VampireJob.P + "route")); }
     static boolean mode(ServerPlayerEntity p) { Long u = MODE_UNTIL.get(p.getUuid()); return u != null && Combat.now() < u; }
 
     /** 주는 피해 배수: 유법 +20%, 각성 +10% */

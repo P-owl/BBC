@@ -11,6 +11,7 @@ import bbc.job.alchemy.AlchemistJob;
 import bbc.job.alchemy.AlchemyData;
 import bbc.job.alchemy.AlchemyItems;
 import bbc.job.alchemy.AutomailSkill;
+import bbc.job.vampire.UltimateLife;
 import bbc.job.vampire.VampireJob;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerInventory;
@@ -53,6 +54,7 @@ public class PickMenu extends ButtonMenu {
             new Pick(21, Items.BLAZE_POWDER, "기둥 속 사내 · 열", Formatting.GOLD, "비등점 (에시디시)", "vm3heat", p -> vampire(p, 3, "heat")),
             new Pick(22, Items.WIND_CHARGE, "기둥 속 사내 · 바람", Formatting.AQUA, "바람 (와무우)", "vm3wind", p -> vampire(p, 3, "wind")),
             new Pick(23, Items.END_ROD, "기둥 속 사내 · 빛", Formatting.WHITE, "빛 칼날 (카즈)", "vm3light", p -> vampire(p, 3, "light")),
+            new Pick(24, UltimateLife.AJA_STONE, "완전생물", Formatting.GOLD, "태양을 넘어선 자 (변신 장면부터)", "vm4", p -> { vampire(p, 3, "light"); UltimateLife.become(p, true); }),
     };
 
     private static final int ROW_TOOLS = 27;
@@ -180,7 +182,7 @@ public class PickMenu extends ButtonMenu {
         int r = Jobs.rank(e);
         if (t == TraineeJob.INSTANCE) return "tr" + r;
         if (t == AlchemistJob.INSTANCE) { AlchemyData.Entry a = Alch.entry(p); return a.truth ? "al5" + a.toll : "al" + r; }
-        if (VampireJob.is(e)) return r >= 3 ? "vm3" + e.str(VampireJob.P + "route") : "vm" + r;
+        if (VampireJob.is(e)) return r >= 4 ? "vm4" : r >= 3 ? "vm3" + e.str(VampireJob.P + "route") : "vm" + r;
         return "";
     }
 }

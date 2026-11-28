@@ -73,12 +73,13 @@ public class BbcClient implements ClientModInitializer {
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> bbc.client.alchemy.AutomailRender.BODIES.clear());
         net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) -> {
-            if (renderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer pr) { helper.register(new bbc.client.alchemy.AutomailRender(pr)); helper.register(new LightBladeRender(pr)); }
+            if (renderer instanceof net.minecraft.client.render.entity.PlayerEntityRenderer pr) { helper.register(new bbc.client.alchemy.AutomailRender(pr)); helper.register(new LightBladeRender(pr)); helper.register(new UltimateRender(pr)); }
         });
         ClientPlayNetworking.registerGlobalReceiver(MotionPayload.ID, (payload, ctx) -> ctx.client().execute(() -> {
             if (ctx.client().world == null) return;
             if (StoneSkin.handle(payload.entityId(), payload.motion())) return;
             if (LightBladeRender.handle(payload.entityId(), payload.motion())) return;
+            if (UltimateRender.handle(payload.entityId(), payload.motion())) return;
             if (StoneSkin.is(payload.entityId()) && !payload.motion().equals("stop")) return;   // 석상은 움직이지 않음
             var ent = ctx.client().world.getEntityById(payload.entityId());
             if (ent instanceof AbstractClientPlayerEntity pl) { if (ANIM) Anim.play(pl, payload.motion()); }
@@ -86,7 +87,7 @@ public class BbcClient implements ClientModInitializer {
         }));
         ClientPlayNetworking.registerGlobalReceiver(CombatStatePayload.ID,
                 (payload, ctx) -> ctx.client().execute(() -> combat = payload.on()));
-        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { combat = false; guardSent = false; StoneSkin.clear(); LightBladeRender.clear(); WindSight.set(false); });
+        ClientPlayConnectionEvents.DISCONNECT.register((h, c) -> { combat = false; guardSent = false; StoneSkin.clear(); LightBladeRender.clear(); UltimateRender.clear(); WindSight.set(false); });
 
         // 바닐라가 F·Q를 처리하기 전에 가로챔
         ClientTickEvents.START_CLIENT_TICK.register(client -> {

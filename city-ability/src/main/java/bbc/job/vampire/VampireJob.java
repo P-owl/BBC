@@ -70,7 +70,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 뱀파이어 (석가면, 무현버스에서 이식 → 새 전투 수치). 단계: 1 일반 뱀파이어 · 2 숙련된 뱀파이어 (3 기둥 속 사내 · 4 완전생물은 다음 이식)
+ * 뱀파이어 (석가면, 무현버스에서 이식 → 새 전투 수치). 단계: 1 일반 뱀파이어 · 2 숙련된 뱀파이어 · 3 기둥 속 사내 (열·바람·빛) · 4 완전생물 (UltimateLife · UltimateForm)
  *
  * 되는 법: 밤에 석가면을 머리에 쓰고, 쓴 채로 피해를 입으면(피를 묻히면) 가면에서 가시가 튀어나와 뱀파이어가 됨. 기존 직업은 사라짐.
  * 석가면: 사막 피라미드·정글 사원 상자 3%, 고대 도시 5%
@@ -92,7 +92,7 @@ public final class VampireJob implements JobType {
 
     public static final String ID = "vampire";
     public static final String P = "vam.";
-    static final String[] RANKS = {"인간", "일반 뱀파이어", "숙련된 뱀파이어", "기둥 속 사내"};
+    static final String[] RANKS = {"인간", "일반 뱀파이어", "숙련된 뱀파이어", "기둥 속 사내", "완전생물"};
     public static final double SKILLED_DRINK = 5_000;
     public static final int SKILLED_PLAYERS = 3, SKILLED_NIGHTS = 7;
 
@@ -105,13 +105,13 @@ public final class VampireJob implements JobType {
     @Override public String prefix() { return P; }
     @Override public Item icon() { return STONE_MASK; }
     @Override public Formatting color() { return Formatting.DARK_RED; }
-    @Override public int maxRank() { return 3; }
-    @Override public String rankName(int r) { return RANKS[Math.max(0, Math.min(3, r))]; }
+    @Override public int maxRank() { return 4; }
+    @Override public String rankName(int r) { return RANKS[Math.max(0, Math.min(4, r))]; }
     @Override public boolean selectable() { return false; }
     @Override public Stat skillStat() { return Stat.STR; }
     @Override public String stance() { return "stance_vm"; }
-    @Override public String stance(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "stance_ph" : PillarWind.is(e) ? "stance_pw" : PillarLight.is(e) ? "stance_pl" : "stance_vm"; }
-    @Override public String ultimateName(PlayerData.Entry e) { return PillarHeat.is(e) ? "증기 폭발" : PillarWind.is(e) ? "최종 유법" : PillarLight.is(e) ? "섬광 난도" : ultimateName(); }
+    @Override public String stance(ServerPlayerEntity p) { var e = Jobs.entry(p); return UltimateForm.is(e) ? "stance_ul" : PillarHeat.is(e) ? "stance_ph" : PillarWind.is(e) ? "stance_pw" : PillarLight.is(e) ? "stance_pl" : "stance_vm"; }
+    @Override public String ultimateName(PlayerData.Entry e) { return UltimateForm.is(e) ? "생명의 정점" : PillarHeat.is(e) ? "증기 폭발" : PillarWind.is(e) ? "최종 유법" : PillarLight.is(e) ? "섬광 난도" : ultimateName(); }
     @Override public String ultimateName() { return "피의 만찬"; }
     @Override public String[] summary() {
         return new String[]{"석가면을 쓰고 피를 묻힌 자", "밤의 지배자, 햇빛이 약점 · 피로 살아감",
@@ -153,6 +153,7 @@ public final class VampireJob implements JobType {
         PillarHeat.clear(p.getUuid());
         PillarWind.clear(p.getUuid());
         PillarLight.clear(p.getUuid());
+        UltimateLife.clear(p);
         setThirst(p, false);
         Thralls.releaseAll(p.getUuid());
         p.removeStatusEffect(StatusEffects.NIGHT_VISION);
@@ -164,6 +165,7 @@ public final class VampireJob implements JobType {
         double b = blood(e);
         String tier = b <= 0 ? " (갈증 · 위력 60%)" : b < 15 ? " (굶주림 · 위력 75%)" : b < 35 ? " (허기 · 위력 90%)"
                 : isNight(p.getServerWorld()) || b >= 70 ? " (포만 · 위력 115%)" : "";
+        if (UltimateForm.is(e)) return "완전생물 · 피 " + (int) b + tier + UltimateForm.hud(p);
         if (PillarHeat.is(e)) return "기둥 속 사내 · 열 · 피 " + (int) b + tier + PillarHeat.hud(p);
         if (PillarWind.is(e)) return "기둥 속 사내 · 바람 · 피 " + (int) b + tier + PillarWind.hud(p);
         if (PillarLight.is(e)) return "기둥 속 사내 · 빛 · 피 " + (int) b + tier + PillarLight.hud(p);
@@ -185,18 +187,20 @@ public final class VampireJob implements JobType {
         if (PillarHeat.is(e)) m *= PillarHeat.mul(p);   // 기둥 속 사내 · 열: 열 1당 +4%
         if (PillarWind.is(e)) m *= PillarWind.mul(p);   // 바람: 유법 +20% · 각성 +10% · 투명 첫 타격 +30%
         if (PillarLight.is(e)) m *= PillarLight.mul(p);   // 빛: 유법 +20% · 각성 +10%
+        if (UltimateForm.is(e)) m *= UltimateForm.mul(p);   // 완전생물: +10%
         return Awaken.active(p) ? m * 1.2f : m;   // 혈광 해방: 괴력 상시
     }
 
     /** 전투 중 흡혈: 평타가 맞으면 피 1, 기술은 준 피해의 0.8배(최대 4), 각성 중엔 두 배. 쓰러뜨리면 +6 */
     @Override public void onAction(ServerPlayerEntity p, String kind) {
         PlayerData.Entry e = Jobs.entry(p);
-        if (PillarLight.is(e)) PillarLight.onAction(p, kind);
+        if (PillarLight.is(e) || UltimateForm.is(e)) PillarLight.onAction(p, kind);   // 완전생물도 같은 목소리
     }
 
     @Override public void onDealt(ServerPlayerEntity p, LivingEntity t, float dmg, boolean m1) {
         PlayerData.Entry e = Jobs.entry(p);
         if (!is(e)) return;
+        if (stage(e) == 3 && !m1) e.addNum(P + "mastery", dmg);   // 루트 숙련도 (완전생물 조건: 기술로 준 피해 2,000)
         double g = m1 ? 1.0 : Math.max(0.3, Math.min(4.0, dmg * 0.8));
         if (Awaken.active(p)) g *= 2;
         if (!t.isAlive()) g += 6;
@@ -215,8 +219,8 @@ public final class VampireJob implements JobType {
     /** 수도 → 손등 → 멱살 잡고 무릎 → 손톱 올려 베기 → 손바닥 장타 (5타 선딜 6). 공중은 손톱 셋(vm_a1~3), 슬램은 손끝 내리꽂기 */
     private static final bbc.combat.Weapon.M1Profile M1 = new bbc.combat.Weapon.M1Profile(5, 4, 2, 1.05f, 0.3, "vm_", 6);
     @Override public bbc.combat.Weapon.M1Profile m1() { return M1; }
-    @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? PillarHeat.M1 : PillarWind.is(e) ? PillarWind.M1 : PillarLight.is(e) ? PillarLight.M1 : M1; }
-    @Override public String guardMotion(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "guard_ph" : PillarWind.is(e) ? "guard_pw" : PillarLight.is(e) ? "guard_pl" : guardMotion(); }
+    @Override public bbc.combat.Weapon.M1Profile m1(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? PillarHeat.M1 : PillarWind.is(e) ? PillarWind.M1 : PillarLight.is(e) || UltimateForm.is(e) ? PillarLight.M1 : M1; }
+    @Override public String guardMotion(ServerPlayerEntity p) { var e = Jobs.entry(p); return PillarHeat.is(e) ? "guard_ph" : PillarWind.is(e) ? "guard_pw" : PillarLight.is(e) || UltimateForm.is(e) ? "guard_pl" : guardMotion(); }
     @Override public String guardMotion() { return "guard_vm"; }
 
     /**
@@ -354,6 +358,7 @@ public final class VampireJob implements JobType {
         PillarHeat.register();
         PillarWind.register();
         PillarLight.register();
+        UltimateLife.register();
 
         // 석가면: 사막 피라미드·정글 사원 3%, 고대 도시 5%
         LootTableEvents.MODIFY.register((key, builder, source, registries) -> {
@@ -461,7 +466,8 @@ public final class VampireJob implements JobType {
                 p.sendMessage(Text.literal("🌅 밤을 하나 더 넘겼다 (" + (int) e.num(P + "nights") + "번째)").formatted(Formatting.DARK_RED), true);
             }
 
-            addBlood(e, -(night ? 2.0 : 5.0) / 60.0);
+            UltimateLife.second(p, e, s);
+            if (s != 4) addBlood(e, -(night ? 2.0 : 5.0) / 60.0);   // 완전생물은 피가 줄지 않음
             boolean thirst = thirsty(e);
             // 배고픔으로 인한 자연 재생을 막고(17 고정) 피로 재생
             p.getHungerManager().setFoodLevel(17);
@@ -473,6 +479,7 @@ public final class VampireJob implements JobType {
             if (night) p.addStatusEffect(new StatusEffectInstance(StatusEffects.NIGHT_VISION, 400, 0, true, false));
             setThirst(p, thirst);
 
+            if (s == 4 || UltimateLife.inRitual(p)) continue;   // 완전생물: 햇빛 면역 · 의식 중엔 석화 안 됨
             if (s >= 3) { if (PillarWind.is(e)) PillarWind.second(p, sunlit(w, p)); else if (PillarLight.is(e)) PillarLight.second(p, sunlit(w, p)); else PillarHeat.second(p, sunlit(w, p)); continue; }   // 기둥 속 사내: 햇빛에 타는 대신 석화
             if (sunlit(w, p)) {
                 SUN_HURT.put(p.getUuid(), (long) clock);
@@ -547,14 +554,14 @@ public final class VampireJob implements JobType {
 
     private static final JobSkills.Set SKILLS = new JobSkills.Set() {
         @Override public JobSkills.Skill[] skills(ServerPlayerEntity p, PlayerData.Entry e) {
-            boolean ph = PillarHeat.is(e), pw = PillarWind.is(e), pl = PillarLight.is(e);
-            String want = ph ? PillarHeat.EQV : pw ? PillarWind.EQV : pl ? PillarLight.EQV : EQUIP_VER;   // 단계·루트가 바뀌면 기술 풀이 바뀌니 장착을 처음 상태로
+            boolean ph = PillarHeat.is(e), pw = PillarWind.is(e), pl = PillarLight.is(e), ul = UltimateForm.is(e);
+            String want = ul ? UltimateForm.EQV : ph ? PillarHeat.EQV : pw ? PillarWind.EQV : pl ? PillarLight.EQV : EQUIP_VER;   // 단계·루트가 바뀌면 기술 풀이 바뀌니 장착을 처음 상태로
             if (!want.equals(e.str(P + "eqv"))) {
                 e.str(P + "eqv", want);
                 e.str(P + "equip", "");
                 Jobs.dirty(p);
             }
-            return ph ? PillarHeat.list(p) : pw ? PillarWind.list(p) : pl ? PillarLight.list(p) : LIST;   // 기둥 속 사내: 각성(비등점) 중엔 카드가 통째로 바뀜
+            return ul ? UltimateForm.list(p) : ph ? PillarHeat.list(p) : pw ? PillarWind.list(p) : pl ? PillarLight.list(p) : LIST;   // 기둥 속 사내: 각성(비등점) 중엔 카드가 통째로 바뀜
         }
         @Override public String costName() { return "피"; }
         @Override public double resource(ServerPlayerEntity p, PlayerData.Entry e) { return blood(e); }
@@ -565,9 +572,11 @@ public final class VampireJob implements JobType {
             return true;
         }
         @Override public String blocked(ServerPlayerEntity p, PlayerData.Entry e, int idx) {
+            if (UltimateLife.inRitual(p)) return "의식 중에는 움직일 수 없다";
             return PillarHeat.petrified(p) ? "몸이 돌로 굳어 움직일 수 없다 (햇빛)" : null;
         }
         @Override public boolean use(ServerPlayerEntity p, PlayerData.Entry e, int idx) {
+            if (UltimateForm.is(e)) return UltimateForm.use(p, e, idx);
             if (PillarHeat.is(e)) return PillarHeat.use(p, e, idx);
             if (PillarWind.is(e)) return PillarWind.use(p, e, idx);
             if (PillarLight.is(e)) return PillarLight.use(p, e, idx);
@@ -1001,7 +1010,7 @@ public final class VampireJob implements JobType {
 
     /** 석화(기둥 속 사내 · 햇빛) 중엔 평타도 못 침 */
     @Override
-    public boolean m1Override(ServerPlayerEntity p, boolean up) { return PillarHeat.petrified(p); }
+    public boolean m1Override(ServerPlayerEntity p, boolean up) { return PillarHeat.petrified(p) || UltimateLife.inRitual(p); }
 
     /** 선택지가 열려 있으면 기술 카드 대신 선택지 넷 (금색, 남은 시간 막대) */
     @Override
@@ -1473,6 +1482,7 @@ public final class VampireJob implements JobType {
 
     @Override
     public void onAwaken(ServerPlayerEntity p, PlayerData.Entry e) {
+        if (UltimateForm.is(e)) { UltimateForm.onAwaken(p, e); return; }
         if (PillarHeat.is(e)) { PillarHeat.onAwaken(p, e); return; }
         if (PillarWind.is(e)) { PillarWind.onAwaken(p, e); return; }
         if (PillarLight.is(e)) { PillarLight.onAwaken(p, e); return; }
@@ -1560,6 +1570,7 @@ public final class VampireJob implements JobType {
      */
     @Override
     public boolean ultimate(ServerPlayerEntity p, PlayerData.Entry e) {
+        if (UltimateForm.is(e)) return UltimateForm.ultimate(p, e);
         if (PillarHeat.is(e)) return PillarHeat.ultimate(p, e);
         if (PillarWind.is(e)) return PillarWind.ultimate(p, e);
         if (PillarLight.is(e)) return PillarLight.ultimate(p, e);

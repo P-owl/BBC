@@ -114,7 +114,7 @@ public final class PillarWind {
     private static final Map<UUID, Long> MODE_UNTIL = new HashMap<>();
     private static final Map<UUID, Long> HIDE_UNTIL = new HashMap<>();
 
-    public static boolean is(PlayerData.Entry e) { return VampireJob.stage(e) >= 3 && ROUTE.equals(e.str(VampireJob.P + "route")); }
+    public static boolean is(PlayerData.Entry e) { return VampireJob.stage(e) == 3 && ROUTE.equals(e.str(VampireJob.P + "route")); }
     static boolean mode(ServerPlayerEntity p) { Long u = MODE_UNTIL.get(p.getUuid()); return u != null && Combat.now() < u; }
     static boolean hidden(ServerPlayerEntity p) { Long u = HIDE_UNTIL.get(p.getUuid()); return u != null && Combat.now() < u; }
 

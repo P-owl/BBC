@@ -4,5 +4,11 @@
   "pillar_light_se.cut": {"subtitle": "subtitles.bbc.light_se", "sounds": [{"name": "bbc:pillar_light_se/cut"}, {"name": "bbc:pillar_light_se/cut", "pitch": 1.12}, {"name": "bbc:pillar_light_se/cut", "pitch": 0.9}]},
   "pillar_light_se.flash": {"subtitle": "subtitles.bbc.light_se", "sounds": [{"name": "bbc:pillar_light_se/flash"}]},
   "pillar_light_se.big": {"subtitle": "subtitles.bbc.light_se", "sounds": [{"name": "bbc:pillar_light_se/big"}]},
-  "pillar_light_se.shine": {"subtitle": "subtitles.bbc.light_se", "sounds": [{"name": "bbc:pillar_light_se/shine"}]}
+  "pillar_light_se.shine": {"subtitle": "subtitles.bbc.light_se", "sounds": [{"name": "bbc:pillar_light_se/shine"}]},
+  "ultimate_se.ripple": {"subtitle": "subtitles.bbc.ultimate_se", "sounds": [{"name": "bbc:ultimate_se/ripple"}, {"name": "bbc:ultimate_se/ripple", "pitch": 1.12}]},
+  "ultimate_se.ripple_big": {"subtitle": "subtitles.bbc.ultimate_se", "sounds": [{"name": "bbc:ultimate_se/ripple_big"}]},
+  "ultimate_se.flesh": {"subtitle": "subtitles.bbc.ultimate_se", "sounds": [{"name": "bbc:ultimate_se/flesh"}, {"name": "bbc:ultimate_se/flesh", "pitch": 1.12}]},
+  "ultimate_se.swarm": {"subtitle": "subtitles.bbc.ultimate_se", "sounds": [{"name": "bbc:ultimate_se/swarm"}]},
+  "ultimate_se.wing": {"subtitle": "subtitles.bbc.ultimate_se", "sounds": [{"name": "bbc:ultimate_se/wing"}, {"name": "bbc:ultimate_se/wing", "pitch": 1.12}]},
+  "ultimate_se.burst": {"subtitle": "subtitles.bbc.ultimate_se", "sounds": [{"name": "bbc:ultimate_se/burst"}]}
 }

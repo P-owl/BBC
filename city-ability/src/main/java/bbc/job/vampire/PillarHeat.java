@@ -130,7 +130,7 @@ public final class PillarHeat {
     private static final Map<UUID, Long> MODE_UNTIL = new HashMap<>();
     private static final Set<UUID> PETRIFIED = new HashSet<>();
 
-    public static boolean is(PlayerData.Entry e) { return VampireJob.stage(e) >= 3 && ROUTE.equals(e.str(VampireJob.P + "route")); }
+    public static boolean is(PlayerData.Entry e) { return VampireJob.stage(e) == 3 && ROUTE.equals(e.str(VampireJob.P + "route")); }
 
     public static int heat(ServerPlayerEntity p) {
         if (Awaken.active(p) || mode(p)) return 5;

@@ -92,7 +92,7 @@ def _fix_euler(moves):
 
 
 def anim(name, end, keys, stop=None, loop=False, ret=0):
-    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw", "pl_", "stance_pl", "guard_pl", "run")): keys = _fix_euler(keys)
+    if name.startswith(("vm_", "run_vm", "stance_vm", "guard_vm", "ph_", "run_ph", "stance_ph", "guard_ph", "pw_", "run_pw", "stance_pw", "guard_pw", "pl_", "stance_pl", "guard_pl", "ul_", "stance_ul", "run")): keys = _fix_euler(keys)
     A[name] = {"version": 3, "name": name, "author": "bbc", "description": "",
                "emote": {"isLoop": loop, "returnTick": ret, "beginTick": 0, "endTick": end,
                          "stopTick": stop if stop is not None else end + 1, "degrees": True,
@@ -2200,6 +2200,153 @@ _lu += [(53, IO, G(body=(-30, -30, 0), rl=WIDE_RL, ll=WIDE_LL, look=(22, 16), si
         (100, IO, PL_STANCE)]
 anim("pl_ult", 100, seq(_lu))
 
+# ═════════ 완전생물 (뱀파이어 4단계, 참고: 올스타 배틀 R 카즈 플레이 영상 2:53~3:51 — 변신·날개·파문·생물 창조·변형 팔. 자세·기술 원칙만, 이름·연출은 우리 것) ═════════
+# 대기 (참고 3:24 · 3:51): 가슴을 펴고 꼿꼿이, 왼손은 허리에 얹고 오른손은 힘을 빼 앞으로 살짝 — 거만하게 내려다봄
+R_EASY = HR((0.22, -0.95, -0.2), (0.32, 0.78, -0.3))            # 오른팔 힘 빼고 조금 앞으로
+R_SIDE = HR((0.98, 0.05, -0.15), (1.32, 1.42, -0.2))            # 오른팔을 옆으로 곧게 (변형 팔이 뻗음)
+R_SIDE_BACK = HR((0.75, 0.05, 0.65), (1.0, 1.4, 0.5))           # 오른팔을 뒤로 젖힘 (휘두르기 전)
+R_ACROSS = HR((-0.6, 0.0, -0.8), (-0.85, 1.35, -0.5))           # 오른팔이 몸 앞을 가로질러 왼쪽으로
+R_GROUND = HR((0.25, -0.75, -0.62), (0.3, 0.12, -0.62))         # 손바닥을 땅에
+L_GROUND = HL((-0.25, -0.75, -0.62), (-0.3, 0.12, -0.62))
+R_PALM = HR((0.08, -0.05, -1), (0.1, 1.38, -0.68))              # 손바닥 장타 (곧게)
+L_PALM = HL((-0.08, -0.05, -1), (-0.1, 1.38, -0.68))
+R_FACE = HR((0.35, -0.45, -0.82), (0.06, 1.62, -0.36))          # 두 손을 얼굴(가면)에
+L_FACE = HL((-0.35, -0.45, -0.82), (-0.06, 1.62, -0.36))
+R_WIDE_LO = HR((0.85, -0.5, 0.15), (1.0, 0.85, 0.1))            # 두 팔을 아래로 벌림 (바-앙)
+L_WIDE_LO = HL((-0.85, -0.5, 0.15), (-1.0, 0.85, 0.1))
+R_CHEST = HR((0.3, -0.7, -0.65), (-0.05, 1.15, -0.35))          # 웅크려 가슴을 감쌈
+L_CHEST = HL((-0.3, -0.7, -0.65), (0.05, 1.15, -0.35))
+UL_RL, UL_LL = (6, 8, 4), (-12, 8, 8)
+UL_STANCE = solved(G(body=(4, -10, 0), rl=UL_RL, ll=UL_LL, look=(-6, 4), rightArm=R_EASY, leftArm=L_HIP))
+anim("stance_ul", 40, seq([(0, LIN, UL_STANCE), (20, IO, dict(body=(5, -10, 0), rightArm=HR((0.22, -0.95, -0.24), (0.3, 0.8, -0.34)))), (40, IO, UL_STANCE)]), loop=True, ret=0)
+UL_WALK = dict(body=(4, -6, 0), head=(-4, -2, 0), rightArm=R_EASY, leftArm=L_HIP)
+anim("stance_ul_arms", 40, seq([(0, LIN, UL_WALK), (20, IO, dict(body=(5, -6, 0))), (40, IO, UL_WALK)]), loop=True, ret=0)
+UL_AIR0 = solved(AIR(body=(0, -8, 0), rightArm=R_EASY, leftArm=L_HIP))
+
+
+def ustrike(end, frames, hold_to=None, settle=None):
+    fr = [(0, LIN, UL_STANCE)] + frames
+    t_hit, _, hit = frames[-1]
+    if hold_to: fr.append((hold_to, LIN, hit))
+    if settle: fr.append(settle)
+    fr.append((end, IO, UL_STANCE))
+    return seq(fr)
+
+
+# ② 날개 강습 (참고 3:03 이륙 · 3:33.5 날아드는 발차기): 웅크려 날개를 펼침 (3) → 6 비스듬히 날아오름 → 12~16 정점에서 몸을 뒤집어 →
+#    18 두 발을 모아 비스듬히 내리꽂음 (24 착지)
+UL_CROUCH = G(body=(-24, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(18, 0), sink=0.26, rightArm=R_BACK_LO, leftArm=L_BACK_LO)
+UL_RISE = AIR(body=(-20, 0, 0), rl=(30, 10, 10), ll=(24, 10, 20), look=(10, 0), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
+UL_DIVE = AIR(body=(-62, 0, 0), rl=(40, 8, 4), ll=(34, 8, 10), look=(40, 0), rightArm=R_BACK_LO, leftArm=L_BACK_LO)
+UL_KICK = AIR(body=(30, 0, 0), rl=(-80, 6, 0), ll=(-60, 6, 30), look=(-30, 0), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
+anim("ul_wing", 30, seq([(0, LIN, UL_STANCE), (3, IO, UL_CROUCH), (6, OQ, UL_RISE), (12, LIN, dict(UL_RISE, body=(-26, 0, 0))),
+                         (15, IO, UL_DIVE), (18, EX, UL_KICK), (23, LIN, UL_KICK),
+                         (26, IO, G(body=(-16, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(12, 0), sink=0.2, rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)), (30, IO, UL_STANCE)]))
+anim("ul_wing_air", 16, seq([(0, LIN, UL_AIR0), (2, IO, UL_DIVE), (5, EX, UL_KICK), (11, LIN, UL_KICK), (16, IO, UL_STANCE)]))
+# 평타 중: 날개로 양옆을 후려침 (몸을 숙였다 두 팔을 펴며)
+anim("ul_wing_q", 12, ustrike(12, [(2, IO, G(body=(-14, 0, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(10, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)),
+                                   (4, EX, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-12, 0), sink=0.06, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI))], hold_to=7))
+# ③ 파문 역류 (참고 3:21 · 3:24.5 · 3:27.5 파랗게 튀는 불꽃): 파고들어 좌우 잽 넷 (4·7·10·13) → 18 깊게 내딛으며 손바닥 장타
+UL_JAB_R = G(body=(-10, 26, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(6, -20), sink=0.1, z=0.2, rightArm=R_THRUST, leftArm=L_CHAMBER)
+UL_JAB_L = G(body=(-10, -26, 0), rl=LUNGE_RL, ll=LUNGE_LL, look=(6, 20), sink=0.1, z=0.2, rightArm=R_CHAMBER, leftArm=L_THRUST)
+UL_PALM = G(body=(-18, 20, 0), rl=DEEP_RL, ll=DEEP_LL, look=(12, -16), sink=0.16, z=0.3, rightArm=R_PALM, leftArm=L_BACK_LO)
+_ur = [(0, LIN, UL_STANCE), (2, IO, G(body=(-16, 0, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(12, 0), sink=0.12, rightArm=R_CHAMBER, leftArm=L_CHAMBER))]
+for k, t in enumerate((4, 7, 10, 13)):
+    _ur += [(t, EX, UL_JAB_R if k % 2 == 0 else UL_JAB_L)]
+_ur += [(16, IO, G(body=(-6, -30, 0), rl=DEEP_RL, ll=DEEP_LL, look=(4, 20), sink=0.14, rightArm=R_CHAMBER, leftArm=L_BACK_LO)), (18, EX, UL_PALM),
+        (24, LIN, dict(UL_PALM, body=(-16, 18, 0))), (30, IO, UL_STANCE)]
+anim("ul_ripple", 30, seq(_ur))
+anim("ul_ripple_q", 10, ustrike(10, [(2, IO, G(body=(-8, -20, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(4, 14), sink=0.08, rightArm=R_CHAMBER, leftArm=L_HIP)), (4, EX, UL_JAB_R)], hold_to=7))
+anim("ul_ripple_air", 14, seq([(0, LIN, UL_AIR0), (2, OQ, AIR(body=(16, 0, 0), rl=(-110, 8, 0), ll=(10, 8, 40), look=(-10, 0), rightArm=R_UP_HIGH, leftArm=L_BACK_LO)),
+                               (5, EX, AIR(body=(-30, 0, 0), rl=(-10, 8, 0), ll=(20, 8, 50), look=(20, 0), rightArm=R_PALM, leftArm=L_BACK_LO)),
+                               (9, LIN, dict(body=(-26, 0, 0))), (14, IO, UL_STANCE)]))
+# ④ 생명 창조 · 무리 (참고 3:09 · 3:14~3:19 상대 발밑에서 생물이 솟고 기어 붙음): 웅크려 오른손바닥을 땅에 꽂음 (6) → 버팀 → 일어섬
+UL_SWARM = G(body=(-40, -10, 0), rl=WIDE_RL, ll=WIDE_LL, look=(30, 6), sink=0.32, rightArm=R_GROUND, leftArm=L_BACK_LO)
+anim("ul_swarm", 24, seq([(0, LIN, UL_STANCE), (3, OQ, G(body=(6, -16, 0), rl=UL_RL, ll=UL_LL, look=(-8, 8), rightArm=R_UP_HIGH, leftArm=L_HIP)),
+                          (6, EX, UL_SWARM), (16, LIN, dict(UL_SWARM, body=(-38, -10, 0))), (24, IO, UL_STANCE)]))
+anim("ul_swarm_q", 10, ustrike(10, [(2, IO, G(body=(4, -16, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(-6, 8), rightArm=R_UP_HIGH, leftArm=L_HIP)), (4, EX, UL_SWARM)], hold_to=7))
+anim("ul_swarm_air", 14, seq([(0, LIN, UL_AIR0), (2, OQ, AIR(body=(10, 0, 0), look=(-8, 0), rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)),
+                              (5, EX, AIR(body=(-24, 0, 0), look=(26, 0), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)), (10, LIN, dict(body=(-20, 0, 0))), (14, IO, UL_STANCE)]))
+# ⑤ 변형 팔 (참고 3:30.5~3:34 오른팔이 가시 돋은 붉은 거대한 팔로 늘어나 땅을 쓸며 후림): 몸을 왼쪽으로 감아 오른팔을 뒤로 (4) →
+#    8 팔이 늘어나며 크게 가로로 후림 → 14 몸 앞을 지나 왼쪽까지 → 20 거둠
+UL_ARM_WIND = G(body=(-6, -46, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(4, 30), sink=0.1, rightArm=R_SIDE_BACK, leftArm=L_HIP)
+UL_ARM_SWEEP = G(body=(-14, 10, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, -6), sink=0.16, z=0.2, rightArm=R_SIDE, leftArm=L_BACK_LO)
+UL_ARM_END = G(body=(-12, 56, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, -40), sink=0.16, z=0.2, rightArm=R_ACROSS, leftArm=L_BACK_LO)
+anim("ul_arm", 26, seq([(0, LIN, UL_STANCE), (4, IO, UL_ARM_WIND), (8, OQ, UL_ARM_SWEEP), (13, IO, UL_ARM_END), (18, LIN, dict(UL_ARM_END, body=(-10, 52, 0))), (26, IO, UL_STANCE)]))
+# 평타 중: 오른팔을 곧게 내질러 팔이 6칸 찌르듯 뻗었다 상대를 끌고 돌아옴
+UL_ARM_POKE = G(body=(-12, 20, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, -16), sink=0.14, z=0.25, rightArm=R_THRUST, leftArm=L_BACK_LO)
+anim("ul_arm_q", 14, ustrike(14, [(2, IO, G(body=(-4, -24, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(2, 16), sink=0.08, rightArm=R_CHAMBER, leftArm=L_HIP)), (4, EX, UL_ARM_POKE)], hold_to=9))
+# 공중: 오른팔을 머리 위로 들었다 늘어난 팔로 앞쪽 땅을 내리침
+anim("ul_arm_air", 16, seq([(0, LIN, UL_AIR0), (3, OQ, AIR(body=(20, 0, 0), look=(-12, 0), rightArm=R_SKY, leftArm=L_BACK_LO)),
+                            (7, EX, AIR(body=(-34, 0, 0), look=(24, 0), rightArm=R_THRUST, leftArm=L_BACK_LO)), (12, LIN, dict(body=(-30, 0, 0))), (16, IO, UL_STANCE)]))
+# ⑥ 생명 창조 · 날개 (비행 켜기/끄기): 등을 펴며 두 팔을 벌림
+anim("ul_fly", 14, seq([(0, LIN, UL_STANCE), (4, IO, G(body=(-10, 0, 0), rl=UL_RL, ll=UL_LL, look=(8, 0), sink=0.06, rightArm=R_CHEST, leftArm=L_CHEST)),
+                        (8, EX, G(body=(10, 0, 0), rl=UL_RL, ll=UL_LL, look=(-14, 0), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)), (14, IO, UL_STANCE)]))
+# 각성 ⑥ 깃털 폭풍: 날개를 몸 앞으로 감쌌다가 (참고 3:08.5) → 8 활짝 펴며 깃털을 쏘아 보냄
+anim("ul_feather", 20, seq([(0, LIN, UL_STANCE), (4, IO, G(body=(-16, 0, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(12, 0), sink=0.1, rightArm=R_X, leftArm=L_X)),
+                            (8, EX, G(body=(14, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, 0), sink=0.06, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)),
+                            (14, LIN, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 0), sink=0.06, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)), (20, IO, UL_STANCE)]))
+# ⑦ 포식 (참고 3:30 파고들어 움켜쥠): 낮게 파고들며 오른손으로 움켜쥠 (6) → ul_eat_hit: 손바닥으로 몸을 파고들어 빨아들임 (4~24, 몸이 들썩) → 28 내던짐
+UL_EAT = G(body=(-24, -6, 0), rl=DEEP_RL, ll=DEEP_LL, look=(18, 4), sink=0.18, z=0.25, rightArm=R_PALM, leftArm=L_BACK_LO)
+anim("ul_eat", 14, seq([(0, LIN, UL_STANCE), (2, OQ, G(body=(-30, -6, 0), rl=DEEP_RL, ll=DEEP_LL, look=(22, 4), sink=0.2, rightArm=R_CHAMBER, leftArm=L_BACK_LO)),
+                        (6, EX, UL_EAT), (10, LIN, UL_EAT), (14, IO, UL_STANCE)]))
+_ue = [(0, LIN, UL_EAT)]
+for t in range(4, 25, 4):
+    _ue += [(t, IO, G(body=(-8 - (t % 8), -6, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(6, 4), sink=0.08, rightArm=R_PALM, leftArm=L_CHEST if t % 8 else L_BACK_LO))]
+_ue += [(26, IO, G(body=(-6, -40, 0), rl=FIGHT_RL, ll=FIGHT_LL, look=(4, 26), sink=0.08, rightArm=R_ACROSS, leftArm=L_BACK_LO)),
+        (29, EX, G(body=(-14, 40, 0), rl=DEEP_RL, ll=DEEP_LL, look=(10, -26), sink=0.14, z=0.2, rightArm=R_SIDE, leftArm=L_BACK_LO)),
+        (34, LIN, G(body=(-12, 36, 0), rl=DEEP_RL, ll=DEEP_LL, look=(8, -24), sink=0.14, z=0.2, rightArm=R_SIDE, leftArm=L_BACK_LO)), (40, IO, UL_STANCE)]
+anim("ul_eat_hit", 40, seq(_ue))
+
+# ── 의식 (60초, 서버가 2초마다 다시 틂): 무릎을 꿇고 두 손으로 얼굴(가면)을 감쌈, 몸이 떨림 ──
+UL_KNEEL = G(body=(-10, 0, 0), rl=KNEEL_RL, ll=KNEEL_LL, look=(10, 0), rightArm=R_FACE, leftArm=L_FACE)
+anim("ul_ritual", 40, seq([(0, LIN, UL_KNEEL), (2, IO, dict(UL_KNEEL, body=(-12, 2, 0))), (4, IO, dict(UL_KNEEL, body=(-9, -2, 0))),
+                           (20, IO, dict(UL_KNEEL, body=(-14, 0, 0))), (22, IO, dict(UL_KNEEL, body=(-10, 2, 0))), (40, IO, UL_KNEEL)]), loop=True, ret=0)
+
+# ── 변신 (의식이 끝날 때 140틱, 참고 2:53.5~3:05.5 — 붉은 돌을 가면에 → 몸부림 → 금빛으로 웅크림 → 껍질이 깨지며 '바-앙' → 날개를 펴고 날아오름) ──
+#   0~14 두 손으로 가면을 감쌈 → 16~40 고개를 젖히고 몸부림 (3틱마다 들썩) → 44~64 금빛에 싸여 깊게 웅크림 → 68 껍질이 깨지며 일어서 가슴을 폄 (바-앙) →
+#   72~98 버팀 → 100 날개를 펴며 무릎을 굽힘 → 108 날아오름 (서버가 띄움) → 112~140 공중에서 두 팔을 벌리고 내려다봄
+UL_SCREAM = lambda k: G(body=(18 + (k % 2) * 6, (k % 3 - 1) * 8, (k % 2) * 4 - 2), rl=WIDE_RL, ll=WIDE_LL, look=(-28, 0), sink=0.04,
+                        rightArm=R_WIDE_LO if k % 2 else R_SPREAD_HI, leftArm=L_SPREAD_HI if k % 2 else L_WIDE_LO)
+UL_COCOON = G(body=(-44, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(30, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)
+UL_BAAN = G(body=(8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 0), sink=0.02, rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
+UL_HOVER = AIR(body=(6, 0, 0), rl=(10, 8, 14), ll=(20, 8, 30), look=(14, 0), rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)
+_ut = [(0, LIN, UL_STANCE), (6, IO, G(body=(-4, 0, 0), rl=UL_RL, ll=UL_LL, look=(10, 0), rightArm=R_FACE, leftArm=L_FACE)),
+       (14, LIN, G(body=(-6, 0, 0), rl=UL_RL, ll=UL_LL, look=(12, 0), rightArm=R_FACE, leftArm=L_FACE))]
+for k, t in enumerate(range(16, 41, 3)):
+    _ut += [(t, EX if k == 0 else IO, UL_SCREAM(k))]
+_ut += [(46, IO, UL_COCOON), (64, LIN, dict(UL_COCOON, body=(-46, 0, 0))),
+        (68, EX, UL_BAAN), (98, LIN, dict(UL_BAAN, body=(9, 0, 0))),
+        (102, IO, G(body=(-16, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 0), sink=0.24, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
+        (108, OQ, UL_RISE), (116, IO, UL_HOVER), (140, LIN, dict(UL_HOVER, body=(8, 0, 0)))]
+anim("ul_transform", 140, seq(_ut))
+
+# ── 각성 '궁극 생명' (64틱): 금빛에 싸여 웅크림 (4~18) → 22 '바-앙' 하고 가슴을 폄 → 36 날개를 활짝 펴며 두 팔을 벌림 → 56 자세 ──
+_ua = [(0, LIN, UL_STANCE), (4, IO, UL_COCOON), (18, LIN, dict(UL_COCOON, body=(-46, 0, 0))), (22, EX, UL_BAAN), (32, LIN, UL_BAAN),
+       (36, EX, G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, 0), sink=0.04, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)),
+       (50, LIN, G(body=(11, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-14, 0), sink=0.04, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)), (56, IO, UL_STANCE), (64, LIN, UL_STANCE)]
+anim("ul_awaken", 64, seq(_ua))
+
+# ── 각성기 '생명의 정점' (120틱) — 컷신 "ul_ult". 서버가 상대를 앞 3칸에 세움:
+#   0~10 날개를 펴며 웅크림 → 12~18 낮게 날아들어 20 상대를 움켜쥠 → 22~44 상대를 붙든 채 하늘로 8칸 (서버가 같이 올림) →
+#   48·54·60·66 공중에서 파문이 실린 칼날로 크게 네 번 → 72 몸을 한 바퀴 → 76~88 상대를 거꾸로 쥐고 머리부터 내리꽂음 → 90 땅에 처박음 →
+#   92~108 땅에서 생물이 솟아 덮침 (일어서 내려다봄) → 112 손을 거두며 등을 돌림
+UL_ULT_SL = lambda sg: AIR(body=(-10, 34 * sg, 6 * sg), rl=(10, 10, 30), ll=(24, 10, 40), look=(6, -20 * sg), rightArm=R_CUT_OUT if sg > 0 else R_CUT_IN, leftArm=L_CUT_IN if sg > 0 else L_CUT_OUT)
+UL_CARRY = AIR(body=(-6, 0, 0), rl=(20, 8, 30), ll=(30, 8, 40), look=(10, 0), rightArm=R_NECK_HI, leftArm=L_BACK_LO)
+_uu = [(0, LIN, UL_STANCE), (6, IO, UL_CROUCH), (10, LIN, UL_CROUCH), (13, OQ, UL_DIVE),
+       (20, EX, AIR(body=(-30, 0, 0), rl=(30, 8, 20), ll=(40, 8, 30), look=(20, 0), rightArm=R_PALM, leftArm=L_COLLAR)),
+       (26, IO, UL_CARRY), (44, LIN, dict(UL_CARRY, body=(-4, 0, 0)))]
+for k, t in enumerate((48, 54, 60, 66)):
+    sg = 1 if k % 2 == 0 else -1
+    _uu += [(t - 3, IO, UL_ULT_SL(-sg)), (t, EX, UL_ULT_SL(sg))]
+_uu += [(72, IO, AIR(body=(-20, 180, 0), look=(10, 0), rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)),
+        (76, IO, AIR(body=(-150, 0, 0), rl=(10, 8, 10), ll=(16, 8, 20), look=(30, 0), rightArm=R_UP_HIGH, leftArm=L_UP_HIGH)),
+        (88, LIN, AIR(body=(-160, 0, 0), rl=(8, 8, 8), ll=(14, 8, 16), look=(30, 0), rightArm=R_UP_HIGH, leftArm=L_UP_HIGH)),
+        (90, EX, G(body=(-50, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(34, 0), sink=0.32, rightArm=R_GROUND, leftArm=L_GROUND)),
+        (96, LIN, G(body=(-46, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(32, 0), sink=0.3, rightArm=R_GROUND, leftArm=L_GROUND)),
+        (102, IO, UL_BAAN), (112, LIN, dict(UL_BAAN, body=(9, 0, 0))), (120, IO, UL_STANCE)]
+anim("ul_ult", 120, seq(_uu))
+
 # ── 달리기 (전투 모드 중 달릴 때 자세 층에 깔림) ──
 # 다리·팔 흔들기는 바닐라(걸음 속도에 맞춰 흔들림)를 그대로 두고, 몸만 앞으로 숙이고 팔꿈치를 굽혀 달리는 모양만 잡음
 # (예전엔 10틱 고정 주기로 다리를 따로 움직여서 실제 속도와 안 맞아 미끄러지듯 어색했음)
@@ -2317,7 +2464,8 @@ for _base, _name, _kw in [
         ("stance_vm_arms", "stance_vm_walk", dict(thigh=(24, -34), knee=(2, 40, 12), twist=4, sway=0)),   # 뱀파이어: 젖힌 채 큰 보폭, 어깨를 거들먹
         ("stance_ph_arms", "stance_ph_walk", dict(thigh=(22, -28), knee=(6, 44, 22), leg_roll=6)),          # 열: 다리 넓게, 디딜 때 무게
         ("stance_pw_arms", "stance_pw_walk", dict(lean=4, knee=(4, 48, 14), twist=1)),
-        ("stance_pl_arms", "stance_pl_walk", dict(thigh=(24, -32), knee=(3, 44, 14), twist=3))]:                # 빛: 꼿꼿이 큰 보폭, 어깨를 조금 거들먹                   # 바람: 살짝 숙여 매끈하게
+        ("stance_pl_arms", "stance_pl_walk", dict(thigh=(24, -32), knee=(3, 44, 14), twist=3)),
+        ("stance_ul_arms", "stance_ul_walk", dict(thigh=(26, -34), knee=(2, 42, 12), twist=4, sway=0))]:                # 빛: 꼿꼿이 큰 보폭, 어깨를 조금 거들먹                   # 바람: 살짝 숙여 매끈하게
     anim(_name, 16, walk_cycle(_pose0(_base), **_kw), loop=True, ret=0)
 
 # 공중 (다리만 — 자세 층 아래 '다리 층'에 깔림. 팔은 싸움 자세 그대로)
