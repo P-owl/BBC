@@ -246,7 +246,7 @@ public final class UltimateLife {
             w.spawnParticles(UltimateForm.GOLD_AURA, p.getX(), p.getY() + 1.0, p.getZ(), 10, 0.6, 0.9, 0.6, 0);
             w.spawnParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 1, p.getZ(), 3, 0.3, 0.6, 0.3, 0.1);
         });
-        Tasks.later(18, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM2); });
+        Tasks.later(16, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM2); });   // 몸부림치며 울부짖음 (16~70)
         Tasks.later(30, () -> {
             if (!alive(p)) return;
             for (int i = 0; i < 4; i++) {
@@ -274,7 +274,7 @@ public final class UltimateLife {
             }
         });
         Tasks.later(100, () -> { if (alive(p)) UltimateForm.wingBurst(w, p); });
-        Tasks.later(102, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM3); });
+        Tasks.later(70, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM3); });   // 아름답다… 태양을 극복했다 (바-앙에 맞춰)
         for (int t = 100; t < SCENE_LEN; t += 10) Tasks.later(t, () -> { if (alive(p)) Motion.play(p, "#wing:on"); });
         for (int t = 108; t < 116; t++) Tasks.later(t, () -> { if (alive(p)) { Combat.move(p, new Vec3d(0, 0.45, 0)); UltimateForm.feathers(w, p.getPos().add(0, 1, 0), 4, 0.6); } });
         Tasks.later(116, () -> { if (alive(p)) p.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 60, 0, false, false)); });
