@@ -2314,23 +2314,42 @@ UL_KNEEL = G(body=(-30, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(22, 0), sink=0.1,
 anim("ul_ritual", 40, seq([(0, LIN, UL_KNEEL), (2, IO, dict(UL_KNEEL, body=(-33, 3, 0))), (4, IO, dict(UL_KNEEL, body=(-28, -3, 0))),
                            (20, IO, dict(UL_KNEEL, body=(-34, 0, 0))), (22, IO, dict(UL_KNEEL, body=(-29, 3, 0))), (40, IO, UL_KNEEL)]), loop=True, ret=0)
 
-# ── 변신 (의식이 끝날 때 140틱, 참고 2:53.5~3:05.5 — 붉은 돌을 가면에 → 몸부림 → 금빛으로 웅크림 → 껍질이 깨지며 '바-앙' → 날개를 펴고 날아오름) ──
-#   0~14 두 손으로 가면을 감쌈 → 16~40 고개를 젖히고 몸부림 (3틱마다 들썩) → 44~64 금빛에 싸여 깊게 웅크림 → 68 껍질이 깨지며 일어서 가슴을 폄 (바-앙) →
-#   72~98 버팀 → 100 날개를 펴며 무릎을 굽힘 → 108 날아오름 (서버가 띄움) → 112~140 공중에서 두 팔을 벌리고 내려다봄
-UL_SCREAM = lambda k: G(body=(18 + (k % 2) * 6, (k % 3 - 1) * 8, (k % 2) * 4 - 2), rl=WIDE_RL, ll=WIDE_LL, look=(-28, 0), sink=0.04,
-                        rightArm=R_WIDE_LO if k % 2 else R_SPREAD_HI, leftArm=L_SPREAD_HI if k % 2 else L_WIDE_LO)
+# ── 탄생 (의식이 끝날 때 320틱 = 16초) — 참고: TV 애니 카즈 변신(가면 속 붉은 돌 → 빛에 삼켜짐) + 탄생 장면(일출 · 해를 등진 실루엣 · 바-앙 · 해를 향해 뻗는 손 · 반짝이 속 상반신).
+#    서버가 몸을 서쪽으로 돌려 세우고 시간을 새벽 → 일출로 돌림 (컷신 앞쪽 카메라 = 해를 등진 역광)
+#   0~24 무릎 꿇고 두 손으로 가면을 감쌈 (붉은 빛) → 26 보라·흰 섬광에 움찔 → 40~58 손을 내리며 고개를 듦 →
+#   60 오른손으로 땅을 할큄 (몸부림) → 78~100 무릎 꿇은 채 등을 크게 젖히고 고개를 뒤로 (빛에 삼켜짐) → 100~122 빛 속에서 일어서며 두 팔을 아래로 펼침 →
+#   124~154 해를 등지고 다리를 벌리고 서서 두 팔을 펼친 채 올려봄 → 156 바-앙 (한 손 허리, 가슴을 내밀고 고개를 기울임) → 190~218 꼿꼿이 서서 내려다봄 (눈이 빛남) →
+#   222~248 해 쪽으로 몸을 돌려 오른손을 펴 하늘로 뻗음 → 252~266 돌아서서 내려다봄 → 268 날개를 펴며 두 팔을 활짝 → 272~ 떠오름 → 296~320 공중에서 가슴을 펴고 내려다봄 (반짝이)
+UL_SHUDDER = lambda base, k: dict(base, body=(base["body"][0] + (2 if k % 2 else -2), base["body"][1] + (k % 3 - 1) * 3, base["body"][2]))
+UL_CLAW = G(body=(-42, -12, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(28, 8), sink=0.12, rightArm=R_GROUND, leftArm=HL((-0.4, -0.75, -0.5), (-0.45, 0.35, -0.5)))
+UL_ARCH = G(body=(26, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(-34, 0), sink=0.16, rightArm=R_BACK_LO, leftArm=L_BACK_LO)
+UL_SPREAD = G(body=(4, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-18, 0), sink=0.02, rightArm=HR((0.85, -0.5, 0.1), (1.05, 0.95, -0.05)), leftArm=HL((-0.85, -0.5, 0.1), (-1.05, 0.95, -0.05)))
+UL_BAAN2 = G(body=(6, -16, 5), rl=(8, 10, 6), ll=(-14, 10, 10), look=(-8, 12), rightArm=R_HIP, leftArm=L_LOOSE)
+UL_LOOK = G(body=(4, 0, 0), rl=UL_RL, ll=UL_LL, look=(10, 0), rightArm=R_LOOSE, leftArm=L_LOOSE)
+UL_REACH = G(body=(8, 160, 0), rl=(6, 8, 4), ll=(-10, 8, 8), look=(-26, 0), rightArm=HR((0.25, 0.8, -0.55), (0.38, 2.15, -0.65)), leftArm=L_LOOSE)
+UL_WINGS = G(body=(12, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-16, 0), sink=0.04, rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)
 UL_COCOON = G(body=(-44, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(30, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)
 UL_BAAN = G(body=(8, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 0), sink=0.02, rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
 UL_HOVER = AIR(body=(6, 0, 0), rl=(10, 8, 14), ll=(20, 8, 30), look=(14, 0), rightArm=R_SPREAD_HI, leftArm=L_SPREAD_HI)
-_ut = [(0, LIN, UL_STANCE), (6, IO, G(body=(-4, 0, 0), rl=UL_RL, ll=UL_LL, look=(10, 0), rightArm=R_FACE, leftArm=L_FACE)),
-       (14, LIN, G(body=(-6, 0, 0), rl=UL_RL, ll=UL_LL, look=(12, 0), rightArm=R_FACE, leftArm=L_FACE))]
-for k, t in enumerate(range(16, 41, 3)):
-    _ut += [(t, EX if k == 0 else IO, UL_SCREAM(k))]
-_ut += [(46, IO, UL_COCOON), (64, LIN, dict(UL_COCOON, body=(-46, 0, 0))),
-        (68, EX, UL_BAAN), (98, LIN, dict(UL_BAAN, body=(9, 0, 0))),
-        (102, IO, G(body=(-16, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(10, 0), sink=0.24, rightArm=R_BACK_LO, leftArm=L_BACK_LO)),
-        (108, OQ, UL_RISE), (116, IO, UL_HOVER), (140, LIN, dict(UL_HOVER, body=(8, 0, 0)))]
-anim("ul_transform", 140, seq(_ut))
+UL_PROUD = AIR(body=(8, -10, 0), rl=(10, 8, 14), ll=(22, 8, 30), look=(-12, 8), rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)
+_ut = [(0, LIN, UL_KNEEL)]
+for k, t in enumerate(range(2, 24, 3)): _ut.append((t, IO, UL_SHUDDER(UL_KNEEL, k)))
+_ut += [(26, EX, dict(UL_KNEEL, body=(-18, 0, 0), head=(-6, 0, 0))), (32, IO, UL_KNEEL),
+        (42, IO, G(body=(-22, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(-6, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)),
+        (58, LIN, G(body=(-20, 0, 0), rl=SQUAT_RL, ll=SQUAT_LL, look=(-10, 0), sink=0.1, rightArm=R_CHEST, leftArm=L_CHEST)),
+        (61, EX, UL_CLAW)]
+for k, t in enumerate(range(63, 77, 3)): _ut.append((t, IO, UL_SHUDDER(UL_CLAW, k)))
+_ut += [(82, OQ, UL_ARCH)]
+for k, t in enumerate(range(85, 99, 3)): _ut.append((t, IO, UL_SHUDDER(UL_ARCH, k)))
+_ut += [(112, IO, G(body=(-6, 0, 0), rl=WIDE_RL, ll=WIDE_LL, look=(-10, 0), sink=0.14, rightArm=R_WIDE_LO, leftArm=L_WIDE_LO)),
+        (124, IO, UL_SPREAD), (154, LIN, dict(UL_SPREAD, body=(5, 0, 0))),
+        (157, EX, UL_BAAN2), (188, LIN, dict(UL_BAAN2, body=(7, -16, 5))),
+        (194, IO, UL_LOOK), (218, LIN, UL_LOOK),
+        (228, IO, UL_REACH), (248, LIN, dict(UL_REACH, body=(9, 160, 0))),
+        (256, IO, UL_LOOK), (266, LIN, UL_LOOK),
+        (270, EX, UL_WINGS), (276, OQ, UL_RISE), (288, IO, UL_HOVER),
+        (298, IO, UL_PROUD), (320, LIN, dict(UL_PROUD, body=(9, -10, 0)))]
+anim("ul_transform", 320, seq(_ut))
 
 # ── 각성 '궁극 생명' (64틱): 금빛에 싸여 웅크림 (4~18) → 22 '바-앙' 하고 가슴을 폄 → 36 날개를 활짝 펴며 두 팔을 벌림 → 56 자세 ──
 _ua = [(0, LIN, UL_STANCE), (4, IO, UL_COCOON), (18, LIN, dict(UL_COCOON, body=(-46, 0, 0))), (22, EX, UL_BAAN), (32, LIN, UL_BAAN),

@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   thorn  x,y,z                 발밑에서 검은 가시가 솟음
  *   flesh  x,y,z,size            살점이 튐
  *   drain  id,ticks              id 에게서 시전자에게 붉은 생명 줄기가 흘러듦
+ *   tentacle mode,yaw,pitch,len,…  변형 팔: 시전자 오른 어깨에서 굵은 살덩이 촉수가 뻗음 (0 쓸기 from,to,t0,t1[,from2,to2,t0b,t1b] · 1 찌르기 · 2 내리찍기)
  * 날개 끝 바람 자국은 UltimateRender 가 날개를 그릴 때 날개 끝 자리를 알려 줌 (trail)
  */
 public final class UltimateFx {
@@ -91,6 +92,7 @@ public final class UltimateFx {
                 case "thorn" -> new Thorn(v(a, 0));
                 case "flesh" -> new Flesh(v(a, 0), f(a, 3));
                 case "drain" -> new Drain(i(a, 0), sender, i(a, 1));
+                case "tentacle" -> new Tentacle(sender, a);
                 default -> null;
             };
             if (f != null) synchronized (LIVE) { if (LIVE.size() < 400) LIVE.add(f); }
@@ -585,6 +587,183 @@ public final class UltimateFx {
                 ms.push(); ms.translate(x, y, z); ms.multiply(RotationAxis.POSITIVE_Y.rotationDegrees((float) b[9])); ms.multiply(RotationAxis.POSITIVE_X.rotationDegrees((float) b[9] * 0.7f));
                 ms.scale(s, s * 0.8f, s); render(b[11] == 0 ? UNIT_RED : UNIT_RED_DARK, ms, vc, light(w, new Vec3d(x, y, z))); ms.pop();
             }
+        }
+    }
+
+    // ───────── 변형 팔 (촉수) ─────────
+    /** 시전자 오른 어깨에서 뻗는 굵은 살덩이 촉수. 예전엔 팔 모델에 붙여 그려서 1인칭에선 안 보이고 가늘고 어두웠음 →
+     *  이제 세상에 직접 그림: 굵기 0.6 → 0.2칸 관 (빛을 받는 모델 층) + 등 쪽 뼈 가시 · 배 쪽 빨판 · 끝에 뼈 갈퀴 셋 + 둘레에 옅은 붉은 빛.
+     *  뿌리가 먼저 움직이고 끝이 늦게 따라와 채찍처럼 휨 (마디마다 조금 전 시각의 방향을 씀). 방향 · 길이는 서버가 맞히는 판정과 같은 시간표 */
+    static final class Tentacle extends Fx {
+        static final int N = 26, K = 10;
+        final int owner, mode; final float yaw, pitch, len; final float[] sw;
+        final float lag; final float seed = R.nextFloat() * 10;
+        Tentacle(int owner, String[] a) {
+            super(30);
+            this.owner = owner; mode = Integer.parseInt(a[0]); yaw = Float.parseFloat(a[1]); pitch = Float.parseFloat(a[2]); len = Float.parseFloat(a[3]);
+            sw = new float[Math.max(0, a.length - 4)];
+            for (int i = 0; i < sw.length; i++) sw[i] = Float.parseFloat(a[4 + i]);
+            lag = mode == 0 ? 2.4f : mode == 1 ? 0.7f : 1.8f;
+            ttl = mode == 0 ? (int) end() + 9 : mode == 1 ? 13 : 19;
+        }
+        float end() { return sw.length >= 8 ? sw[7] : sw.length >= 4 ? sw[3] : 10; }
+        static float ss(float x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+        static float lerp(float a, float b, float u) { return a + (b - a) * u; }
+        /** τ 틱의 [수평 각(+ 오른쪽), 숙임(+ 아래), 길이] */
+        float[] pose(float t) {
+            switch (mode) {
+                case 0 -> {
+                    float from = sw[0], to = sw[1], t0 = sw[2], t1 = sw[3] + 1;
+                    float ang = t < t0 ? from : lerp(from, to, ss((t - t0) / (t1 - t0)));
+                    if (sw.length >= 8 && t >= sw[6]) ang = lerp(sw[4], sw[5], ss((t - sw[6]) / (sw[7] + 1 - sw[6])));
+                    float L = len * ss((t - 1.5f) / Math.max(1, t0 - 1.5f)) * (1 - ss((t - end() - 2.5f) / 6f));
+                    return new float[]{ang, 6 + (float) Math.sin(t * 0.5) * 3, L};
+                }
+                case 1 -> {
+                    float L = len * (1 - (float) Math.pow(1 - Math.max(0, Math.min(1, (t - 1.5f) / 2.5f)), 3)) * (1 - ss((t - 7) / 5f));
+                    return new float[]{0, pitch, L};
+                }
+                default -> {
+                    float p = t < 5 ? lerp(5, -58, ss(t / 5f)) : lerp(-58, 16, ss((t - 5) / 2.4f));
+                    float L = len * (t < 5 ? 0.85f * ss((t - 1) / 4f) : lerp(0.85f, 1f, ss((t - 5) / 2.4f))) * (1 - ss((t - 12) / 6f));
+                    return new float[]{0, p, L};
+                }
+            }
+        }
+        Vec3d dir(float ang, float p) {
+            double y = Math.toRadians(yaw);
+            Vec3d fw = new Vec3d(-Math.sin(y), 0, Math.cos(y));
+            double a = Math.toRadians(ang), c = Math.cos(a), s = Math.sin(a);
+            Vec3d h = new Vec3d(fw.x * c - fw.z * s, 0, fw.x * s + fw.z * c);
+            double pr = Math.toRadians(p);
+            return h.multiply(Math.cos(pr)).add(0, -Math.sin(pr), 0);
+        }
+        /** 등뼈 점들 (뿌리 → 끝) */
+        List<Vec3d> spine(ClientWorld w) {
+            Entity e = w.getEntityById(owner);
+            if (e == null) return null;
+            float t = age + delta;
+            float by = e instanceof net.minecraft.entity.LivingEntity le ? (float) Math.toRadians(lerp(le.prevBodyYaw, le.bodyYaw, delta)) : (float) Math.toRadians(yaw);
+            Vec3d right = new Vec3d(-Math.cos(by), 0, -Math.sin(by));
+            Vec3d o = e.getLerpedPos(delta).add(0, 1.32, 0).add(right.multiply(0.36));
+            List<Vec3d> pts = new ArrayList<>(N + 1);
+            pts.add(o);
+            Vec3d q = o;
+            for (int i = 1; i <= N; i++) {
+                float u = i / (float) N;
+                float[] ps = pose(t - u * lag);
+                if (ps[2] < 0.05f) return pts.size() > 2 ? pts : null;
+                Vec3d d = dir(ps[0], ps[1]);
+                Vec3d side = d.crossProduct(new Vec3d(0, 1, 0));
+                side = side.lengthSquared() < 1e-6 ? new Vec3d(1, 0, 0) : side.normalize();
+                double wr = Math.sin(t * 0.9 + u * 7 + seed) * 0.35 * u;   // 꿈틀
+                d = d.add(side.multiply(wr * 0.25)).add(0, Math.cos(t * 0.7 + u * 5 + seed) * 0.08 * u - 0.06 * u * u, 0).normalize();
+                q = q.add(d.multiply(ps[2] / N));
+                pts.add(q);
+            }
+            return pts;
+        }
+        static float rad(float u) { return 0.3f * (1 - u) + 0.1f * u + (float) Math.sin(u * 40) * 0.012f; }
+        float grow() { return Math.min(1f, (age + delta) / 2f); }
+
+        private static final float TU = 52.5f / 64f, TV = 20.5f / 48f;   // 텍스처의 밝은 뼈색 칸 (색은 꼭짓점 색으로 입힘)
+        static void v(VertexConsumer vc, Matrix4f m, Vec3d p, float r, float g, float b, int li, Vec3d n) {
+            vc.vertex(m, (float) p.x, (float) p.y, (float) p.z).color(r, g, b, 1f).texture(TU, TV).overlay(OverlayTexture.DEFAULT_UV).light(li).normal((float) n.x, (float) n.y, (float) n.z);
+        }
+        static void cone(VertexConsumer vc, Matrix4f m, Vec3d base, Vec3d tip, Vec3d ax1, Vec3d ax2, float br, float[] col, int li) {
+            for (int k = 0; k < 4; k++) {
+                double a0 = Math.PI / 2 * k, a1 = Math.PI / 2 * (k + 1);
+                Vec3d d0 = ax1.multiply(Math.cos(a0)).add(ax2.multiply(Math.sin(a0))), d1 = ax1.multiply(Math.cos(a1)).add(ax2.multiply(Math.sin(a1)));
+                Vec3d n = d0.add(d1).normalize();
+                float sh = 0.75f + 0.25f * (float) n.y;
+                v(vc, m, base.add(d0.multiply(br)), col[0] * sh, col[1] * sh, col[2] * sh, li, n);
+                v(vc, m, base.add(d1.multiply(br)), col[0] * sh, col[1] * sh, col[2] * sh, li, n);
+                v(vc, m, tip, col[0], col[1], col[2], li, n);
+                v(vc, m, tip, col[0], col[1], col[2], li, n);
+            }
+        }
+        static final float[] BONE_C = {0.95f, 0.9f, 0.8f}, SUCK = {1f, 0.62f, 0.6f};
+
+        @Override void solid(MatrixStack ms, VertexConsumer vc, ClientWorld w) {
+            List<Vec3d> pts = spine(w);
+            if (pts == null) return;
+            Matrix4f m = ms.peek().getPositionMatrix();
+            int raw = light(w, pts.get(pts.size() / 2));
+            int li = net.minecraft.client.render.LightmapTextureManager.pack(Math.max(net.minecraft.client.render.LightmapTextureManager.getBlockLightCoordinates(raw), 11),
+                    net.minecraft.client.render.LightmapTextureManager.getSkyLightCoordinates(raw));
+            float g = grow();
+            int n = pts.size();
+            Vec3d[] T = new Vec3d[n], U = new Vec3d[n], B = new Vec3d[n];
+            for (int i = 0; i < n; i++) {   // 결 (평행 이동 — 꼬이지 않게)
+                Vec3d a = pts.get(Math.max(0, i - 1)), b = pts.get(Math.min(n - 1, i + 1));
+                Vec3d tt = b.subtract(a);
+                T[i] = tt.lengthSquared() < 1e-9 ? new Vec3d(0, 0, 1) : tt.normalize();
+                Vec3d up = i == 0 ? new Vec3d(0, 1, 0) : U[i - 1];
+                Vec3d uu = up.subtract(T[i].multiply(up.dotProduct(T[i])));
+                if (uu.lengthSquared() < 1e-6) uu = new Vec3d(1, 0, 0).subtract(T[i].multiply(T[i].x));
+                U[i] = uu.normalize();
+                B[i] = T[i].crossProduct(U[i]).normalize();
+            }
+            for (int i = 0; i + 1 < n; i++) {
+                Vec3d c0 = pts.get(i), c1 = pts.get(i + 1);
+                if (c0.squaredDistanceTo(cam) < 0.36 && c1.squaredDistanceTo(cam) < 0.36) continue;   // 1인칭: 눈앞 뿌리는 화면을 가리지 않게
+                float u0 = i / (float) (n - 1), u1 = (i + 1) / (float) (n - 1);
+                float r0 = rad(u0) * g, r1 = rad(u1) * g;
+                float band = (i % 3 == 0) ? 0.82f : 1f;   // 근육 마디
+                for (int k = 0; k < K; k++) {
+                    double a0 = Math.PI * 2 * k / K, a1 = Math.PI * 2 * (k + 1) / K;
+                    Vec3d n00 = U[i].multiply(Math.cos(a0)).add(B[i].multiply(Math.sin(a0))), n01 = U[i].multiply(Math.cos(a1)).add(B[i].multiply(Math.sin(a1)));
+                    Vec3d n10 = U[i + 1].multiply(Math.cos(a0)).add(B[i + 1].multiply(Math.sin(a0))), n11 = U[i + 1].multiply(Math.cos(a1)).add(B[i + 1].multiply(Math.sin(a1)));
+                    // 등(위)은 검붉고 배(아래)는 밝은 살색
+                    float belly = (float) (0.5 - 0.5 * Math.cos((a0 + a1) / 2));
+                    float rr = (0.5f + 0.45f * belly) * band, gg = (0.07f + 0.2f * belly) * band, bb = (0.06f + 0.15f * belly) * band;
+                    v(vc, m, c0.add(n00.multiply(r0)), rr, gg, bb, li, n00);
+                    v(vc, m, c0.add(n01.multiply(r0)), rr, gg, bb, li, n01);
+                    v(vc, m, c1.add(n11.multiply(r1)), rr, gg, bb, li, n11);
+                    v(vc, m, c1.add(n10.multiply(r1)), rr, gg, bb, li, n10);
+                }
+                if (i % 3 == 1 && i < n - 3) {   // 등 쪽 뼈 가시 (뿌리 쪽으로 눕힘)
+                    Vec3d base = c0.add(U[i].multiply(r0 * 0.85));
+                    float sl = (0.22f + 0.2f * (1 - u0)) * g;
+                    cone(vc, m, base, base.add(U[i].multiply(sl)).subtract(T[i].multiply(sl * 0.6)), T[i], B[i], 0.06f * g, BONE_C, li);
+                }
+                if (i % 2 == 0 && i > 1 && i < n - 2) {   // 배 쪽 빨판
+                    Vec3d c = c0.add(U[i].multiply(-r0 * 1.01)); float sr = 0.07f * g;
+                    Vec3d nn = U[i].multiply(-1);
+                    for (int side = -1; side <= 1; side += 2) {
+                        Vec3d cc = c.add(B[i].multiply(side * r0 * 0.45)).add(U[i].multiply(r0 * 0.1));
+                        v(vc, m, cc.add(T[i].multiply(sr)), SUCK[0], SUCK[1], SUCK[2], li, nn);
+                        v(vc, m, cc.add(B[i].multiply(sr)), SUCK[0], SUCK[1], SUCK[2], li, nn);
+                        v(vc, m, cc.subtract(T[i].multiply(sr)), SUCK[0] * 0.7f, SUCK[1] * 0.5f, SUCK[2] * 0.5f, li, nn);
+                        v(vc, m, cc.subtract(B[i].multiply(sr)), SUCK[0], SUCK[1], SUCK[2], li, nn);
+                    }
+                }
+            }
+            // 끝: 뼈 갈퀴 셋 (앞으로 벌어짐)
+            Vec3d tip = pts.get(n - 1), tt = T[n - 1];
+            for (int k = 0; k < 3; k++) {
+                double a = Math.PI * 2 * k / 3 + 0.3;
+                Vec3d out = U[n - 1].multiply(Math.cos(a)).add(B[n - 1].multiply(Math.sin(a)));
+                Vec3d base = tip.add(out.multiply(0.07 * g));
+                Vec3d d = tt.add(out.multiply(0.55)).normalize();
+                Vec3d mid = base.add(d.multiply(0.32 * g));
+                Vec3d end = mid.add(tt.subtract(out.multiply(0.25)).normalize().multiply(0.3 * g));   // 안으로 휘는 발톱
+                Vec3d ax2 = d.crossProduct(out).normalize();
+                cone(vc, m, base, mid, out, ax2, 0.07f * g, BONE_C, li);
+                cone(vc, m, mid, end, out, ax2, 0.045f * g, BONE_C, li);
+            }
+        }
+        @Override void glow(VertexConsumer vc, Matrix4f m, ClientWorld w) {
+            List<Vec3d> pts = spine(w);
+            if (pts == null) return;
+            float g = grow();
+            for (int i = 0; i + 1 < pts.size(); i++) {
+                if (pts.get(i).squaredDistanceTo(cam) < 0.5) continue;
+                float u = i / (float) (pts.size() - 1);
+                ribbon(vc, m, pts.get(i), pts.get(i + 1), rad(u) * 4.2f * g, 0.9f, 0.08f, 0.04f, 0.28f);
+                ribbon(vc, m, pts.get(i), pts.get(i + 1), rad(u) * 2.4f * g, 1f, 0.25f, 0.12f, 0.22f);
+            }
+            blob(vc, m, pts.get(pts.size() - 1), 0.45f * g, RED, 0.5f);
         }
     }
 

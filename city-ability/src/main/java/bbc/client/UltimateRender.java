@@ -134,7 +134,8 @@ public class UltimateRender extends FeatureRenderer<AbstractClientPlayerEntity, 
             case "ul_arm_air" -> { ext = ramp(age, 3, 7, 11, 15); len = 96; }
             default -> { }
         }
-        if (ext > 0.01f) drawArm(matrices, vc, light, m.rightArm, BbcClient.bend(player, "rightArm"), ext * len, animationProgress);
+        // 팔 모델에 붙여 그리던 변형 팔은 1인칭에서 안 보여서 세상에 그리는 촉수(UltimateFx.Tentacle)로 바꿈 — 여기선 팔 끝에 살덩이 뿌리만
+        if (ext > 0.01f && false) drawArm(matrices, vc, light, m.rightArm, BbcClient.bend(player, "rightArm"), ext * len, animationProgress);
     }
 
     private static float ramp(float t, float a, float b, float c, float d) {

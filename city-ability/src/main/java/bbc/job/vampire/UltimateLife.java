@@ -5,6 +5,7 @@ import bbc.combat.Combat;
 import bbc.combat.CombatMode;
 import bbc.combat.Fx;
 import bbc.combat.Motion;
+import bbc.combat.WorldFx;
 import bbc.core.PlayerData;
 import bbc.core.Tasks;
 import bbc.job.Jobs;
@@ -218,54 +219,124 @@ public final class UltimateLife {
         if (scene) transformScene(p);
     }
 
-    // ───────── 변신 장면 (140틱) ─────────
-    //   0~14 두 손으로 가면을 감쌈 (붉은 빛이 가면에서 머리 위로) → 16~40 몸부림 (붉은·금빛, 30 번개) → 44~64 금빛 껍질에 싸여 웅크림 (돌 조각) →
-    //   68 껍질이 깨지며 바-앙 (모두에게 제목) → 100 날개를 폄 → 108 날아오름 → 116~140 떠 있음
-    static final int SCENE_LEN = 140;
+    // ───────── 탄생 장면 (320틱 = 16초) — 참고: TV 애니 카즈 변신 + '완전생물 탄생' 장면의 흐름·구도 ─────────
+    //   시간을 새벽(21800)으로 돌렸다가 100~200틱에 해가 떠오르게 (23700), 끝엔 아침 — 몸은 서쪽을 보게 세워서 컷신 앞 카메라에선 해가 등 뒤 (역광 실루엣)
+    //   0~24 가면 속 붉은 돌이 빛남 (붉은 빛줄기가 하늘로) → 26 보라·흰 섬광 (화면이 번쩍) → 40~58 고개를 듦 →
+    //   60~78 땅을 할큄 (땅이 깨짐) → 78~100 등을 젖히고 빛에 삼켜짐 (몸에서 무지갯빛 빛줄기) → 100~124 빛기둥 속에서 일어섬 →
+    //   124~156 해가 떠오름 (해를 등진 실루엣, 무지갯빛이 바닥을 휩쓺) → 157 바-앙 (모두에게 제목) → 190~218 역광 속 빛나는 눈 →
+    //   220~250 해를 향해 손을 뻗음 → 252~266 어둠 속 눈 → 268 날개 → 272~ 떠오름 → 296~320 반짝이 속에서 내려다봄
+    static final int SCENE_LEN = 320;
+    static final long T_NIGHT = 21800, T_SUNRISE = 23700, T_END = 24150;
+    static final int[] RAINBOW = {0xFF7AD0, 0x7ADFFF, 0x9CFF7A, 0xFFE07A, 0xC79CFF};
+
+    /** 장면 틱 → 하루 중 시각 */
+    static long sceneTime(int k) {
+        if (k < 100) return T_NIGHT;
+        if (k < 200) { double x = (k - 100) / 100.0; return T_NIGHT + (long) ((T_SUNRISE - T_NIGHT) * (x * x * (3 - 2 * x))); }
+        double x = Math.min(1, (k - 200) / 120.0);
+        return T_SUNRISE + (long) ((T_END - T_SUNRISE) * x);
+    }
 
     static void transformScene(ServerPlayerEntity p) {
         ServerWorld w = p.getServerWorld();
         MinecraftServer s = p.getServer();
+        ServerWorld ow = s.getOverworld();
         SCENE.put(p.getUuid(), System.currentTimeMillis());
-        Motion.play(p, "ul_transform");
-        if (ServerPlayNetworking.canSend(p, CutscenePayload.ID)) ServerPlayNetworking.send(p, new CutscenePayload("ul_transform", p.getId(), -1));
-        Combat.invuln(p, SCENE_LEN);
+        final float yaw = 90f;   // 서쪽을 봄 (해는 동쪽에서 뜸 → 앞 카메라에서 등 뒤)
         Vec3d at = p.getPos();
-        for (int i = 0; i < 106; i++) Tasks.later(i, () -> { if (alive(p)) { p.networkHandler.requestTeleport(at.x, at.y, at.z, p.getYaw(), p.getPitch()); p.setVelocity(0, 0, 0); } });
+        p.networkHandler.requestTeleport(at.x, at.y, at.z, yaw, 0f);
+        p.setYaw(yaw); p.setHeadYaw(yaw); p.setBodyYaw(yaw);
+        final long day = ow.getTimeOfDay() / 24000L * 24000L;
+        ow.setWeather(12000, 0, false, false);   // 해가 보이게 맑게
+        Motion.play(p, "ul_transform");
+        Tasks.later(1, () -> { if (alive(p) && ServerPlayNetworking.canSend(p, CutscenePayload.ID)) ServerPlayNetworking.send(p, new CutscenePayload("ul_transform", p.getId(), -1)); });
+        Combat.invuln(p, SCENE_LEN);
+        Vec3d fw = new Vec3d(-1, 0, 0), rt = new Vec3d(0, 0, -1);   // 서쪽을 볼 때 앞 · 오른쪽
+        for (int i = 0; i < SCENE_LEN; i++) {
+            final int k = i;
+            Tasks.later(i, () -> {
+                ow.setTimeOfDay(day + sceneTime(k));
+                // 시각을 매 틱 보내서 해가 부드럽게 떠오르게 (보통은 1초에 한 번이라 뚝뚝 끊김)
+                s.getPlayerManager().sendToDimension(new net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket(ow.getTime(), ow.getTimeOfDay(),
+                        ow.getGameRules().getBoolean(net.minecraft.world.GameRules.DO_DAYLIGHT_CYCLE)), net.minecraft.world.World.OVERWORLD);
+                if (!alive(p) || k >= 272) return;
+                p.networkHandler.requestTeleport(at.x, at.y, at.z, yaw, 0f);
+                p.setVelocity(0, 0, 0);
+            });
+        }
+        // 0~24 가면 속 붉은 돌: 얼굴에 붉은 반짝 + 붉은 빛줄기가 하늘로
         Tasks.later(2, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM1); });
-        for (int t = 4; t < 16; t += 2) Tasks.later(t, () -> {
+        Tasks.later(4, () -> { if (alive(p)) WorldFx.beam(w, p.getPos().add(0, 1.0, 0), p.getPos().add(0, 40, 0), 0.28, 22, 0xFF2030); });
+        for (int t = 2; t < 24; t += 3) Tasks.later(t, () -> {
             if (!alive(p)) return;
-            Vec3d h = p.getEyePos();
-            w.spawnParticles(RED, h.x, h.y, h.z, 10, 0.2, 0.2, 0.2, 0);
-            for (int y = 0; y < 24; y++) w.spawnParticles(y % 3 == 0 ? RED : UltimateForm.GOLD_AURA, h.x, h.y + y * 0.5, h.z, 1, 0.03, 0.1, 0.03, 0);
+            Vec3d face = p.getPos().add(0, 1.0, 0).add(fw.multiply(0.3));
+            WorldFx.glint(w, face, 0.9, 0xFF3030);
+            w.spawnParticles(RED, face.x, face.y, face.z, 8, 0.15, 0.15, 0.15, 0);
         });
-        Tasks.later(8, () -> { if (alive(p)) { w.spawnParticles(ParticleTypes.FLASH, p.getX(), p.getEyeY(), p.getZ(), 1, 0, 0, 0, 0); w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 2f, 0.6f); } });
-        for (int t = 16; t < 42; t += 3) Tasks.later(t, () -> {
+        // 26 보라·흰 섬광
+        Tasks.later(26, () -> {
             if (!alive(p)) return;
-            w.spawnParticles(RED, p.getX(), p.getY() + 1.2, p.getZ(), 14, 0.5, 0.8, 0.5, 0);
-            w.spawnParticles(UltimateForm.GOLD_AURA, p.getX(), p.getY() + 1.0, p.getZ(), 10, 0.6, 0.9, 0.6, 0);
-            w.spawnParticles(ParticleTypes.END_ROD, p.getX(), p.getY() + 1, p.getZ(), 3, 0.3, 0.6, 0.3, 0.1);
+            Vec3d c = p.getPos().add(0, 1.0, 0).add(fw.multiply(0.8));
+            WorldFx.flash(w, c, 3.2);
+            WorldFx.ring(w, c, fw, 0.4, 6, 0.4, 10, 0xD8C0FF);
+            WorldFx.sparks(w, c, 1.6, 10, 10, 0xE0D0FF);
+            for (ServerPlayerEntity o : w.getPlayers()) if (o.squaredDistanceTo(p) < 40 * 40) Fx.flash(o, 1.0f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 2f, 0.6f);
+            w.playSound(null, p.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.PLAYERS, 1.2f, 1.4f);
         });
-        Tasks.later(16, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM2); });   // 몸부림치며 울부짖음 (16~70)
-        Tasks.later(30, () -> {
+        for (int t = 40; t < 58; t += 4) Tasks.later(t, () -> { if (alive(p)) eyes(w, p, fw, rt, 1.05, 0.6, 0xF0E0FF); });
+        // 60~78 땅을 할큄: 손 밑이 깨지고 빛이 새어 나옴
+        Tasks.later(60, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM2); });
+        Tasks.later(61, () -> {
             if (!alive(p)) return;
-            for (int i = 0; i < 4; i++) {
-                LightningEntity l = EntityType.LIGHTNING_BOLT.create(w);
-                if (l == null) continue;
-                l.setCosmetic(true);
-                l.refreshPositionAfterTeleport(p.getX() + (i % 2 == 0 ? 3 : -3), p.getY(), p.getZ() + (i < 2 ? 3 : -3));
-                w.spawnEntity(l);
-            }
+            Vec3d hand = p.getPos().add(fw.multiply(0.55)).add(rt.multiply(0.35));
+            Fx.debris(w, hand, 10, 0.8);
+            WorldFx.burst(w, hand.add(0, 0.2, 0), new Vec3d(0, 1, 0), 1.2, 0xFFFFFF, 0xC79CFF);
+            WorldFx.wave(w, hand, 0.2, 3.0, 8, 0xE8D8FF);
+            Fx.shakeAround(w, hand, 12, 0.6f);
         });
-        for (int t = 44; t < 66; t += 2) Tasks.later(t, () -> {
+        for (int t = 64; t < 78; t += 3) Tasks.later(t, () -> { if (alive(p)) WorldFx.sparks(w, p.getPos().add(fw.multiply(0.5)).add(0, 0.3, 0), 0.8, 4, 3, 0xE8D8FF); });
+        // 78~100 빛에 삼켜짐: 몸에서 사방으로 무지갯빛 빛줄기 + 금빛 기운 + 돌 껍질 조각
+        for (int t = 78; t < 100; t += 2) {
+            final int tt = t;
+            Tasks.later(t, () -> {
+                if (!alive(p)) return;
+                Vec3d c = p.getPos().add(0, 1.0, 0);
+                for (int q = 0; q < 3; q++) {
+                    double a = w.random.nextDouble() * Math.PI * 2, el = (w.random.nextDouble() - 0.3) * 1.2;
+                    Vec3d d = new Vec3d(Math.cos(a) * Math.cos(el), Math.sin(el), Math.sin(a) * Math.cos(el));
+                    WorldFx.beam(w, c, c.add(d.multiply(5 + w.random.nextDouble() * 4)), 0.12, 4, RAINBOW[(tt / 2 + q) % RAINBOW.length]);
+                }
+                w.spawnParticles(UltimateForm.GOLD_AURA, c.x, c.y, c.z, 14, 0.45, 0.6, 0.45, 0);
+                w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK, net.minecraft.block.Blocks.STONE.getDefaultState()), c.x, c.y, c.z, 3, 0.4, 0.5, 0.4, 0);
+            });
+        }
+        // 100~124 빛기둥 속에서 일어섬
+        Tasks.later(100, () -> {
             if (!alive(p)) return;
-            w.spawnParticles(UltimateForm.GOLD_AURA, p.getX(), p.getY() + 0.7, p.getZ(), 24, 0.45, 0.5, 0.45, 0);
-            w.spawnParticles(new net.minecraft.particle.BlockStateParticleEffect(ParticleTypes.BLOCK, net.minecraft.block.Blocks.STONE.getDefaultState()), p.getX(), p.getY() + 0.7, p.getZ(), 4, 0.4, 0.5, 0.4, 0);
+            WorldFx.beam(w, p.getPos(), p.getPos().add(0, 60, 0), 0.9, 26, 0xEADCFF);
+            WorldFx.flash(w, p.getPos().add(0, 1.2, 0), 2.6);
+            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_END_PORTAL_SPAWN, SoundCategory.PLAYERS, 1.2f, 1.3f);
         });
-        Tasks.later(68, () -> {
+        for (int t = 102; t < 124; t += 6) Tasks.later(t, () -> { if (alive(p)) WorldFx.ring(w, p.getPos().add(0, 0.2, 0), new Vec3d(0, 1, 0), 0.6, 7, 0.35, 10, 0xFFFFFF); });
+        // 124~156 일출: 무지갯빛이 바닥을 휩쓺 + 둘레 반짝
+        Tasks.later(124, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM3); });   // 아름답다… 이 눈부심…
+        Tasks.later(130, () -> {
             if (!alive(p)) return;
-            UltimateForm.goldBurst(w, p, 1.4f);
-            Fx.word(w, p.getPos().add(0, 2.8, 0), Fx.Sfx.DOGOOON, 2.2f);
+            for (int q = 0; q < RAINBOW.length; q++) WorldFx.wave(w, p.getPos(), 0.5 + q * 0.6, 22 + q * 3, 30, RAINBOW[q]);
+            w.playSound(null, p.getBlockPos(), SoundEvents.BLOCK_AMETHYST_BLOCK_RESONATE, SoundCategory.PLAYERS, 2.0f, 0.6f);
+        });
+        for (int t = 132; t < 156; t += 4) Tasks.later(t, () -> {
+            if (!alive(p)) return;
+            Vec3d c = p.getPos().add((w.random.nextDouble() - 0.5) * 6, 0.5 + w.random.nextDouble() * 2.5, (w.random.nextDouble() - 0.5) * 6);
+            WorldFx.glint(w, c, 0.8, RAINBOW[w.random.nextInt(RAINBOW.length)]);
+        });
+        // 157 바-앙
+        Tasks.later(157, () -> {
+            if (!alive(p)) return;
+            UltimateForm.goldBurst(w, p, 1.6f);
+            for (int q = 0; q < 3; q++) WorldFx.ring(w, p.getPos().add(0, 1.2, 0), new Vec3d(0, 1, 0), 0.6, 5 + q * 2.5, 0.35, 12 + q * 2, RAINBOW[q]);
+            Fx.word(w, p.getPos().add(0, 2.9, 0).add(fw.multiply(0.4)), Fx.Sfx.DOGOOON, 2.4f);
             for (ServerPlayerEntity o : s.getPlayerManager().getPlayerList()) {
                 o.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal(p.getName().getString() + " — 태양을 넘어선 자").formatted(Formatting.GRAY)));
                 o.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("완전생물").formatted(Formatting.GOLD, Formatting.BOLD)));
@@ -273,17 +344,36 @@ public final class UltimateLife {
                 o.playSoundToPlayer(SoundEvents.ENTITY_ENDER_DRAGON_GROWL, SoundCategory.MASTER, 0.8f, 0.6f);
             }
         });
-        Tasks.later(100, () -> { if (alive(p)) UltimateForm.wingBurst(w, p); });
-        Tasks.later(70, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM3); });   // 아름답다… 태양을 극복했다 (바-앙에 맞춰)
-        for (int t = 100; t < SCENE_LEN; t += 10) Tasks.later(t, () -> { if (alive(p)) Motion.play(p, "#wing:on"); });
-        for (int t = 108; t < 116; t++) Tasks.later(t, () -> { if (alive(p)) { Combat.move(p, new Vec3d(0, 0.45, 0)); UltimateForm.feathers(w, p.getPos().add(0, 1, 0), 4, 0.6); } });
-        Tasks.later(116, () -> { if (alive(p)) p.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 60, 0, false, false)); });
+        // 190~218 역광 속 빛나는 눈
+        for (int t = 190; t < 218; t += 4) Tasks.later(t, () -> { if (alive(p)) eyes(w, p, fw, rt, 1.62, 0.5, 0xFFFFFF); });
+        // 220~250 해를 향해 손을 뻗음 (몸을 돌려 동쪽을 봄 — 손이 해와 겹침)
+        Tasks.later(220, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM4); });   // 마침내 저 태양을… 극복했다!
+        for (int t = 230; t < 250; t += 5) Tasks.later(t, () -> { if (alive(p)) WorldFx.glint(w, p.getPos().add(0, 2.45, 0).add(fw.multiply(-0.45)).add(rt.multiply(-0.3)), 1.3, 0xFFF0C0); });
+        // 252~266 어둠 속 눈
+        for (int t = 252; t < 266; t += 4) Tasks.later(t, () -> { if (alive(p)) eyes(w, p, fw, rt, 1.62, 0.4, 0xFF4040); });
+        // 268 날개 → 272~280 떠오름
+        Tasks.later(268, () -> { if (alive(p)) UltimateForm.wingBurst(w, p); });
+        for (int t = 268; t < SCENE_LEN; t += 10) Tasks.later(t, () -> { if (alive(p)) Motion.play(p, "#wing:on"); });
+        for (int t = 272; t < 280; t++) Tasks.later(t, () -> { if (alive(p)) { Combat.move(p, new Vec3d(0, 0.32, 0)); UltimateForm.feathers(w, p.getPos().add(0, 1, 0), 4, 0.6); } });
+        Tasks.later(280, () -> { if (alive(p)) p.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 80, 0, false, false)); });
+        // 296~320 반짝이 속에서 내려다봄 + 웃음
+        Tasks.later(292, () -> { if (alive(p)) AjaVoice.say(p, UltimateForm.S_TRANSFORM5); });
+        for (int t = 296; t < SCENE_LEN; t += 4) Tasks.later(t, () -> {
+            if (!alive(p)) return;
+            Vec3d c = p.getPos().add(0, 1.6, 0).add(rt.multiply((w.random.nextDouble() - 0.5) * 1.6)).add(0, (w.random.nextDouble() - 0.3) * 1.2, 0);
+            WorldFx.glint(w, c, 0.6, w.random.nextBoolean() ? 0x9CFF7A : 0xFFFFFF);
+        });
         Tasks.later(SCENE_LEN, () -> {
             SCENE.remove(p.getUuid());
             if (!alive(p)) return;
             p.sendMessage(Text.literal("🔴 완전생물이 되었다 — 햇빛 면역 · 최대 체력 +20 · 1시간에 한 번 불멸. 높이 320 위나 공허에서 죽으면 끝.").formatted(Formatting.GOLD, Formatting.BOLD), false);
             p.sendMessage(Text.literal("   기술: 휘광 칼날 · 날개 강습 · 파문 역류 · 생명 창조(무리·날개) · 변형 팔 · 포식 — /bbc skills").formatted(Formatting.GRAY), false);
         });
+    }
+
+    /** 두 눈이 빛남 (눈 높이 h, 앞 0.27) */
+    static void eyes(ServerWorld w, ServerPlayerEntity p, Vec3d fw, Vec3d rt, double h, double size, int rgb) {
+        for (int sd = -1; sd <= 1; sd += 2) WorldFx.glint(w, p.getPos().add(0, h, 0).add(fw.multiply(0.27)).add(rt.multiply(0.12 * sd)), size, rgb);
     }
 
     /** 변신 대사는 컷신(화면 기준)으로 */

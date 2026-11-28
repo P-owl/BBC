@@ -64,7 +64,8 @@ public final class UltimateForm {
     static final SoundEvent S_WING = snd("wing"), S_WING_Q = snd("wing_q"), S_RIPPLE = snd("ripple"), S_RIPPLE_Q = snd("ripple_q"), S_SWARM = snd("swarm"),
             S_ARM = snd("arm"), S_ARM_Q = snd("arm_q"), S_FLY = snd("fly"), S_FEATHER = snd("feather"), S_EAT = snd("eat"), S_EAT_HIT = snd("eat_hit"),
             S_EAT_END = snd("eat_end"), S_AWAKEN = snd("awaken"), S_ULT1 = snd("ult1"), S_ULT2 = snd("ult2"), S_ULT3 = snd("ult3"),
-            S_TRANSFORM1 = snd("transform1"), S_TRANSFORM2 = snd("transform2"), S_TRANSFORM3 = snd("transform3"), S_RITUAL = snd("ritual");
+            S_TRANSFORM1 = snd("transform1"), S_TRANSFORM2 = snd("transform2"), S_TRANSFORM3 = snd("transform3"), S_TRANSFORM4 = snd("transform4"),
+            S_TRANSFORM5 = snd("transform5"), S_RITUAL = snd("ritual");
     private static SoundEvent snd(String path) {
         Identifier id = Identifier.of(Bbc.MOD_ID, "ultimate_being." + path);
         return Registry.register(Registries.SOUND_EVENT, id, SoundEvent.of(id));
@@ -546,6 +547,7 @@ public final class UltimateForm {
         double r = aw ? 9 : 7;
         Tasks.later(4, () -> { if (alive(p)) se(w, p.getPos(), SE_FLESH, 1.4f, 0.8f); });
         Set<Integer> got = new HashSet<>();
+        fx(p, "tentacle", "0," + n(p.getYaw()) + ",0," + n((float) r) + ",70,-80,8,13" + (aw ? ",-80,70,16,21" : ""));
         sweep(p, w, r, 8, 13, 70, -80, got);
         if (aw) Tasks.later(15, () -> { got.clear(); sweep(p, w, r, 1, 6, -80, 70, got); });
         return true;
@@ -583,6 +585,7 @@ public final class UltimateForm {
     private static boolean armPoke(ServerPlayerEntity p) {
         Motion.play(p, "ul_arm_q");
         Combat.afterSkill(p, 10);
+        fx(p, "tentacle", "1," + n(p.getYaw()) + "," + n(p.getPitch()) + ",6");
         ServerWorld w = p.getServerWorld();
         Tasks.later(4, () -> {
             if (!alive(p)) return;
@@ -607,6 +610,7 @@ public final class UltimateForm {
     private static boolean armAir(ServerPlayerEntity p) {
         Motion.play(p, "ul_arm_air");
         Combat.afterSkill(p, 14);
+        fx(p, "tentacle", "2," + n(p.getYaw()) + ",14,6.3");
         ServerWorld w = p.getServerWorld();
         Tasks.later(4, () -> { if (alive(p)) se(w, p.getPos(), SE_FLESH, 1.2f, 0.9f); });
         Tasks.later(7, () -> {
